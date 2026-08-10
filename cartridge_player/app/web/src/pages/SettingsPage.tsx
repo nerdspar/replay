@@ -198,7 +198,7 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
           />
           <p className="hint">
             Used to build the bookmarkable link for adding this app to your phone's
-            home screen. Find the link under Troubleshooting.
+            home screen. Find the link under Status.
           </p>
         </label>
       </div>

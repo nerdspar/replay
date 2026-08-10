@@ -16,14 +16,27 @@ belonging to someone who should never have to open the automation editor.
 
 ## 1. Install the add-on
 
-In Home Assistant: **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, and
-add this repository's URL. Then install **Cartridge Player** and start it.
+**This is an add-on, not a HACS integration.** HACS installs custom integrations,
+dashboard cards, and themes — it does not install add-ons. Use the add-on store:
+
+1. **Settings → Add-ons → Add-on Store**
+2. **⋮ (top right) → Repositories**
+3. Paste `https://github.com/nerdspar/replay` and **Add**
+4. Close the dialog, find **Cartridge Player** in the store, **Install**, then
+   **Start**
+
+The first install builds the image on your Home Assistant machine, so expect it
+to take several minutes — a native database driver is compiled during the build.
+Later updates are much quicker.
 
 Everything else is configured inside the app itself. The only add-on option is
 `direct_port`, and the default (`0`, off) is the right value for almost everyone.
 
 Requirements:
 
+- **Home Assistant OS or Supervised.** Add-ons do not exist on Home Assistant
+  Container or Core installs — if your sidebar has no **Add-ons** entry, that is
+  the reason, and this cannot be installed there.
 - The [Android TV Remote](https://www.home-assistant.io/integrations/androidtv_remote/)
   integration, already set up for your TV
 - Stremio installed on the TV
@@ -71,7 +84,7 @@ and waits for your first cartridge.
 After that: tap an unassigned cartridge on the reader, and the app offers to pick
 a movie or series for it. Tap an assigned one, and it opens on the TV.
 
-**Put it on your phone's home screen.** Under **Help**, set your Home Assistant
+**Put it on your phone's home screen.** Under **Status**, set your Home Assistant
 address in Settings and copy the panel link, then use Share → Add to Home Screen.
 That link is stable; the URL you see while browsing through the sidebar is not.
 

@@ -9,7 +9,7 @@ You need:
 - The **Android TV Remote** integration set up for your TV
 - **Stremio** installed on the TV
 - An NFC reader running the Cartridge Player firmware
-  ([instructions](https://github.com/scogoldberg/ha-cartridge-player))
+  ([instructions](https://github.com/nerdspar/replay))
 
 ## Setup
 
@@ -44,8 +44,9 @@ library showing its tag instead of artwork, and tapping it on the reader offers
 to fill it again. Use this when you want to put something else on a cartridge
 you still have.
 
-**Delete** removes the cartridge from the library completely. Use it when a
-cartridge is lost, or its tag has stopped working.
+**Delete** removes the cartridge from the library completely — useful when one is
+lost, or its tag has stopped working. Nothing is written to the cartridge itself,
+so if you find it again, tapping it on the reader adds it straight back.
 
 Both are on the **Edit** screen for a single cartridge, and under **Select** for
 several at once. Both ask before doing anything.
@@ -105,10 +106,14 @@ up the sheet.
 The cartridge label is exactly 2:3 — the same shape as a movie poster — so
 posters print without being cropped.
 
-You can also set the size by hand in millimetres, change the page to A4 or US
-Letter, adjust margins and spacing, print several copies of each, and turn the
-title caption on. A caption prints *inside* the label rather than making it
-taller, so the sticker still fits the shell.
+You can also set the size and corner radius by hand in millimetres, change the
+page to A4 or US Letter, adjust margins and spacing, and print several copies of
+each.
+
+There is no title caption, on purpose: the poster already carries the title, and
+a caption bar could only take its space from the artwork, which would crop the
+poster. A cartridge pinned to a single episode gets a small episode badge in the
+corner instead, since that is the one thing a poster cannot tell you.
 
 **One thing to get right in the print dialog:** set scale to 100% and turn off
 "fit to page" (Chrome calls this "Default" vs "Custom" scale; Safari has a
@@ -125,10 +130,10 @@ This is the intended way to use the app.
 
 1. In **Settings**, set **Home Assistant address** to the address you normally
    use, for example `https://homeassistant.local:8123`
-2. Open **Help** and copy the link shown there
+2. Open **Status** and copy the link shown there
 3. Open that link in your phone's browser, then **Share → Add to Home Screen**
 
-The link under Help is stable. The URL in your browser's address bar while
+The link under Status is stable. The URL in your browser's address bar while
 using the sidebar is **not** — it contains a session token that rotates.
 
 ## Settings worth knowing
@@ -146,11 +151,11 @@ are starting points, not measurements.
 
 ## Troubleshooting
 
-Open **Help**. It shows the Home Assistant connection state, whether live
+Open **Status**. It shows the Home Assistant connection state, whether live
 updates are flowing, the last error, and the most recent scans.
 
 **Nothing happens when I tap a cartridge.**
-Check Help — if Home Assistant shows as disconnected, the add-on cannot hear the
+Check Status — if Home Assistant shows as disconnected, the add-on cannot hear the
 reader. If scans are listed but the TV does nothing, re-run **Test** on the card
 from the library and check the error.
 

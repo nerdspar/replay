@@ -384,7 +384,7 @@ export function Library({ stream }: LibraryProps) {
       {pendingAction === 'delete' ? (
         <Confirm
           title={`Delete ${selected.size} cartridge${selected.size === 1 ? '' : 's'}?`}
-          body="This removes them from your library completely. Use it when a cartridge is lost or its tag is damaged — if you still have it, empty it instead."
+          body="They disappear from your library completely. If you still have them, tap one on the reader to add it back."
           confirmLabel="Delete"
           destructive
           busy={busy}

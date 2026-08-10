@@ -163,8 +163,8 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
           Delete this cartridge
         </button>
         <p className="hint">
-          Removes it from the library completely. For a cartridge you have lost,
-          or one whose tag has stopped working.
+          Removes it from the library completely. Tap it on the reader to add it
+          back.
         </p>
       </div>
 
@@ -182,7 +182,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
       {confirming === 'delete' ? (
         <Confirm
           title={`Delete “${card.title}”?`}
-          body="This removes the cartridge from your library completely. If you still have it, empty it instead — that keeps it ready to reuse."
+          body="It disappears from your library completely. If you still have the cartridge, tap it on the reader to add it back."
           confirmLabel="Delete"
           destructive
           busy={busy}

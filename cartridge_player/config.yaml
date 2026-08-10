@@ -2,7 +2,7 @@ name: Cartridge Player
 version: "0.1.0"
 slug: cartridge_player
 description: Tap NFC cartridges to launch shows on your TV
-url: https://github.com/scogoldberg/ha-cartridge-player
+url: https://github.com/nerdspar/replay
 arch:
   - aarch64
   - amd64

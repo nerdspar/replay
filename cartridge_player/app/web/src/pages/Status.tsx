@@ -3,7 +3,7 @@ import { api, ApiError } from '../api'
 import type { AppStream } from '../hooks/useAppStream'
 import type { ScanEvent, Settings } from '../types'
 
-interface TroubleshootProps {
+interface StatusProps {
   stream: AppStream
   settings: Settings
 }
@@ -15,7 +15,7 @@ function when(ms: number): string {
   return new Date(ms).toLocaleString()
 }
 
-export function Troubleshoot({ stream, settings: initial }: TroubleshootProps) {
+export function Status({ stream, settings: initial }: StatusProps) {
   const [scans, setScans] = useState<ScanEvent[]>([])
   const [lastError, setLastError] = useState<{ message: string; at: number } | null>(null)
   const [copied, setCopied] = useState(false)

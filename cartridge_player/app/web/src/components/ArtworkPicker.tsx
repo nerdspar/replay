@@ -202,9 +202,8 @@ export function ArtworkPicker({
       />
 
       <p className="hint">
-        Whatever you pick is used on the tile here and on printed stickers. Your
-        own images are resized first, so they stay small on disk but still print
-        sharply. ThePosterDB links look like{' '}
+        Whatever you pick is used on the tile here and on printed stickers.
+        ThePosterDB links look like{' '}
         <span className="mono">theposterdb.com/api/assets/123456</span>.
       </p>
 

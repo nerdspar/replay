@@ -7,7 +7,7 @@ import { useAppStream } from './hooks/useAppStream'
 import { Library } from './pages/Library'
 import { PrintSheet } from './pages/PrintSheet'
 import { SettingsPage } from './pages/SettingsPage'
-import { Troubleshoot } from './pages/Troubleshoot'
+import { Status } from './pages/Status'
 import { Wizard } from './pages/Wizard'
 import type { Settings } from './types'
 
@@ -93,10 +93,9 @@ export default function App() {
             path="/settings"
             element={<SettingsPage settings={settings} onSaved={setSettings} />}
           />
-          <Route
-            path="/troubleshooting"
-            element={<Troubleshoot stream={stream} settings={settings} />}
-          />
+          <Route path="/status" element={<Status stream={stream} settings={settings} />} />
+          {/* Anyone with the old link lands in the right place. */}
+          <Route path="/troubleshooting" element={<Navigate to="/status" replace />} />
           <Route path="/print" element={<PrintSheet />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -111,9 +110,9 @@ export default function App() {
           <Icon name="settings" size={22} />
           Settings
         </NavLink>
-        <NavLink to="/troubleshooting">
+        <NavLink to="/status">
           <Icon name="help" size={22} />
-          Help
+          Status
         </NavLink>
       </nav>
     </div>
