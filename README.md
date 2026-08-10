@@ -1,0 +1,163 @@
+# Cartridge Player
+
+Tap a 3D-printed NFC cartridge on a reader, and the show opens on the TV.
+
+This repository is a **Home Assistant add-on repository**. It contains:
+
+| | |
+|---|---|
+| [`cartridge_player/`](cartridge_player) | The add-on — tag library, metadata search, and playback |
+| [`esphome/`](esphome) | Firmware for the ESP8266 + RC522 reader |
+
+v1 targets **Stremio** content on an **Android TV**, on a fresh HAOS install
+belonging to someone who should never have to open the automation editor.
+
+---
+
+## 1. Install the add-on
+
+In Home Assistant: **Settings → Add-ons → Add-on Store → ⋮ → Repositories**, and
+add this repository's URL. Then install **Cartridge Player** and start it.
+
+Everything else is configured inside the app itself. The only add-on option is
+`direct_port`, and the default (`0`, off) is the right value for almost everyone.
+
+Requirements:
+
+- The [Android TV Remote](https://www.home-assistant.io/integrations/androidtv_remote/)
+  integration, already set up for your TV
+- Stremio installed on the TV
+- Outbound internet access from the add-on (for Cinemeta metadata)
+
+## 2. Build the reader
+
+See [§1 of the spec](cartridge-player-spec.md#1-hardware) for the bill of
+materials. In short: a D1 mini, an RC522 module, a **3-pin active buzzer module
+with an onboard transistor**, a 470 µF capacitor across 3V3/GND next to the
+RC522, and NTAG215 stickers.
+
+Pin map — these are deliberate, do not "simplify" them:
+
+| Function | GPIO | D1 mini |
+|---|---|---|
+| SPI CLK | GPIO14 | D5 |
+| SPI MOSI | GPIO13 | D7 |
+| SPI MISO | GPIO12 | D6 |
+| RC522 CS | GPIO5 | D1 |
+| Buzzer | GPIO4 | D2 |
+
+**Do not use GPIO0, GPIO2, GPIO15, or GPIO16.** GPIO15 must be low at boot and
+RC522 modules often pull it high — the board then simply won't start, with no
+obvious cause. GPIO1 is UART TX and collides with the serial logger. The RC522
+reset pin stays unconnected; the module has its own power-on reset.
+
+## 3. Flash the firmware
+
+Copy [`esphome/cartridge-reader.yaml`](esphome/cartridge-reader.yaml) into your
+ESPHome config directory, add the secrets from
+[`esphome/secrets.yaml.example`](esphome/secrets.yaml.example), and install.
+
+**Compile from YAML.** The upstream project ships prebuilt binaries for ESP32-C3
+and ESP32-S3; those will not flash to an ESP8266.
+
+Once it is running you should see a `Cartridge ID` sensor, a `Cartridge Present`
+binary sensor, and a `Test Beep` button in Home Assistant.
+
+## 4. Use it
+
+Open **Cartridges** in the sidebar. A three-step wizard picks your TV, tests it,
+and waits for your first cartridge.
+
+After that: tap an unassigned cartridge on the reader, and the app offers to pick
+a movie or series for it. Tap an assigned one, and it opens on the TV.
+
+**Put it on your phone's home screen.** Under **Help**, set your Home Assistant
+address in Settings and copy the panel link, then use Share → Add to Home Screen.
+That link is stable; the URL you see while browsing through the sidebar is not.
+
+## 5. Print the stickers
+
+**Print stickers** in the library lays the artwork out on A4 or US Letter, sized
+in millimetres. The **Cartridge label** preset is 60 × 90 mm with 4 mm corners,
+measured from the shell — exactly 2:3, so posters print uncropped. Nine fit on an
+A4 page, six on Letter.
+
+Print at 100% scale with "fit to page" off, or the printer will shrink the sheet
+to its own margins and the labels will not match the shell.
+
+---
+
+## Development
+
+```bash
+cd cartridge_player/app/server && npm install && npm test
+```
+
+```bash
+cd cartridge_player/app/web && npm install && npm run build
+```
+
+The server serves the built SPA, so `npm run build` in `web/` then `npm run dev`
+in `server/` gives you the whole app on <http://localhost:8099>. Point it at a
+real Home Assistant with:
+
+```bash
+SUPERVISOR_TOKEN=<long-lived-token> CARTRIDGE_HA_REST_BASE=http://homeassistant.local:8123/api CARTRIDGE_HA_WS_URL=ws://homeassistant.local:8123/api/websocket CARTRIDGE_DB_PATH=./dev.db CARTRIDGE_WEB_ROOT=../web/dist npm run dev
+```
+
+Test through ingress, not against a directly exposed dev port — the base-path
+handling is the single most likely thing to break, and it only exists under
+ingress. There is a simulator for exactly that, which also stands in for the TV
+and the NFC reader:
+
+```bash
+cd cartridge_player/app/server && npm run dev:fake-ha
+```
+
+```bash
+cd cartridge_player/app/server && npm run dev:against-fake-ha
+```
+
+That serves the app under a rotating ingress session path at
+<http://127.0.0.1:9124/api/hassio_ingress/AbC123SessionToken/>, and gives you a
+control port to fake cartridge taps:
+
+```bash
+curl "http://127.0.0.1:9125/insert?uid=04-A3-B8-8B-32-02-89"
+```
+
+```bash
+curl -s http://127.0.0.1:9125/calls | python3 -m json.tool
+```
+
+### Layout
+
+```
+cartridge_player/app/server/src
+├── core/         fire sequence, scan handling, pending UIDs, UID normalisation
+├── providers/    Provider registry + StremioProvider (Cinemeta)
+├── targets/      Target registry + AndroidTvTarget
+├── ha/           Supervisor REST, event WebSocket
+├── http/         Fastify routes, ingress base injection, PIN gate
+└── db/           SQLite schema and store
+```
+
+A second content provider or a second playback device is a `register()` call in
+[`context.ts`](cartridge_player/app/server/src/context.ts) — no call site, schema,
+or frontend change. [`seams.test.ts`](cartridge_player/app/server/src/seams.test.ts)
+is what keeps that true.
+
+## Status
+
+The Jellyfin + Neptune-on-Apple-TV deployment described in §12 of the spec is
+**blocked upstream** and deliberately not implemented. Neptune reports
+`SupportsRemoteControl: false`, so Jellyfin session control cannot target it, and
+it exposes no documented item-level deep link. The architecture accommodates it;
+the code does not pretend to.
+
+## Validating it works
+
+See [TESTING.md](TESTING.md) for a phased validation plan — bench tests with a
+simulated Home Assistant first, then firmware bring-up, then the real install.
+It also documents how to run the simulator, which proxies the add-on exactly the
+way ingress does.

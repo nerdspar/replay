@@ -1,0 +1,14 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+*.db
+*.db-journal
+.vite/
+coverage/
+.esphome/
+secrets.yaml
+
+*.tsbuildinfo
+
+dev-data/

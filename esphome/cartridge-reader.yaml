@@ -1,0 +1,201 @@
+# Cartridge Player — NFC reader firmware
+#
+# Derived from TheStockPot/NFC-Cartridge-Player, repinned for ESP8266 (§2).
+# The upstream prebuilt binaries are ESP32-C3/S3 and will NOT flash to an
+# ESP8266 — compile this YAML.
+#
+# Pin map (§1.1). Hardware SPI on the ESP8266 is fixed; these are deliberate.
+#   SPI CLK   GPIO14  D5
+#   SPI MOSI  GPIO13  D7
+#   SPI MISO  GPIO12  D6
+#   RC522 CS  GPIO5   D1
+#   Buzzer    GPIO4   D2
+#
+# Do NOT move anything to GPIO0/2/15/16. GPIO15 must be low at boot and RC522
+# modules often pull it high, giving a board that silently refuses to start.
+# GPIO1 is UART TX and collides with the serial logger.
+#
+# The RC522 reset pin stays unconnected — the module uses its own power-on reset.
+
+substitutions:
+  device_name: cartridge-reader
+  friendly_name: Cartridge Reader
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100
+    then:
+      - script.execute: beep_ready
+
+esp8266:
+  board: d1_mini
+
+logger:
+  # GPIO1 (UART TX) is in use by the logger; keep it off the pin budget.
+  level: INFO
+
+api:
+  encryption:
+    key: !secret cartridge_reader_api_key
+
+ota:
+  - platform: esphome
+    password: !secret cartridge_reader_ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${friendly_name} Fallback"
+    password: !secret fallback_ap_password
+
+captive_portal:
+
+# ---------------------------------------------------------------------------
+# Reader
+# ---------------------------------------------------------------------------
+
+spi:
+  clk_pin: GPIO14
+  miso_pin: GPIO12
+  mosi_pin: GPIO13
+
+globals:
+  - id: current_uid
+    type: std::string
+    restore_value: false
+    initial_value: '""'
+  - id: card_present
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+rc522_spi:
+  cs_pin: GPIO5
+  update_interval: 250ms
+
+  on_tag:
+    then:
+      # Cancel any pending removal first: a card resting on the reader drops out
+      # of the field intermittently, and this is what turns that flicker into a
+      # no-op instead of an event storm (§2.1).
+      - script.stop: removal_debounce
+
+      - if:
+          condition:
+            lambda: 'return id(current_uid) != x || !id(card_present);'
+          then:
+            # Beep locally, before anything touches the network. Audible
+            # confirmation must not depend on HA being responsive (§2.1).
+            - script.execute: beep_insert
+
+            - lambda: |-
+                id(current_uid) = x;
+                id(card_present) = true;
+            - text_sensor.template.publish:
+                id: cartridge_id
+                state: !lambda 'return x;'
+            - binary_sensor.template.publish:
+                id: cartridge_present
+                state: true
+
+            - homeassistant.event:
+                event: esphome.nfc_card_inserted
+                data:
+                  uid: !lambda 'return x;'
+
+  on_tag_removed:
+    then:
+      - script.execute: removal_debounce
+
+script:
+  # 500 ms debounce (§2.1). Restarted rather than queued so repeated drop-outs
+  # collapse into one pending removal.
+  - id: removal_debounce
+    mode: restart
+    then:
+      - delay: 500ms
+      - if:
+          condition:
+            lambda: 'return id(card_present);'
+          then:
+            - homeassistant.event:
+                event: esphome.nfc_card_removed
+                data:
+                  uid: !lambda 'return id(current_uid);'
+            - lambda: |-
+                id(card_present) = false;
+                id(current_uid) = "";
+            - binary_sensor.template.publish:
+                id: cartridge_present
+                state: false
+            - text_sensor.template.publish:
+                id: cartridge_id
+                state: ""
+
+  - id: beep_insert
+    mode: restart
+    then:
+      - switch.turn_on: buzzer
+      - delay: 60ms
+      - switch.turn_off: buzzer
+      - delay: 50ms
+      - switch.turn_on: buzzer
+      - delay: 60ms
+      - switch.turn_off: buzzer
+
+  - id: beep_ready
+    mode: restart
+    then:
+      - switch.turn_on: buzzer
+      - delay: 120ms
+      - switch.turn_off: buzzer
+
+# ---------------------------------------------------------------------------
+# Buzzer (§1.2)
+#
+# 3-pin ACTIVE buzzer module with an onboard driver transistor: the GPIO only
+# supplies base current, so a plain digital output is correct and stays inside
+# the ESP8266's 12 mA per-pin budget. Confirm a three-legged SOT-23 part is
+# actually on the board — some "3-pin" modules leave the middle pin floating and
+# are a bare buzzer, which would exceed the budget.
+# ---------------------------------------------------------------------------
+
+switch:
+  - platform: gpio
+    id: buzzer
+    pin: GPIO4
+    internal: true
+    restore_mode: ALWAYS_OFF
+
+# ---------------------------------------------------------------------------
+# Entities
+# ---------------------------------------------------------------------------
+
+text_sensor:
+  - platform: template
+    id: cartridge_id
+    name: "Cartridge ID"
+    icon: mdi:nfc-variant
+
+binary_sensor:
+  - platform: template
+    id: cartridge_present
+    name: "Cartridge Present"
+    device_class: presence
+
+button:
+  - platform: template
+    name: "Test Beep"
+    icon: mdi:volume-high
+    on_press:
+      - script.execute: beep_insert
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+  - platform: uptime
+    name: "Uptime"

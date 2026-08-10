@@ -1,0 +1,48 @@
+{
+  "query": "blade runner",
+  "rank": 33.125,
+  "cacheMaxAge": 86400,
+  "metas": [
+    {
+      "id": "tt1856101",
+      "imdb_id": "tt1856101",
+      "type": "movie",
+      "name": "Blade Runner 2049",
+      "poster": "https://m.media-amazon.com/images/M/MV5BNzA1Njg4NzYxOV5BMl5BanBnXkFtZTgwODk5NjU3MzI@._V1_SX250.jpg",
+      "background": "https://images.metahub.space/background/medium/tt1856101/img",
+      "releaseInfo": "2017",
+      "links": [],
+      "behaviorHints": {
+        "defaultVideoId": "tt1856101",
+        "hasScheduledVideos": false
+      }
+    },
+    {
+      "id": "tt0083658",
+      "imdb_id": "tt0083658",
+      "type": "movie",
+      "name": "Blade Runner",
+      "poster": "https://m.media-amazon.com/images/M/MV5BOWQ4YTBmNTQtMDYxMC00NGFjLTkwOGQtNzdhNmY1Nzc1MzUxXkEyXkFqcGc@._V1_SX250.jpg",
+      "background": "https://images.metahub.space/background/medium/tt0083658/img",
+      "releaseInfo": "1982",
+      "links": [],
+      "behaviorHints": {
+        "defaultVideoId": "tt0083658",
+        "hasScheduledVideos": false
+      }
+    },
+    {
+      "id": "tt39466735",
+      "imdb_id": "tt39466735",
+      "type": "movie",
+      "name": "Blade Runner White Dragon Cut",
+      "poster": "https://m.media-amazon.com/images/M/MV5BOWM4ZWNiOGYtM2Y1OS00YTJiLTk1Y2MtMTMxOTViZDAzOWE5XkEyXkFqcGc@._V1_SX250.jpg",
+      "background": "https://images.metahub.space/background/medium/tt39466735/img",
+      "links": [],
+      "behaviorHints": {
+        "defaultVideoId": "tt39466735",
+        "hasScheduledVideos": false
+      }
+    }
+  ]
+}

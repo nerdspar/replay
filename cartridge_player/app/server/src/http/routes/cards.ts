@@ -1,0 +1,97 @@
+import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
+import type { AppContext } from '../../context.js'
+import { AppError } from '../../errors.js'
+import { collectArtworkGarbage } from './artwork.js'
+
+const contentType = z.enum(['movie', 'series'])
+
+const createBody = z.object({
+  tag_uid: z.string().min(1),
+  provider: z.string().min(1).optional(),
+  content_type: contentType,
+  external_id: z.string().min(1),
+  title: z.string().min(1),
+  year: z.string().nullable().optional(),
+  poster_url: z.string().nullable().optional(),
+  season: z.number().int().nullable().optional(),
+  episode: z.number().int().nullable().optional(),
+  label: z.string().nullable().optional(),
+})
+
+const patchBody = createBody.partial().omit({ tag_uid: true })
+
+export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void {
+  app.get('/api/cards', async () => ({ cards: ctx.store.listCards() }))
+
+  app.post('/api/cards', async (request, reply) => {
+    const body = createBody.parse(request.body)
+    const provider = body.provider ?? ctx.providers.defaultProviderId
+    // Resolving here means an unknown provider is rejected at assignment time,
+    // not at 2am when someone taps the cartridge.
+    ctx.providers.get(provider)
+
+    const existing = ctx.store.findCardByUid(body.tag_uid)
+    if (existing) {
+      throw new AppError(
+        'uid_taken',
+        `That cartridge is already assigned to "${existing.title}".`,
+        409,
+      )
+    }
+
+    const now = Date.now()
+    const card = ctx.store.createCard(
+      {
+        tag_uid: body.tag_uid,
+        provider,
+        content_type: body.content_type,
+        external_id: body.external_id,
+        title: body.title,
+        year: body.year ?? null,
+        poster_url: body.poster_url ?? null,
+        season: body.season ?? null,
+        episode: body.episode ?? null,
+        label: body.label ?? null,
+      },
+      now,
+    )
+
+    ctx.pending.clear(body.tag_uid)
+    ctx.bus.emit({ type: 'pending', pending: ctx.pending.get() })
+    ctx.bus.emit({ type: 'cards' })
+
+    reply.code(201)
+    return { card }
+  })
+
+  app.patch<{ Params: { id: string } }>('/api/cards/:id', async (request) => {
+    const id = Number(request.params.id)
+    const patch = patchBody.parse(request.body)
+    const card = ctx.store.updateCard(id, patch, Date.now())
+    if (!card) throw new AppError('not_found', 'No such card', 404)
+    // A replaced custom image may now be unreferenced.
+    collectArtworkGarbage(ctx)
+    ctx.bus.emit({ type: 'cards' })
+    return { card }
+  })
+
+  app.delete<{ Params: { id: string } }>('/api/cards/:id', async (request) => {
+    const id = Number(request.params.id)
+    if (!ctx.store.deleteCard(id)) {
+      throw new AppError('not_found', 'No such card', 404)
+    }
+    collectArtworkGarbage(ctx)
+    ctx.bus.emit({ type: 'cards' })
+    return { ok: true }
+  })
+
+  /** Re-runs the whole fire sequence on demand (§6.2). */
+  app.post<{ Params: { id: string } }>('/api/cards/:id/test', async (request) => {
+    const card = ctx.store.getCard(Number(request.params.id))
+    if (!card) throw new AppError('not_found', 'No such card', 404)
+
+    const outcome = await ctx.scans.fire(card)
+    return { scan: outcome.scan, ok: outcome.scan.error === null }
+  })
+}

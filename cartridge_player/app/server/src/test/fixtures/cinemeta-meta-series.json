@@ -1,0 +1,269 @@
+{
+  "meta": {
+    "awards": "Won 16 Primetime Emmys. 172 wins & 269 nominations total",
+    "cast": [
+      "Bryan Cranston",
+      "Aaron Paul",
+      "Anna Gunn"
+    ],
+    "country": "United States",
+    "description": "A chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine with a former student to secure his family's future.",
+    "director": null,
+    "dvdRelease": null,
+    "genre": [
+      "Crime",
+      "Drama",
+      "Thriller"
+    ],
+    "imdbRating": "9.5",
+    "imdb_id": "tt0903747",
+    "name": "Breaking Bad",
+    "popularity": 5.77629,
+    "poster": "https://images.metahub.space/poster/small/tt0903747/img",
+    "released": "2008-01-20T00:00:00.000Z",
+    "runtime": "49 min",
+    "status": "Ended",
+    "tvdb_id": 81189,
+    "type": "series",
+    "writer": [
+      "Vince Gilligan"
+    ],
+    "year": "2008–2013",
+    "background": "https://images.metahub.space/background/medium/tt0903747/img",
+    "logo": "https://images.metahub.space/logo/medium/tt0903747/img",
+    "popularities": {
+      "PXS_TEST": 0,
+      "PXS": 3,
+      "SCM": 6,
+      "EXMD": 1,
+      "ALLIANCE": 0,
+      "EJD": 0,
+      "moviedb": 173.2887,
+      "trakt": 789,
+      "stremio": 5.77629,
+      "stremio_lib": 0
+    },
+    "moviedb_id": 1396,
+    "slug": "series/breaking-bad-0903747",
+    "trailers": [
+      {
+        "source": "VFLkMDEO-Xc",
+        "type": "Trailer"
+      },
+      {
+        "source": "XZ8daibM3AE",
+        "type": "Trailer"
+      }
+    ],
+    "id": "tt0903747",
+    "genres": [
+      "Crime",
+      "Drama",
+      "Thriller"
+    ],
+    "releaseInfo": "2008–2013",
+    "videos": [
+      {
+        "name": "Pilot",
+        "season": 1,
+        "number": 1,
+        "firstAired": "2008-01-21T05:00:00.000Z",
+        "tvdb_id": 349232,
+        "rating": "7.7",
+        "overview": "When an unassuming high school chemistry teacher discovers he has a rare form of lung cancer, he decides to team up with a former student and create a top of the line crystal meth in a used RV, to provide for his family once he is gone.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/1/1/w780.jpg",
+        "id": "tt0903747:1:1",
+        "released": "2008-01-21T05:00:00.000Z",
+        "episode": 1,
+        "description": "When an unassuming high school chemistry teacher discovers he has a rare form of lung cancer, he decides to team up with a former student and create a top of the line crystal meth in a used RV, to provide for his family once he is gone."
+      },
+      {
+        "name": "Cat's in the Bag...",
+        "season": 1,
+        "number": 2,
+        "firstAired": "2008-01-28T05:00:00.000Z",
+        "tvdb_id": 349233,
+        "rating": "7.6",
+        "overview": "Walt and Jesse attempt to tie up loose ends. The desperate situation gets more complicated with the flip of a coin. Walt's wife, Skyler, becomes suspicious of Walt's strange behavior.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/1/2/w780.jpg",
+        "id": "tt0903747:1:2",
+        "released": "2008-01-28T05:00:00.000Z",
+        "episode": 2,
+        "description": "Walt and Jesse attempt to tie up loose ends. The desperate situation gets more complicated with the flip of a coin. Walt's wife, Skyler, becomes suspicious of Walt's strange behavior."
+      },
+      {
+        "name": "...And the Bag's in the River",
+        "season": 1,
+        "number": 3,
+        "firstAired": "2008-02-11T05:00:00.000Z",
+        "tvdb_id": 349235,
+        "rating": "7.6",
+        "overview": "Walter fights with Jesse over his drug use, causing him to leave Walter alone with their captive, Krazy-8. Meanwhile, Hank has a scared straight moment with Walter Jr..",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/1/3/w780.jpg",
+        "id": "tt0903747:1:3",
+        "released": "2008-02-11T05:00:00.000Z",
+        "episode": 3,
+        "description": "Walter fights with Jesse over his drug use, causing him to leave Walter alone with their captive, Krazy-8. Meanwhile, Hank has a scared straight moment with Walter Jr.."
+      },
+      {
+        "name": "Cancer Man",
+        "season": 1,
+        "number": 4,
+        "firstAired": "2008-02-18T05:00:00.000Z",
+        "tvdb_id": 349236,
+        "rating": "7.6",
+        "overview": "Walter finally tells his family that he has cancer. Meanwhile, the DEA believes Albuquerque has a new, big time player to worry about. Jesse makes a surprise visit to his parents home.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/1/4/w780.jpg",
+        "id": "tt0903747:1:4",
+        "released": "2008-02-18T05:00:00.000Z",
+        "episode": 4,
+        "description": "Walter finally tells his family that he has cancer. Meanwhile, the DEA believes Albuquerque has a new, big time player to worry about. Jesse makes a surprise visit to his parents home."
+      },
+      {
+        "name": "Gray Matter",
+        "season": 1,
+        "number": 5,
+        "firstAired": "2008-02-25T05:00:00.000Z",
+        "tvdb_id": 349238,
+        "rating": "7.6",
+        "overview": "Walter and Skyler attend a former colleague's birthday party. Jesse tries to free himself from drugs, while Skyler organizes an intervention.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/1/5/w780.jpg",
+        "id": "tt0903747:1:5",
+        "released": "2008-02-25T05:00:00.000Z",
+        "episode": 5,
+        "description": "Walter and Skyler attend a former colleague's birthday party. Jesse tries to free himself from drugs, while Skyler organizes an intervention."
+      },
+      {
+        "name": "A No-Rough-Stuff-Type Deal",
+        "season": 1,
+        "number": 7,
+        "firstAired": "2008-03-10T05:00:00.000Z",
+        "tvdb_id": 352534,
+        "rating": "8",
+        "overview": "Walter accepts his new identity as a drug dealer. Elsewhere, Jesse decides to put his aunt's house on the market and Marie throws Skyler a baby shower.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/1/7/w780.jpg",
+        "id": "tt0903747:1:7",
+        "released": "2008-03-10T05:00:00.000Z",
+        "episode": 7,
+        "description": "Walter accepts his new identity as a drug dealer. Elsewhere, Jesse decides to put his aunt's house on the market and Marie throws Skyler a baby shower."
+      },
+      {
+        "name": "Crazy Handful of Nothin'",
+        "season": 1,
+        "number": 6,
+        "firstAired": "2008-03-03T05:00:00.000Z",
+        "tvdb_id": 355100,
+        "rating": "8.1",
+        "overview": "The side effects of chemo begin to plague Walt. Meanwhile, the DEA rounds up suspected dealers.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/1/6/w780.jpg",
+        "id": "tt0903747:1:6",
+        "released": "2008-03-03T05:00:00.000Z",
+        "episode": 6,
+        "description": "The side effects of chemo begin to plague Walt. Meanwhile, the DEA rounds up suspected dealers."
+      },
+      {
+        "name": "Good Cop Bad Cop",
+        "season": 0,
+        "number": 1,
+        "firstAired": "2009-02-18T05:00:00.000Z",
+        "tvdb_id": 3859781,
+        "rating": "8",
+        "overview": "Hank and Marie try to spice up their relationship on Valentine's Day.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/0/1/w780.jpg",
+        "id": "tt0903747:0:1",
+        "released": "2009-02-18T05:00:00.000Z",
+        "episode": 1,
+        "description": "Hank and Marie try to spice up their relationship on Valentine's Day."
+      },
+      {
+        "name": "Seven Thirty-Seven",
+        "season": 2,
+        "number": 1,
+        "firstAired": "2009-03-09T05:00:00.000Z",
+        "tvdb_id": 438912,
+        "rating": "7.7",
+        "overview": "Walt and Jesse are reminded of Tuco’s volatile nature, and try to figure a way out of their business partnership. Hank attempts to mend fences between the estranged Marie and Skyler.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/2/1/w780.jpg",
+        "id": "tt0903747:2:1",
+        "released": "2009-03-09T05:00:00.000Z",
+        "episode": 1,
+        "description": "Walt and Jesse are reminded of Tuco’s volatile nature, and try to figure a way out of their business partnership. Hank attempts to mend fences between the estranged Marie and Skyler."
+      },
+      {
+        "name": "Grilled",
+        "season": 2,
+        "number": 2,
+        "firstAired": "2009-03-16T05:00:00.000Z",
+        "tvdb_id": 438913,
+        "rating": "7.9",
+        "overview": "Walt and Jesse find themselves in close quarters with an unhinged Tuco. Marie and Hank comfort Skyler, who is distraught over Walt’s disappearance. Hank pays a visit to Mrs. Pinkman on some not-so-official business.",
+        "thumbnail": "https://episodes.metahub.space/tt0903747/2/2/w780.jpg",
+        "id": "tt0903747:2:2",
+        "released": "2009-03-16T05:00:00.000Z",
+        "episode": 2,
+        "description": "Walt and Jesse find themselves in close quarters with an unhinged Tuco. Marie and Hank comfort Skyler, who is distraught over Walt’s disappearance. Hank pays a visit to Mrs. Pinkman on some not-so-official business."
+      }
+    ],
+    "trailerStreams": [
+      {
+        "title": "Breaking Bad",
+        "ytId": "VFLkMDEO-Xc"
+      },
+      {
+        "title": "Breaking Bad",
+        "ytId": "XZ8daibM3AE"
+      }
+    ],
+    "links": [
+      {
+        "name": "9.5",
+        "category": "imdb",
+        "url": "https://imdb.com/title/tt0903747"
+      },
+      {
+        "name": "Breaking Bad",
+        "category": "share",
+        "url": "https://www.strem.io/s/series/breaking-bad-0903747"
+      },
+      {
+        "name": "Crime",
+        "category": "Genres",
+        "url": "stremio:///discover/https%3A%2F%2Fv3-cinemeta.strem.io%2Fmanifest.json/series/top?genre=Crime"
+      },
+      {
+        "name": "Drama",
+        "category": "Genres",
+        "url": "stremio:///discover/https%3A%2F%2Fv3-cinemeta.strem.io%2Fmanifest.json/series/top?genre=Drama"
+      },
+      {
+        "name": "Thriller",
+        "category": "Genres",
+        "url": "stremio:///discover/https%3A%2F%2Fv3-cinemeta.strem.io%2Fmanifest.json/series/top?genre=Thriller"
+      },
+      {
+        "name": "Bryan Cranston",
+        "category": "Cast",
+        "url": "stremio:///search?search=Bryan%20Cranston"
+      },
+      {
+        "name": "Aaron Paul",
+        "category": "Cast",
+        "url": "stremio:///search?search=Aaron%20Paul"
+      },
+      {
+        "name": "Anna Gunn",
+        "category": "Cast",
+        "url": "stremio:///search?search=Anna%20Gunn"
+      },
+      {
+        "name": "Vince Gilligan",
+        "category": "Writers",
+        "url": "stremio:///search?search=Vince%20Gilligan"
+      }
+    ],
+    "behaviorHints": {
+      "defaultVideoId": null,
+      "hasScheduledVideos": true
+    }
+  }
+}

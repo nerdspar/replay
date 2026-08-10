@@ -1,0 +1,163 @@
+{
+  "meta": {
+    "awards": "Nominated for 2 Oscars. 13 wins & 22 nominations total",
+    "cast": [
+      "Harrison Ford",
+      "Rutger Hauer",
+      "Sean Young"
+    ],
+    "country": "United States, United Kingdom, Hong Kong",
+    "description": "A blade runner must pursue and terminate four replicants who stole a ship in space and have returned to Earth to find their creator.",
+    "director": [
+      "Ridley Scott"
+    ],
+    "dvdRelease": "2013-06-09T00:00:00.000Z",
+    "genre": [
+      "Action",
+      "Drama",
+      "Sci-Fi"
+    ],
+    "imdbRating": "8.1",
+    "imdb_id": "tt0083658",
+    "moviedb_id": 78,
+    "name": "Blade Runner",
+    "popularity": 0.88206,
+    "poster": "https://images.metahub.space/poster/small/tt0083658/img",
+    "released": "1982-06-25T00:00:00.000Z",
+    "runtime": "118 min",
+    "trailers": [
+      {
+        "source": "qoEyZoOTtss",
+        "type": "Trailer"
+      },
+      {
+        "source": "W_9rhPDLHWk",
+        "type": "Trailer"
+      },
+      {
+        "source": "6Ilbh612RUc",
+        "type": "Trailer"
+      },
+      {
+        "source": "eogpIG53Cis",
+        "type": "Trailer"
+      },
+      {
+        "source": "iYhJ7Mf2Oxs",
+        "type": "Trailer"
+      }
+    ],
+    "type": "movie",
+    "writer": [
+      "Hampton Fancher",
+      "David Webb Peoples",
+      "Philip K. Dick"
+    ],
+    "year": "1982",
+    "background": "https://images.metahub.space/background/medium/tt0083658/img",
+    "logo": "https://images.metahub.space/logo/medium/tt0083658/img",
+    "popularities": {
+      "moviedb": 26.4618,
+      "stremio": 0.88206,
+      "trakt": 19,
+      "stremio_lib": 0
+    },
+    "slug": "movie/blade-runner-0083658",
+    "id": "tt0083658",
+    "genres": [
+      "Action",
+      "Drama",
+      "Sci-Fi"
+    ],
+    "releaseInfo": "1982",
+    "videos": [],
+    "trailerStreams": [
+      {
+        "title": "Blade Runner",
+        "ytId": "qoEyZoOTtss"
+      },
+      {
+        "title": "Blade Runner",
+        "ytId": "W_9rhPDLHWk"
+      },
+      {
+        "title": "Blade Runner",
+        "ytId": "6Ilbh612RUc"
+      },
+      {
+        "title": "Blade Runner",
+        "ytId": "eogpIG53Cis"
+      },
+      {
+        "title": "Blade Runner",
+        "ytId": "iYhJ7Mf2Oxs"
+      }
+    ],
+    "links": [
+      {
+        "name": "8.1",
+        "category": "imdb",
+        "url": "https://imdb.com/title/tt0083658"
+      },
+      {
+        "name": "Blade Runner",
+        "category": "share",
+        "url": "https://www.strem.io/s/movie/blade-runner-0083658"
+      },
+      {
+        "name": "Action",
+        "category": "Genres",
+        "url": "stremio:///discover/https%3A%2F%2Fv3-cinemeta.strem.io%2Fmanifest.json/movie/top?genre=Action"
+      },
+      {
+        "name": "Drama",
+        "category": "Genres",
+        "url": "stremio:///discover/https%3A%2F%2Fv3-cinemeta.strem.io%2Fmanifest.json/movie/top?genre=Drama"
+      },
+      {
+        "name": "Sci-Fi",
+        "category": "Genres",
+        "url": "stremio:///discover/https%3A%2F%2Fv3-cinemeta.strem.io%2Fmanifest.json/movie/top?genre=Sci-Fi"
+      },
+      {
+        "name": "Harrison Ford",
+        "category": "Cast",
+        "url": "stremio:///search?search=Harrison%20Ford"
+      },
+      {
+        "name": "Rutger Hauer",
+        "category": "Cast",
+        "url": "stremio:///search?search=Rutger%20Hauer"
+      },
+      {
+        "name": "Sean Young",
+        "category": "Cast",
+        "url": "stremio:///search?search=Sean%20Young"
+      },
+      {
+        "name": "Hampton Fancher",
+        "category": "Writers",
+        "url": "stremio:///search?search=Hampton%20Fancher"
+      },
+      {
+        "name": "David Webb Peoples",
+        "category": "Writers",
+        "url": "stremio:///search?search=David%20Webb%20Peoples"
+      },
+      {
+        "name": "Philip K. Dick",
+        "category": "Writers",
+        "url": "stremio:///search?search=Philip%20K.%20Dick"
+      },
+      {
+        "name": "Ridley Scott",
+        "category": "Directors",
+        "url": "stremio:///search?search=Ridley%20Scott"
+      }
+    ],
+    "behaviorHints": {
+      "defaultVideoId": "tt0083658",
+      "hasScheduledVideos": false
+    }
+  }
+}
