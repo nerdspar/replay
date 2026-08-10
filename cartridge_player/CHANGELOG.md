@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.1
+
+Fixes the add-on failing to start, which showed up as **404: not found** on the
+sidebar panel with nothing to suggest the add-on was at fault.
+
+`run.sh` called `bashio::config` to read the `direct_port` option. Those helpers
+are not available in every base image; where they are missing the call failed,
+`set -e` exited the script, and the container stopped before it ever listened on
+the ingress port — so Home Assistant had nothing to proxy.
+
+The script no longer depends on bashio at all. Add-on options are read straight
+from `/data/options.json` by the app, which is all `bashio::config` was doing,
+and a missing or malformed file now falls back to defaults instead of stopping
+the container.
+
 ## 0.1.0
 
 First release.

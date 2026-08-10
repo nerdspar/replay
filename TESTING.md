@@ -175,6 +175,7 @@ On the actual HAOS box, installed from the repository URL, not a dev port.
 | # | Check | Pass condition |
 |---|---|---|
 | 6.1 | Add repository → install → start | Starts cleanly; log shows the add-on slug and both event subscriptions |
+| 6.1a | **Read the add-on log before opening the panel.** | It ends with `ingress listening on 8099`. If the log stops earlier the container exited, and the panel will return a bare 404 that looks like a Home Assistant problem rather than an add-on one |
 | 6.2 | Sidebar shows "Cartridges" | Panel opens |
 | 6.3 | Wizard step 1 | Your TV appears in the remote list |
 | 6.4 | Wizard step 2, "Send Home to the TV" | **The actual TV reacts** |

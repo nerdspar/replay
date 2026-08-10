@@ -1,5 +1,5 @@
 name: Cartridge Player
-version: "0.1.0"
+version: "0.1.1"
 slug: cartridge_player
 description: Tap NFC cartridges to launch shows on your TV
 url: https://github.com/nerdspar/replay
