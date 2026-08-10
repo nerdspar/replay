@@ -25,7 +25,7 @@ describe('buildLaunch', () => {
   it('builds a movie URI with the id repeated as the video id', () => {
     expect(provider.buildLaunch(card({ content_type: 'movie' }), s)).toEqual({
       kind: 'uri',
-      value: 'stremio://detail/movie/tt0083658/tt0083658',
+      value: 'stremio:///detail/movie/tt0083658/tt0083658',
     })
   })
 
@@ -33,7 +33,7 @@ describe('buildLaunch', () => {
     const c = card({ content_type: 'series', external_id: 'tt0903747' })
     expect(provider.buildLaunch(c, s)).toEqual({
       kind: 'uri',
-      value: 'stremio://detail/series/tt0903747/',
+      value: 'stremio:///detail/series/tt0903747/',
     })
   })
 
@@ -46,31 +46,72 @@ describe('buildLaunch', () => {
     })
     expect(provider.buildLaunch(c, s)).toEqual({
       kind: 'uri',
-      value: 'stremio://detail/series/tt0903747/tt0903747:2:5',
+      value: 'stremio:///detail/series/tt0903747/tt0903747:2:5',
     })
   })
 
   it('falls back to the episode list when only one of season/episode is set', () => {
     const onlySeason = card({ content_type: 'series', external_id: 'tt1', season: 2 })
     const onlyEpisode = card({ content_type: 'series', external_id: 'tt1', episode: 5 })
-    expect(provider.buildLaunch(onlySeason, s).value).toBe('stremio://detail/series/tt1/')
-    expect(provider.buildLaunch(onlyEpisode, s).value).toBe('stremio://detail/series/tt1/')
+    expect(provider.buildLaunch(onlySeason, s).value).toBe('stremio:///detail/series/tt1/')
+    expect(provider.buildLaunch(onlyEpisode, s).value).toBe('stremio:///detail/series/tt1/')
   })
 
   it('handles season 0 and episode 0 as real values, not as missing', () => {
     const c = card({ content_type: 'series', external_id: 'tt1', season: 0, episode: 0 })
-    expect(provider.buildLaunch(c, s).value).toBe('stremio://detail/series/tt1/tt1:0:0')
+    expect(provider.buildLaunch(c, s).value).toBe('stremio:///detail/series/tt1/tt1:0:0')
   })
 
   it('escapes unusual characters in the external id', () => {
     const c = card({ content_type: 'movie', external_id: 'kitsu:anime/42 x' })
     expect(provider.buildLaunch(c, s).value).toBe(
-      'stremio://detail/movie/kitsu%3Aanime%2F42%20x/kitsu%3Aanime%2F42%20x',
+      'stremio:///detail/movie/kitsu%3Aanime%2F42%20x/kitsu%3Aanime%2F42%20x',
     )
   })
 
   it('always returns a uri payload, never a media_url', () => {
     expect(provider.buildLaunch(card(), s).kind).toBe('uri')
+  })
+
+  /**
+   * Three slashes, not two. With `stremio://detail/...` the segment `detail`
+   * parses as the URI authority instead of the first path segment: Android
+   * still resolves the scheme, so Stremio opens, but the app cannot match the
+   * link and shows its home screen — and the autoplay key press then activates
+   * whatever happens to be focused there.
+   *
+   * §6.3 of the spec writes two. Stremio's own documentation writes three:
+   * https://stremio.github.io/stremio-addon-sdk/deep-links.html
+   */
+  it('puts `detail` in the path, not the authority', () => {
+    for (const c of [
+      card({ content_type: 'movie' }),
+      card({ content_type: 'series', external_id: 'tt0903747' }),
+      card({ content_type: 'series', external_id: 'tt0903747', season: 2, episode: 5 }),
+    ]) {
+      const value = provider.buildLaunch(c, s).value
+      expect(value.startsWith('stremio:///detail/'), value).toBe(true)
+
+      // The decisive check: parsed as a URI, nothing may sit in the authority.
+      const parsed = new URL(value)
+      expect(parsed.host, value).toBe('')
+      expect(parsed.pathname.startsWith('/detail/'), value).toBe(true)
+    }
+  })
+
+  it('matches the shapes in Stremio’s published examples', () => {
+    // stremio:///detail/movie/tt0066921/tt0066921
+    expect(
+      provider.buildLaunch(card({ content_type: 'movie', external_id: 'tt0066921' }), s).value,
+    ).toBe('stremio:///detail/movie/tt0066921/tt0066921')
+
+    // stremio:///detail/series/tt0108778/tt0108778:1:1
+    expect(
+      provider.buildLaunch(
+        card({ content_type: 'series', external_id: 'tt0108778', season: 1, episode: 1 }),
+        s,
+      ).value,
+    ).toBe('stremio:///detail/series/tt0108778/tt0108778:1:1')
   })
 })
 

@@ -247,23 +247,36 @@ export class StremioProvider implements Provider {
   }
 
   /**
-   * §6.3. Format is `stremio://detail/{type}/{id}/{videoId}`; an empty videoId
-   * opens the episode list, which is the default for series — the user picks a
-   * stream manually anyway, so the list costs one click and avoids stale cards.
+   * §6.3 of the spec writes this as `stremio://detail/...` — two slashes. That
+   * is wrong, and it fails in a way that looks like something else entirely:
+   * Android resolves the scheme so Stremio opens, but with two slashes `detail`
+   * parses as the URI *authority* rather than the first path segment, so the
+   * app cannot match the link and just shows its home screen. The autoplay key
+   * press then lands on whatever is focused there — for one tester, the first
+   * item in Continue Watching.
+   *
+   * Stremio's own documentation gives three:
+   *   stremio:///detail/{type}/{id}/{videoId}?autoPlay={autoPlay}
+   *   https://stremio.github.io/stremio-addon-sdk/deep-links.html
+   *
+   * An empty videoId opens the episode list, which is the default for series —
+   * the user picks a stream manually anyway, so the list costs one click and
+   * avoids stale cards.
    *
    * Built at fire time from `provider` + `external_id`, never stored
-   * pre-assembled, so the format can change without a data migration (§4).
+   * pre-assembled, so the format can change without a data migration (§4) —
+   * which is exactly why fixing this needed no migration.
    */
   buildLaunch(card: Card, _settings: Settings): LaunchPayload {
     const id = encodeURIComponent(card.external_id)
 
     if (card.content_type === 'movie') {
-      return { kind: 'uri', value: `stremio://detail/movie/${id}/${id}` }
+      return { kind: 'uri', value: `stremio:///detail/movie/${id}/${id}` }
     }
 
     const pinned = card.season !== null && card.episode !== null
     const videoId = pinned ? `${id}:${card.season}:${card.episode}` : ''
-    return { kind: 'uri', value: `stremio://detail/series/${id}/${videoId}` }
+    return { kind: 'uri', value: `stremio:///detail/series/${id}/${videoId}` }
   }
 
   private async getJson<T>(url: string): Promise<T> {

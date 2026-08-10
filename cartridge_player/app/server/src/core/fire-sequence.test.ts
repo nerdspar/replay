@@ -95,7 +95,7 @@ describe('fire sequence — every combination of the toggles (§6.2)', () => {
 
     expect(target.launchedWith).toEqual({
       kind: 'uri',
-      value: 'stremio://detail/series/tt0903747/tt0903747:2:5',
+      value: 'stremio:///detail/series/tt0903747/tt0903747:2:5',
     })
   })
 

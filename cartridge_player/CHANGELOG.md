@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.3
+
+Fixes cartridges opening Stremio but going no further — and, sometimes, playing
+whatever was first in Continue Watching.
+
+The deep link was built as `stremio://detail/...` with two slashes. With two,
+`detail` is read as the address of the link rather than the start of it, so
+Android opened Stremio but the app could not tell which title was meant and
+showed its home screen. Three seconds later the "start playing automatically"
+key press landed on whatever was highlighted there.
+
+The link now uses the form Stremio documents, `stremio:///detail/...`, so it
+opens the right title and the key press does what it was meant to.
+
 ## 0.1.2
 
 Updates are now a download instead of a build.

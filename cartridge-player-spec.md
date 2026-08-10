@@ -376,12 +376,21 @@ from the UI as a per-card **Test** button.
 
 | Case | URI |
 |---|---|
-| Movie | `stremio://detail/movie/{id}/{id}` |
-| Series, episode list | `stremio://detail/series/{id}/` |
-| Series, specific episode | `stremio://detail/series/{id}/{id}:{season}:{episode}` |
+| Movie | `stremio:///detail/movie/{id}/{id}` |
+| Series, episode list | `stremio:///detail/series/{id}/` |
+| Series, specific episode | `stremio:///detail/series/{id}/{id}:{season}:{episode}` |
 
-The format is `stremio://detail/{type}/{id}/{videoId}`; empty `videoId` opens the
+The format is `stremio:///detail/{type}/{id}/{videoId}`; empty `videoId` opens the
 episode list.
+
+> **Three slashes, not two.** This section originally specified `stremio://`,
+> and that fails on a real device in a misleading way: with two slashes `detail`
+> parses as the URI authority rather than the first path segment, so Android
+> resolves the scheme and Stremio opens, but the app cannot match the link and
+> lands on its home screen. The autoplay press in §6.2 then activates whatever
+> is focused there — in testing, the first item in Continue Watching. Corrected
+> against Stremio's own documentation:
+> <https://stremio.github.io/stremio-addon-sdk/deep-links.html>
 
 **Default series behaviour is the episode list.** Specific-episode support exists
 in the UI but is expected to be rare — the user picks a stream manually anyway, so
