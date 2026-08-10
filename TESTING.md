@@ -144,6 +144,47 @@ dialog scaling, not the app — check 3.4 before changing any dimension.
 
 ---
 
+## Phase 4b — Testing playback without the reader (M)
+
+The add-on listens for a Home Assistant event, so the whole chain — detection,
+assignment, playback on the real TV — can be exercised before the hardware
+exists. Useful for tuning the delays in Phase 6 while the reader is still on the
+bench.
+
+**Developer Tools → Events → Fire an event:**
+
+| Field | Value |
+|---|---|
+| Event type | `esphome.nfc_card_inserted` |
+| Event data | `uid: "04-A3-B8-8B-32-02-89"` |
+
+| # | Check | Pass condition |
+|---|---|---|
+| 4b.1 | Fire the event above | "New cartridge detected" appears in the app, showing that UID |
+| 4b.2 | Assign a movie to it | Card appears in the library |
+| 4b.3 | Fire the same event again | The show opens on the TV — the full Home → launch → Select sequence |
+| 4b.4 | Set removal action to Pause, fire `esphome.nfc_card_removed` with the same `uid` | Playback pauses |
+| 4b.5 | Fire an insert with a UID written differently — `04a3b88b320289` | Matches the same cartridge, does not create a second one |
+| 4b.6 | Empty that cartridge, then fire its insert again | No playback; it offers to be filled |
+
+Any UID string works. Separators and case are normalised, which is what 4b.5
+checks.
+
+For repeated firing, a script is quicker than the Developer Tools form:
+
+```yaml
+# Settings → Automations & scenes → Scripts → new script, in YAML mode
+alias: Fake cartridge tap
+sequence:
+  - event: esphome.nfc_card_inserted
+    event_data:
+      uid: "04-A3-B8-8B-32-02-89"
+```
+
+This does **not** replace Phase 5. It exercises everything from Home Assistant
+inward, and nothing about the reader itself — the beep, the debounce, and the
+brownout behaviour are only testable on real hardware.
+
 ## Phase 5 — Firmware bring-up (H)
 
 Do this on the bench with the board on USB, before it goes in an enclosure.
