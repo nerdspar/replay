@@ -31,8 +31,22 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
     // not at 2am when someone taps the cartridge.
     ctx.providers.get(provider)
 
+    const now = Date.now()
+    const content = {
+      provider,
+      content_type: body.content_type,
+      external_id: body.external_id,
+      title: body.title,
+      year: body.year ?? null,
+      poster_url: body.poster_url ?? null,
+      season: body.season ?? null,
+      episode: body.episode ?? null,
+      label: body.label ?? null,
+    }
+
     const existing = ctx.store.findCardByUid(body.tag_uid)
-    if (existing) {
+
+    if (existing && existing.status === 'assigned') {
       throw new AppError(
         'uid_taken',
         `That cartridge is already assigned to "${existing.title}".`,
@@ -40,22 +54,11 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
       )
     }
 
-    const now = Date.now()
-    const card = ctx.store.createCard(
-      {
-        tag_uid: body.tag_uid,
-        provider,
-        content_type: body.content_type,
-        external_id: body.external_id,
-        title: body.title,
-        year: body.year ?? null,
-        poster_url: body.poster_url ?? null,
-        season: body.season ?? null,
-        episode: body.episode ?? null,
-        label: body.label ?? null,
-      },
-      now,
-    )
+    // An emptied cartridge keeps its row, so filling it again is an update.
+    // Without this, refilling one would collide with its own tag.
+    const card = existing
+      ? ctx.store.updateCard(existing.id, { ...content, status: 'assigned' }, now)!
+      : ctx.store.createCard({ tag_uid: body.tag_uid, ...content }, now)
 
     ctx.pending.clear(body.tag_uid)
     ctx.bus.emit({ type: 'pending', pending: ctx.pending.get() })
@@ -68,7 +71,14 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
   app.patch<{ Params: { id: string } }>('/api/cards/:id', async (request) => {
     const id = Number(request.params.id)
     const patch = patchBody.parse(request.body)
-    const card = ctx.store.updateCard(id, patch, Date.now())
+
+    // Giving an emptied cartridge something to play makes it assigned again.
+    const restores = patch.external_id !== undefined || patch.title !== undefined
+    const card = ctx.store.updateCard(
+      id,
+      restores ? { ...patch, status: 'assigned' } : patch,
+      Date.now(),
+    )
     if (!card) throw new AppError('not_found', 'No such card', 404)
     // A replaced custom image may now be unreferenced.
     collectArtworkGarbage(ctx)
@@ -76,6 +86,20 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
     return { card }
   })
 
+  /**
+   * Empties a cartridge without forgetting it. The physical thing is still on
+   * the shelf, so it stays in the library as a bare tag, ready to be filled.
+   */
+  app.post<{ Params: { id: string } }>('/api/cards/:id/unassign', async (request) => {
+    const id = Number(request.params.id)
+    if (!ctx.store.getCard(id)) throw new AppError('not_found', 'No such card', 404)
+
+    const card = ctx.store.unassignCard(id, Date.now())
+    ctx.bus.emit({ type: 'cards' })
+    return { card }
+  })
+
+  /** Forgets the cartridge entirely — for one that is lost or damaged. */
   app.delete<{ Params: { id: string } }>('/api/cards/:id', async (request) => {
     const id = Number(request.params.id)
     if (!ctx.store.deleteCard(id)) {

@@ -73,6 +73,11 @@ Open `http://127.0.0.1:9124/api/hassio_ingress/AbC123SessionToken/`.
 | 1.5 | Tap it again: same `curl` | `curl -s http://127.0.0.1:9125/calls` shows `HOME`, then `remote.turn_on` with a `stremio://` activity, then `DPAD_CENTER` |
 | 1.6 | Timing between those three calls | Roughly 1.5 s and 3.0 s apart, matching the configured delays |
 | 1.7 | Set removal action to Pause, then `curl ".../remove?uid=…"` | A `media_player.media_pause` call appears |
+| 1.7a | Edit a cartridge → **Empty this cartridge** | Asks first. Afterwards it stays in the library showing its tag, not its poster |
+| 1.7b | Fire an insert for that emptied cartridge | **No** calls reach the TV; the new-cartridge panel appears instead |
+| 1.7c | Fill it with something else | Reuses the same cartridge — the library count does not grow — and it plays again |
+| 1.7d | Edit a cartridge → **Delete this cartridge** | Asks first, then it is gone from the library entirely |
+| 1.7e | On any confirmation dialog, press Cancel | Nothing happens. Cancel is what is focused by default |
 | 1.8 | Stop the simulator, watch the add-on log | Backoff messages: retrying in 1000ms, 2000ms, 5000ms… |
 | 1.9 | Start it again | "subscribed to esphome.nfc_card_inserted…" reappears **without restarting the add-on**, and a tag fired afterwards still works |
 

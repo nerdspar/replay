@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { downscaleImage } from '../lib/downscale'
+import { Icon } from './Icon'
 import type { ArtworkOption, ContentType } from '../types'
 
 interface ArtworkPickerProps {
@@ -177,7 +178,7 @@ export function ArtworkPicker({
           disabled={uploading}
           onClick={() => fileRef.current?.click()}
         >
-          {uploading ? <div className="spinner" /> : <span aria-hidden="true">＋</span>}
+          {uploading ? <div className="spinner" /> : <Icon name="plus" size={17} />}
           {uploading ? 'Working…' : 'Upload an image'}
         </button>
 
@@ -187,7 +188,7 @@ export function ArtworkPicker({
           disabled={uploading}
           onClick={() => void importFromLink()}
         >
-          <span aria-hidden="true">🔗</span>
+          <Icon name="link" size={17} />
           ThePosterDB link
         </button>
       </div>

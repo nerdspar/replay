@@ -74,6 +74,13 @@ export const api = {
       body: JSON.stringify(patch),
     }).then((r) => r.card),
 
+  /** Empties a cartridge you still own. It stays in the library. */
+  unassignCard: (id: number) =>
+    request<{ card: Card }>(`api/cards/${id}/unassign`, { method: 'POST' }).then(
+      (r) => r.card,
+    ),
+
+  /** Forgets a cartridge entirely — for one that is lost or damaged. */
   deleteCard: (id: number) => request<{ ok: true }>(`api/cards/${id}`, { method: 'DELETE' }),
 
   testCard: (id: number) =>

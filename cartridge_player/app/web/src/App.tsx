@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { api } from './api'
+import { Icon } from './components/Icon'
 import { PinGate } from './components/PinGate'
 import { useAppStream } from './hooks/useAppStream'
 import { Library } from './pages/Library'
@@ -103,21 +104,15 @@ export default function App() {
 
       <nav className="tabbar">
         <NavLink to="/" end>
-          <span className="glyph" aria-hidden="true">
-            🎞
-          </span>
+          <Icon name="library" size={22} />
           Library
         </NavLink>
         <NavLink to="/settings">
-          <span className="glyph" aria-hidden="true">
-            ⚙
-          </span>
+          <Icon name="settings" size={22} />
           Settings
         </NavLink>
         <NavLink to="/troubleshooting">
-          <span className="glyph" aria-hidden="true">
-            🩺
-          </span>
+          <Icon name="help" size={22} />
           Help
         </NavLink>
       </nav>

@@ -1,3 +1,5 @@
+import { Icon } from './Icon'
+
 interface PosterProps {
   /**
    * A URL only — the browser fetches artwork directly and nothing is cached to
@@ -15,8 +17,8 @@ export function Poster({ src, alt, badge }: PosterProps) {
       {src ? (
         <img src={src} alt={alt} loading="lazy" decoding="async" />
       ) : (
-        <div className="fallback" aria-hidden="true">
-          🎞
+        <div className="fallback">
+          <Icon name="film" size={30} />
         </div>
       )}
       {badge ? <span className="badge">{badge}</span> : null}

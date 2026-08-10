@@ -40,13 +40,14 @@ export class ScanHandler {
     const { store, pending, bus } = this.deps
     const card = store.findCardByUid(uid)
 
-    if (!card) {
-      // Unassigned: park it for the assignment flow rather than erroring.
+    // A cartridge the user deliberately emptied behaves exactly like one that
+    // was never set up: it offers to be filled, rather than firing nothing.
+    if (!card || card.status === 'unassigned') {
       const entry = pending.set(uid)
       bus.emit({ type: 'pending', pending: entry })
-      const scan = this.record(uid, null, 'unassigned', null)
+      const scan = this.record(uid, card?.id ?? null, 'unassigned', null)
       log.info(`unassigned cartridge ${uid}`)
-      return { card: null, scan }
+      return { card, scan }
     }
 
     return this.fire(card)
@@ -55,7 +56,8 @@ export class ScanHandler {
   async handleRemoved(uid: string): Promise<ScanOutcome | null> {
     const { store } = this.deps
     const card = store.findCardByUid(uid)
-    if (!card) return null
+    // Nothing was playing from an empty cartridge, so nothing to stop.
+    if (!card || card.status === 'unassigned') return null
 
     const settings = store.getSettings()
     if (settings.removal_action === 'none') {

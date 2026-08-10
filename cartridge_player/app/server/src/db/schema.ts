@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -66,10 +66,32 @@ CREATE TABLE IF NOT EXISTS scan_events (
 CREATE INDEX IF NOT EXISTS scan_events_created_at ON scan_events (created_at DESC);
 `
 
+/**
+ * Unassigning and deleting are different things, and the original schema had
+ * only one of them.
+ *
+ * Unassign means "this cartridge still exists, it just has nothing on it" — the
+ * physical thing is on the shelf and will be reused. Delete means "this
+ * cartridge is gone" — lost, or the tag is damaged.
+ *
+ * The content columns stay NOT NULL, so an unassigned card keeps what it last
+ * pointed at. That is deliberate: it makes reassigning it to the same title a
+ * single tap, and it is never shown unless the user asks for it.
+ */
+const V2 = `
+ALTER TABLE cards ADD COLUMN status TEXT NOT NULL DEFAULT 'assigned'
+  CHECK (status IN ('assigned', 'unassigned'));
+
+CREATE INDEX IF NOT EXISTS cards_status ON cards (status);
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
     db.exec(V1)
+  }
+  if (current < 2) {
+    db.exec(V2)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

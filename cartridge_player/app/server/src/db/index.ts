@@ -5,6 +5,7 @@ import { SQL_NORMALIZED_UID, normalizeUid } from '../core/uid.js'
 import type {
   Card,
   CardInput,
+  CardStatus,
   ContentType,
   RemovalAction,
   ScanEvent,
@@ -28,8 +29,9 @@ interface SettingsRow {
   setup_complete: number
 }
 
-interface CardRow extends Omit<Card, 'content_type'> {
+interface CardRow extends Omit<Card, 'content_type' | 'status'> {
   content_type: string
+  status: string
 }
 
 function toSettings(row: SettingsRow): Settings {
@@ -50,7 +52,11 @@ function toSettings(row: SettingsRow): Settings {
 }
 
 function toCard(row: CardRow): Card {
-  return { ...row, content_type: row.content_type as ContentType }
+  return {
+    ...row,
+    content_type: row.content_type as ContentType,
+    status: row.status as CardStatus,
+  }
 }
 
 /** Columns a client is allowed to write. Reserved §12 columns are absent by design. */
@@ -161,8 +167,12 @@ export class Store {
     return this.getCard(Number(info.lastInsertRowid))!
   }
 
-  updateCard(id: number, patch: Partial<CardInput>, now: number): Card | null {
-    const allowed: (keyof CardInput)[] = [
+  updateCard(
+    id: number,
+    patch: Partial<CardInput> & { status?: CardStatus },
+    now: number,
+  ): Card | null {
+    const allowed: (keyof CardInput | 'status')[] = [
       'provider',
       'content_type',
       'external_id',
@@ -172,13 +182,14 @@ export class Store {
       'season',
       'episode',
       'label',
+      'status',
     ]
     const assignments: string[] = []
     const values: unknown[] = []
     for (const key of allowed) {
       if (!(key in patch)) continue
       assignments.push(`${key} = ?`)
-      values.push(patch[key] ?? null)
+      values.push(patch[key as keyof typeof patch] ?? null)
     }
     if (assignments.length === 0) return this.getCard(id)
 
@@ -190,6 +201,19 @@ export class Store {
     return this.getCard(id)
   }
 
+  /**
+   * Keeps the cartridge but clears what it plays. Content is retained so
+   * reassigning it to the same title stays one tap; nothing shows it unless
+   * asked.
+   */
+  unassignCard(id: number, now: number): Card | null {
+    this.db
+      .prepare("UPDATE cards SET status = 'unassigned', updated_at = ? WHERE id = ?")
+      .run(now, id)
+    return this.getCard(id)
+  }
+
+  /** Removes the cartridge entirely — for one that is lost or damaged. */
   deleteCard(id: number): boolean {
     return this.db.prepare('DELETE FROM cards WHERE id = ?').run(id).changes > 0
   }

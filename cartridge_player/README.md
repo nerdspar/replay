@@ -35,6 +35,21 @@ automations to create. The add-on listens for the reader itself.
 **Whole show is usually the right answer.** You pick a stream by hand on the TV
 anyway, so the episode list costs one click and the cartridge never goes stale.
 
+## Emptying vs deleting a cartridge
+
+These are different, and the app keeps them apart.
+
+**Empty** clears what a cartridge plays but keeps the cartridge. It stays in your
+library showing its tag instead of artwork, and tapping it on the reader offers
+to fill it again. Use this when you want to put something else on a cartridge
+you still have.
+
+**Delete** removes the cartridge from the library completely. Use it when a
+cartridge is lost, or its tag has stopped working.
+
+Both are on the **Edit** screen for a single cartridge, and under **Select** for
+several at once. Both ask before doing anything.
+
 ## Choosing the artwork
 
 A poster is picked automatically when you assign a cartridge, so nothing slows

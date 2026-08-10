@@ -36,8 +36,11 @@ export interface ArtworkOption {
   aspect: 'portrait' | 'landscape'
 }
 
+export type CardStatus = 'assigned' | 'unassigned'
+
 export interface Card {
   id: number
+  status: CardStatus
   tag_uid: string
   provider: string
   content_type: ContentType

@@ -28,8 +28,12 @@ First release.
   copies, and cut guides that follow the corner radius. Cartridges pinned to a
   single episode carry a small episode badge; there is no title caption, since
   the poster already has the title and a caption bar would crop the artwork
-- Library search across title, label, and year, and multi-select for printing or
-  unassigning several cartridges at once
+- Emptying a cartridge is separate from deleting it: an emptied cartridge stays
+  in the library as a bare tag, ready to be filled again, while deleting is for
+  one that is lost or broken. Both ask first, in an in-app dialog rather than the
+  browser's own
+- Library search across title, label, and year, and multi-select for printing,
+  emptying, or deleting several cartridges at once
 - "Send Home to the TV" in Troubleshooting, so the TV can be re-tested at any
   time without going to find a cartridge
 - Supervisor watchdog against a `/health` endpoint, so a stalled add-on is

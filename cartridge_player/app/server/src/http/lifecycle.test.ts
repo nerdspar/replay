@@ -1,0 +1,325 @@
+/**
+ * Unassigning and deleting are different operations on purpose.
+ *
+ *   unassign — the cartridge still exists and will be reused. Keep it, empty it.
+ *   delete   — the cartridge is lost or the tag is damaged. Forget it.
+ */
+import { afterEach, describe, expect, it } from 'vitest'
+import Database from 'better-sqlite3'
+import { buildServer } from './server.js'
+import { migrate } from '../db/schema.js'
+import { Store } from '../db/index.js'
+import { testContext, type TestContext } from '../test/context.js'
+import { FakeProvider, FakeTarget } from '../test/helpers.js'
+import type { Card } from '../types.js'
+
+let active: TestContext | null = null
+
+afterEach(() => {
+  active?.cleanup()
+  active = null
+})
+
+function setup() {
+  active = testContext()
+  const { ctx } = active
+  const target = new FakeTarget()
+  ctx.providers.register(new FakeProvider())
+  ctx.targets.register('fake', () => target)
+  ctx.store.updateSettings({
+    target_type: 'fake',
+    home_delay_ms: 0,
+    autoplay_delay_ms: 0,
+  })
+
+  const card = ctx.store.createCard(
+    {
+      tag_uid: '04-A3-B8-8B-32-02-89',
+      provider: 'fake',
+      content_type: 'movie',
+      external_id: 'fake-1',
+      title: 'Fake Movie',
+      year: '2001',
+      poster_url: 'https://example.test/p.jpg',
+      season: null,
+      episode: null,
+      label: null,
+    },
+    Date.now(),
+  )
+
+  return { ctx, target, card }
+}
+
+describe('a new card starts assigned', () => {
+  it('defaults to assigned without anyone saying so', () => {
+    const { card } = setup()
+    expect(card.status).toBe('assigned')
+  })
+})
+
+describe('unassigning', () => {
+  it('keeps the cartridge in the library, emptied', async () => {
+    const { ctx, card } = setup()
+    const app = buildServer(ctx, { requirePin: false })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/cards/${card.id}/unassign`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect((response.json() as { card: Card }).card.status).toBe('unassigned')
+
+    // Still there — this is the whole difference from deleting.
+    const list = (
+      (await app.inject({ method: 'GET', url: '/api/cards' })).json() as { cards: Card[] }
+    ).cards
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({ status: 'unassigned', tag_uid: '04-A3-B8-8B-32-02-89' })
+
+    await app.close()
+  })
+
+  it('stops the cartridge from playing anything', async () => {
+    const { ctx, target, card } = setup()
+    ctx.store.unassignCard(card.id, Date.now())
+
+    const outcome = await ctx.scans.handleInserted(card.tag_uid)
+
+    // Behaves like a cartridge that was never set up.
+    expect(target.calls).toEqual([])
+    expect(outcome.scan.action_taken).toBe('unassigned')
+    expect(ctx.pending.get()?.uid).toBe(card.tag_uid)
+  })
+
+  it('does not try to pause anything when lifted off', async () => {
+    const { ctx, target, card } = setup()
+    ctx.store.updateSettings({ removal_action: 'pause' })
+    ctx.store.unassignCard(card.id, Date.now())
+
+    expect(await ctx.scans.handleRemoved(card.tag_uid)).toBeNull()
+    expect(target.calls).toEqual([])
+  })
+
+  it('remembers what it used to play, without showing it', async () => {
+    const { ctx, card } = setup()
+    const emptied = ctx.store.unassignCard(card.id, Date.now())
+    expect(emptied?.title).toBe('Fake Movie')
+  })
+})
+
+describe('refilling an emptied cartridge', () => {
+  /** The tag row still exists, so a naive create would collide with itself. */
+  it('reuses the existing row instead of colliding on its own tag', async () => {
+    const { ctx, card } = setup()
+    ctx.store.unassignCard(card.id, Date.now())
+    const app = buildServer(ctx, { requirePin: false })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: {
+        tag_uid: card.tag_uid,
+        provider: 'fake',
+        content_type: 'series',
+        external_id: 'fake-9',
+        title: 'Something Else',
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    const updated = (response.json() as { card: Card }).card
+    expect(updated.id).toBe(card.id)
+    expect(updated.status).toBe('assigned')
+    expect(updated.title).toBe('Something Else')
+
+    // One cartridge, not two.
+    const list = (
+      (await app.inject({ method: 'GET', url: '/api/cards' })).json() as { cards: Card[] }
+    ).cards
+    expect(list).toHaveLength(1)
+
+    await app.close()
+  })
+
+  it('plays again once refilled', async () => {
+    const { ctx, target, card } = setup()
+    ctx.store.unassignCard(card.id, Date.now())
+    const app = buildServer(ctx, { requirePin: false })
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: {
+        tag_uid: card.tag_uid,
+        provider: 'fake',
+        content_type: 'movie',
+        external_id: 'fake-2',
+        title: 'Back Again',
+      },
+    })
+    await ctx.scans.handleInserted(card.tag_uid)
+
+    expect(target.calls).toEqual(['home', 'launch', 'select'])
+    await app.close()
+  })
+
+  it('restores an emptied cartridge edited through PATCH', async () => {
+    const { ctx, card } = setup()
+    ctx.store.unassignCard(card.id, Date.now())
+    const app = buildServer(ctx, { requirePin: false })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/cards/${card.id}`,
+      payload: { external_id: 'fake-3', title: 'Chosen Again' },
+    })
+
+    expect((response.json() as { card: Card }).card.status).toBe('assigned')
+    await app.close()
+  })
+
+  it('editing only a label does not silently refill an emptied cartridge', async () => {
+    const { ctx, card } = setup()
+    ctx.store.unassignCard(card.id, Date.now())
+    const app = buildServer(ctx, { requirePin: false })
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/cards/${card.id}`,
+      payload: { label: 'blue one' },
+    })
+
+    expect((response.json() as { card: Card }).card.status).toBe('unassigned')
+    await app.close()
+  })
+
+  it('still refuses a tag that is assigned to something else', async () => {
+    const { ctx, card } = setup()
+    const app = buildServer(ctx, { requirePin: false })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: {
+        tag_uid: card.tag_uid,
+        provider: 'fake',
+        content_type: 'movie',
+        external_id: 'fake-9',
+        title: 'Nope',
+      },
+    })
+
+    expect(response.statusCode).toBe(409)
+    expect(response.json()).toMatchObject({ error: 'uid_taken' })
+    await app.close()
+  })
+})
+
+describe('deleting', () => {
+  it('removes the cartridge from the library entirely', async () => {
+    const { ctx, card } = setup()
+    const app = buildServer(ctx, { requirePin: false })
+
+    const response = await app.inject({ method: 'DELETE', url: `/api/cards/${card.id}` })
+    expect(response.statusCode).toBe(200)
+
+    const list = (
+      (await app.inject({ method: 'GET', url: '/api/cards' })).json() as { cards: Card[] }
+    ).cards
+    expect(list).toEqual([])
+
+    await app.close()
+  })
+
+  it('frees the tag, so a found cartridge can be set up fresh', async () => {
+    const { ctx, card } = setup()
+    const app = buildServer(ctx, { requirePin: false })
+    await app.inject({ method: 'DELETE', url: `/api/cards/${card.id}` })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: {
+        tag_uid: card.tag_uid,
+        provider: 'fake',
+        content_type: 'movie',
+        external_id: 'fake-9',
+        title: 'Fresh Start',
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    await app.close()
+  })
+
+  it('404s for a card that is not there', async () => {
+    const { ctx } = setup()
+    const app = buildServer(ctx, { requirePin: false })
+    const response = await app.inject({ method: 'DELETE', url: '/api/cards/9999' })
+    expect(response.statusCode).toBe(404)
+    await app.close()
+  })
+})
+
+describe('migrating a database written before this existed', () => {
+  it('marks every existing cartridge assigned, so nothing stops working', () => {
+    const db = new Database(':memory:')
+    // A v1 database: cards table with no status column.
+    db.exec(`
+      CREATE TABLE cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_uid TEXT NOT NULL UNIQUE,
+        provider TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        external_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        year TEXT, poster_url TEXT, season INTEGER, episode INTEGER, label TEXT,
+        created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      INSERT INTO cards (tag_uid, provider, content_type, external_id, title, created_at, updated_at)
+      VALUES ('04-01', 'stremio', 'movie', 'tt1', 'Old Card', 1, 1);
+    `)
+    db.pragma('user_version = 1')
+
+    migrate(db)
+
+    const row = db.prepare('SELECT status FROM cards WHERE tag_uid = ?').get('04-01') as {
+      status: string
+    }
+    expect(row.status).toBe('assigned')
+    expect(db.pragma('user_version', { simple: true })).toBe(2)
+    db.close()
+  })
+
+  it('is safe to run twice', () => {
+    const db = new Database(':memory:')
+    migrate(db)
+    expect(() => migrate(db)).not.toThrow()
+    db.close()
+  })
+
+  it('rejects a status the app does not understand', () => {
+    active = testContext()
+    const store: Store = active.ctx.store
+    store.createCard(
+      {
+        tag_uid: '04-02',
+        provider: 'stremio',
+        content_type: 'movie',
+        external_id: 'tt1',
+        title: 'x',
+        year: null,
+        poster_url: null,
+        season: null,
+        episode: null,
+        label: null,
+      },
+      1,
+    )
+    expect(() =>
+      store.db.prepare("UPDATE cards SET status = 'nonsense' WHERE tag_uid = '04-02'").run(),
+    ).toThrow()
+  })
+})

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { api, ApiError } from '../api'
 import { AssignSheet } from '../components/AssignSheet'
 import { CardSheet } from '../components/CardSheet'
+import { Confirm } from '../components/Confirm'
+import { Icon } from '../components/Icon'
 import { Poster, episodeBadge } from '../components/Poster'
 import type { AppStream } from '../hooks/useAppStream'
 import type { Card, ScanEvent } from '../types'
@@ -22,6 +24,8 @@ export function Library({ stream }: LibraryProps) {
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [selecting, setSelecting] = useState(false)
   const [query, setQuery] = useState('')
+  const [pendingAction, setPendingAction] = useState<'unassign' | 'delete' | null>(null)
+  const [busy, setBusy] = useState(false)
 
   // Matches title, label, and year, so "blue cartridge" finds it by the note
   // written on the side as readily as by the film's name.
@@ -112,39 +116,33 @@ export function Library({ stream }: LibraryProps) {
     navigate(`/print?ids=${[...selected].join(',')}`)
   }
 
-  const unassign = async (card: Card) => {
-    if (!window.confirm(`Unassign “${card.title}”? The cartridge itself is untouched.`)) return
-    await api.deleteCard(card.id)
-    refresh()
-  }
-
-  const unassignSelected = async () => {
+  /** Runs a destructive action over the current selection, then reports. */
+  const applyToSelected = async (
+    action: (card: Card) => Promise<unknown>,
+    describe: (n: number) => string,
+  ) => {
     const targets = cards.filter((c) => selected.has(c.id))
-    if (targets.length === 0) return
-    if (
-      !window.confirm(
-        `Unassign ${targets.length} cartridge${targets.length === 1 ? '' : 's'}? ` +
-          'The cartridges themselves are untouched, and can be reassigned by tapping them.',
-      )
-    ) {
-      return
-    }
+    setBusy(true)
 
     const failures: string[] = []
     for (const card of targets) {
       try {
-        await api.deleteCard(card.id)
+        await action(card)
       } catch {
         failures.push(card.title)
       }
     }
 
+    setBusy(false)
+    setPendingAction(null)
     stopSelecting()
     refresh()
-    if (failures.length > 0) {
-      setToast(`Could not unassign: ${failures.join(', ')}`)
-      setTimeout(() => setToast(null), 5000)
-    }
+    setToast(
+      failures.length > 0
+        ? `Could not finish: ${failures.join(', ')}`
+        : describe(targets.length - failures.length),
+    )
+    setTimeout(() => setToast(null), 5000)
   }
 
   return (
@@ -229,11 +227,18 @@ export function Library({ stream }: LibraryProps) {
                     Cancel
                   </button>
                   <button
+                    className="btn small"
+                    disabled={selected.size === 0}
+                    onClick={() => setPendingAction('unassign')}
+                  >
+                    Empty
+                  </button>
+                  <button
                     className="btn small danger"
                     disabled={selected.size === 0}
-                    onClick={() => void unassignSelected()}
+                    onClick={() => setPendingAction('delete')}
                   >
-                    Unassign
+                    Delete
                   </button>
                   <button
                     className="btn small primary"
@@ -275,36 +280,58 @@ export function Library({ stream }: LibraryProps) {
                 style={{ cursor: selecting ? 'pointer' : 'default' }}
                 onClick={selecting ? () => toggleOne(card.id) : undefined}
               >
-                <Poster
-                  src={card.poster_url}
-                  alt={card.title}
-                  badge={episodeBadge(card.season, card.episode)}
-                />
+                {/*
+                  An emptied cartridge shows its tag instead of artwork — it is
+                  a thing you still own that currently plays nothing.
+                */}
+                {card.status === 'unassigned' ? (
+                  <div className="poster empty-cartridge">
+                    <Icon name="library" size={30} />
+                    <span className="mono">{card.tag_uid}</span>
+                    <span className="hint">Empty</span>
+                  </div>
+                ) : (
+                  <Poster
+                    src={card.poster_url}
+                    alt={card.title}
+                    badge={episodeBadge(card.season, card.episode)}
+                  />
+                )}
                 {selecting ? (
-                  <span className="tick" aria-hidden="true">
-                    {selected.has(card.id) ? '✓' : ''}
+                  <span className="tick">
+                    {selected.has(card.id) ? <Icon name="check" size={16} /> : null}
                   </span>
                 ) : null}
                 <div className="tile-body">
-                  <div className="tile-title">{card.title}</div>
+                  <div className="tile-title">
+                    {card.status === 'unassigned' ? 'Empty cartridge' : card.title}
+                  </div>
                   <div className="tile-sub">
-                    {[card.year, card.label].filter(Boolean).join(' · ')}
+                    {card.status === 'unassigned'
+                      ? card.label ?? 'Tap it on the reader to fill it'
+                      : [card.year, card.label].filter(Boolean).join(' · ')}
                   </div>
                 </div>
                 {selecting ? null : (
                   <div className="tile-actions">
-                    <button
-                      className="btn small"
-                      disabled={testing === card.id}
-                      onClick={() => void runTest(card)}
-                    >
-                      {testing === card.id ? '…' : 'Test'}
-                    </button>
+                    {card.status === 'unassigned' ? (
+                      <button
+                        className="btn small"
+                        onClick={() => setAssigning({ uid: card.tag_uid })}
+                      >
+                        Fill it
+                      </button>
+                    ) : (
+                      <button
+                        className="btn small"
+                        disabled={testing === card.id}
+                        onClick={() => void runTest(card)}
+                      >
+                        {testing === card.id ? '…' : 'Test'}
+                      </button>
+                    )}
                     <button className="btn small" onClick={() => setEditing(card)}>
                       Edit
-                    </button>
-                    <button className="btn small danger" onClick={() => void unassign(card)}>
-                      ✕
                     </button>
                   </div>
                 )}
@@ -331,10 +358,43 @@ export function Library({ stream }: LibraryProps) {
         <CardSheet
           card={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => {
+          onChanged={() => {
             setEditing(null)
             refresh()
           }}
+        />
+      ) : null}
+
+      {pendingAction === 'unassign' ? (
+        <Confirm
+          title={`Empty ${selected.size} cartridge${selected.size === 1 ? '' : 's'}?`}
+          body="They stay in your library as blank cartridges, showing their tag instead of artwork. Tap one on the reader to give it something new."
+          confirmLabel="Empty"
+          busy={busy}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={() =>
+            void applyToSelected(
+              (card) => api.unassignCard(card.id),
+              (n) => `Emptied ${n} cartridge${n === 1 ? '' : 's'}.`,
+            )
+          }
+        />
+      ) : null}
+
+      {pendingAction === 'delete' ? (
+        <Confirm
+          title={`Delete ${selected.size} cartridge${selected.size === 1 ? '' : 's'}?`}
+          body="This removes them from your library completely. Use it when a cartridge is lost or its tag is damaged — if you still have it, empty it instead."
+          confirmLabel="Delete"
+          destructive
+          busy={busy}
+          onCancel={() => setPendingAction(null)}
+          onConfirm={() =>
+            void applyToSelected(
+              (card) => api.deleteCard(card.id),
+              (n) => `Deleted ${n} cartridge${n === 1 ? '' : 's'}.`,
+            )
+          }
         />
       ) : null}
     </>

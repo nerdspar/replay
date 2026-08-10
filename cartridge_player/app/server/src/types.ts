@@ -44,8 +44,15 @@ export type TargetKey = 'home' | 'select' | 'back'
 
 export type RemovalAction = 'none' | 'pause' | 'back' | 'home'
 
+/**
+ * `unassigned` is a cartridge you still own that currently plays nothing —
+ * distinct from deleting it, which is for a cartridge that is lost or broken.
+ */
+export type CardStatus = 'assigned' | 'unassigned'
+
 export interface Card {
   id: number
+  status: CardStatus
   tag_uid: string
   provider: string
   content_type: ContentType
@@ -60,7 +67,7 @@ export interface Card {
   updated_at: number
 }
 
-export type CardInput = Omit<Card, 'id' | 'created_at' | 'updated_at'>
+export type CardInput = Omit<Card, 'id' | 'created_at' | 'updated_at' | 'status'>
 
 export interface Settings {
   id: 1

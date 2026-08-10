@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, ApiError } from '../api'
 import { AssignSheet } from '../components/AssignSheet'
+import { Icon } from '../components/Icon'
 import type { AppStream } from '../hooks/useAppStream'
 import type { EntityOption, Settings } from '../types'
 
@@ -158,7 +159,7 @@ export function Wizard({ settings, stream, onDone }: WizardProps) {
           <div className="card" style={{ marginTop: 16, textAlign: 'center' }}>
             {stream.pending ? (
               <>
-                <p style={{ fontSize: 32, margin: 0 }}>🎉</p>
+                <Icon name="check" size={34} />
                 <p style={{ margin: '8px 0 0' }}>Got it</p>
                 <p className="mono">{stream.pending.uid}</p>
                 <button
