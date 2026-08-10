@@ -31,14 +31,36 @@ const TOKEN = 'AbC123SessionToken'
 export const serviceCalls = []
 const sockets = new Set()
 
+// Deliberately reproduces the duplicate-name problem: a household running both
+// a native integration and Music Assistant ends up with two media players
+// carrying the SAME friendly name, which a name-only dropdown cannot tell apart.
 const STATES = [
   { entity_id: 'remote.living_room_tv', state: 'on', attributes: { friendly_name: 'Living Room TV' } },
   { entity_id: 'remote.bedroom_tv', state: 'off', attributes: { friendly_name: 'Bedroom TV' } },
   {
     entity_id: 'media_player.living_room',
     state: 'idle',
-    attributes: { friendly_name: 'Living Room Player' },
+    attributes: { friendly_name: 'Living Room' },
   },
+  {
+    entity_id: 'media_player.living_room_2',
+    state: 'idle',
+    attributes: { friendly_name: 'Living Room' },
+  },
+  {
+    entity_id: 'media_player.kitchen_speaker',
+    state: 'playing',
+    attributes: { friendly_name: 'Kitchen Speaker' },
+  },
+]
+
+/** What `config/entity_registry/list` returns — the platform is the giveaway. */
+const ENTITY_REGISTRY = [
+  { entity_id: 'remote.living_room_tv', platform: 'androidtv_remote' },
+  { entity_id: 'remote.bedroom_tv', platform: 'androidtv_remote' },
+  { entity_id: 'media_player.living_room', platform: 'androidtv_remote' },
+  { entity_id: 'media_player.living_room_2', platform: 'music_assistant' },
+  { entity_id: 'media_player.kitchen_speaker', platform: 'music_assistant' },
 ]
 
 const supervisor = http.createServer((req, res) => {
@@ -84,6 +106,20 @@ wss.on('connection', (socket) => {
     } else if (message.type === 'subscribe_events') {
       console.log(`[ha] subscribed: ${message.event_type}`)
       socket.send(JSON.stringify({ id: message.id, type: 'result', success: true, result: null }))
+    } else if (message.type === 'config/entity_registry/list') {
+      console.log('[ha] entity registry requested')
+      socket.send(
+        JSON.stringify({ id: message.id, type: 'result', success: true, result: ENTITY_REGISTRY }),
+      )
+    } else if (message.id) {
+      socket.send(
+        JSON.stringify({
+          id: message.id,
+          type: 'result',
+          success: false,
+          error: { code: 'unknown_command', message: message.type },
+        }),
+      )
     }
   })
   socket.on('close', () => sockets.delete(socket))
@@ -108,20 +144,44 @@ const ingress = http.createServer(async (req, res) => {
     return
   }
   const rest = req.url.slice(prefix.length) || '/'
-  const upstream = await fetch(`${ADDON}${rest}`, {
-    method: req.method,
-    headers: {
-      ...Object.fromEntries(Object.entries(req.headers).filter(([k]) => k !== 'host')),
-      'x-ingress-path': prefix,
-    },
-    body: ['GET', 'HEAD'].includes(req.method) ? undefined : req,
-    duplex: 'half',
-  })
 
-  res.writeHead(upstream.status, Object.fromEntries(upstream.headers))
-  if (!upstream.body) return res.end()
-  for await (const chunk of upstream.body) res.write(chunk)
-  res.end()
+  let upstream
+  try {
+    upstream = await fetch(`${ADDON}${rest}`, {
+      method: req.method,
+      headers: {
+        ...Object.fromEntries(Object.entries(req.headers).filter(([k]) => k !== 'host')),
+        'x-ingress-path': prefix,
+      },
+      body: ['GET', 'HEAD'].includes(req.method) ? undefined : req,
+      duplex: 'half',
+    })
+  } catch (error) {
+    // The add-on is down or restarting. Say so and keep serving — an unhandled
+    // rejection here used to take the whole simulator with it, which meant
+    // starting the two processes in the wrong order killed this one.
+    res.writeHead(502, { 'content-type': 'text/plain' })
+    res.end(
+      `Cannot reach the add-on at ${ADDON}.\n\n` +
+        `Start it with:  npm run dev:against-fake-ha\n\n${error.cause?.code ?? error.message}\n`,
+    )
+    return
+  }
+
+  try {
+    res.writeHead(upstream.status, Object.fromEntries(upstream.headers))
+    if (!upstream.body) return res.end()
+    for await (const chunk of upstream.body) res.write(chunk)
+    res.end()
+  } catch {
+    // Client hung up mid-stream (common with SSE); nothing to do.
+    res.destroy()
+  }
+})
+
+// Last line of defence: never let a stray rejection end the simulator.
+process.on('unhandledRejection', (reason) => {
+  console.error('[ha] unhandled rejection (ignored):', reason?.message ?? reason)
 })
 
 supervisor.listen(9123, () => console.log('[ha] supervisor on 9123'))

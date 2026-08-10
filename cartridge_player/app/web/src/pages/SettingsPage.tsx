@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../api'
+import { EntityPicker } from '../components/EntityPicker'
 import type { EntityOption, RemovalAction, Settings } from '../types'
 
 const REMOVAL_OPTIONS: { value: RemovalAction; label: string; hint: string }[] = [
@@ -34,6 +35,23 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setDraft((d) => ({ ...d, [key]: value }))
 
+  /**
+   * Music Assistant mirrors players it can send audio to, so its copy of your
+   * TV exists but does not control the app playing on screen. Choosing it is an
+   * easy mistake when both entries share a name, and the only symptom is that
+   * pausing silently does nothing.
+   */
+  const mediaPlayerWarning = useMemo(() => {
+    const chosen = entities.mediaPlayers.find(
+      (entity) => entity.entity_id === draft.media_player_entity,
+    )
+    if (!chosen?.platform?.toLowerCase().includes('music assistant')) return null
+    return (
+      "This one comes from Music Assistant. If pausing doesn't work, choose the " +
+      "player from your TV's own integration instead."
+    )
+  }, [entities.mediaPlayers, draft.media_player_entity])
+
   const save = async () => {
     setSaving(true)
     setError(null)
@@ -67,37 +85,33 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
 
       <div className="card">
         <h2>Your TV</h2>
-        <label className="field" style={{ marginTop: 12 }}>
-          <span>Remote</span>
-          <select
-            value={draft.remote_entity ?? ''}
-            onChange={(e) => set('remote_entity', e.target.value || null)}
-          >
-            <option value="">Not set</option>
-            {entities.remotes.map((entity) => (
-              <option key={entity.entity_id} value={entity.entity_id}>
-                {entity.name}
-              </option>
-            ))}
-          </select>
-          <p className="hint">Comes from the Android TV Remote integration.</p>
-        </label>
+        <div style={{ marginTop: 12 }}>
+          <EntityPicker
+            label="Remote"
+            entities={entities.remotes}
+            value={draft.remote_entity}
+            onChange={(id) => set('remote_entity', id)}
+            emptyLabel="Not set"
+            hint="Comes from the Android TV Remote integration."
+          />
+        </div>
 
-        <label className="field">
-          <span>Media player</span>
-          <select
-            value={draft.media_player_entity ?? ''}
-            onChange={(e) => set('media_player_entity', e.target.value || null)}
-          >
-            <option value="">Not set</option>
-            {entities.mediaPlayers.map((entity) => (
-              <option key={entity.entity_id} value={entity.entity_id}>
-                {entity.name}
-              </option>
-            ))}
-          </select>
-          <p className="hint">Only used for pause and stop.</p>
-        </label>
+        <EntityPicker
+          label="Media player"
+          entities={entities.mediaPlayers}
+          value={draft.media_player_entity}
+          onChange={(id) => set('media_player_entity', id)}
+          emptyLabel="Not set"
+          hint={
+            <>
+              Only used for pause and stop. If the same name appears twice, pick
+              the one from your TV's own integration — a Music Assistant copy of
+              the same player controls audio, not the app on screen.
+            </>
+          }
+        />
+
+        {mediaPlayerWarning ? <p className="hint warn">{mediaPlayerWarning}</p> : null}
       </div>
 
       <div className="card">

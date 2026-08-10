@@ -78,6 +78,8 @@ export interface EntityOption {
   name: string
   domain: string
   state: string
+  /** Integration that provides it, when Home Assistant could tell us. */
+  platform?: string
 }
 
 export interface ScanEvent {

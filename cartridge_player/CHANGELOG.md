@@ -34,7 +34,12 @@ First release.
   browser's own
 - Library search across title, label, and year, and multi-select for printing,
   emptying, or deleting several cartridges at once
-- "Send Home to the TV" in Troubleshooting, so the TV can be re-tested at any
+- Entity pickers group by the integration each entity came from, and spell out
+  the entity id whenever a friendly name is not unique — so two players called
+  "Living Room", one native and one from Music Assistant, can be told apart.
+  Choosing a Music Assistant player for pause/stop now warns, since it controls
+  audio rather than the app on screen
+- "Send Home to the TV" on the Status page, so the TV can be re-tested at any
   time without going to find a cartridge
 - Supervisor watchdog against a `/health` endpoint, so a stalled add-on is
   restarted without anyone having to notice

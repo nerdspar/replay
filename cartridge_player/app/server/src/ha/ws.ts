@@ -51,6 +51,11 @@ export class HomeAssistantWs {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private state: ConnectionState = 'disconnected'
 
+  private readonly inflight = new Map<
+    number,
+    { resolve: (value: unknown) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }
+  >()
+
   private readonly backoff: number[]
   private readonly setTimeoutImpl: typeof setTimeout
   private readonly clearTimeoutImpl: typeof clearTimeout
@@ -72,8 +77,62 @@ export class HomeAssistantWs {
     this.open()
   }
 
+  /**
+   * Sends a command and waits for its result. Used for things the REST API
+   * cannot answer — notably the entity registry, which is the only place that
+   * says which integration an entity came from.
+   *
+   * Rejects rather than queues when the socket is down: callers treat this as
+   * optional enrichment, and a stale answer later is worse than none now.
+   */
+  async command<T>(payload: Record<string, unknown>, timeoutMs = 5000): Promise<T> {
+    const socket = this.socket
+    if (!socket || this.state !== 'connected') {
+      throw new Error('not connected to Home Assistant')
+    }
+
+    const id = this.nextId++
+    return new Promise<T>((resolve, reject) => {
+      const timer = this.setTimeoutImpl(() => {
+        this.inflight.delete(id)
+        reject(new Error(`command ${String(payload.type)} timed out`))
+      }, timeoutMs)
+
+      this.inflight.set(id, {
+        resolve: resolve as (value: unknown) => void,
+        reject,
+        timer,
+      })
+      socket.send(JSON.stringify({ id, ...payload }))
+    })
+  }
+
+  private settleInflight(message: Record<string, unknown>): void {
+    const entry = this.inflight.get(message.id as number)
+    if (!entry) return
+    this.inflight.delete(message.id as number)
+    this.clearTimeoutImpl(entry.timer)
+
+    if (message.success === false) {
+      const error = message.error as { message?: string } | undefined
+      entry.reject(new Error(error?.message ?? 'command failed'))
+      return
+    }
+    entry.resolve(message.result)
+  }
+
+  /** A dropped connection can never deliver its replies. */
+  private failInflight(reason: string): void {
+    for (const [id, entry] of this.inflight) {
+      this.inflight.delete(id)
+      this.clearTimeoutImpl(entry.timer)
+      entry.reject(new Error(reason))
+    }
+  }
+
   stop(): void {
     this.stopped = true
+    this.failInflight('stopped')
     if (this.reconnectTimer !== null) {
       this.clearTimeoutImpl(this.reconnectTimer)
       this.reconnectTimer = null
@@ -126,6 +185,7 @@ export class HomeAssistantWs {
 
     socket.on('close', () => {
       if (this.socket === socket) this.socket = null
+      this.failInflight('connection to Home Assistant closed')
       this.scheduleReconnect('connection closed')
     })
   }
@@ -165,6 +225,12 @@ export class HomeAssistantWs {
         if (event?.event_type) this.options.onEvent(event)
         return
       }
+
+      case 'result':
+        // Subscription acknowledgements land here too; those ids are not
+        // in flight, so they fall through harmlessly.
+        this.settleInflight(message)
+        return
 
       default:
         return

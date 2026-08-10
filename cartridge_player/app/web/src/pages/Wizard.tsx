@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api, ApiError } from '../api'
 import { AssignSheet } from '../components/AssignSheet'
+import { EntityPicker } from '../components/EntityPicker'
 import { Icon } from '../components/Icon'
 import type { AppStream } from '../hooks/useAppStream'
 import type { EntityOption, Settings } from '../types'
@@ -87,37 +88,23 @@ export function Wizard({ settings, stream, onDone }: WizardProps) {
       canAdvance: remoteEntity !== '',
       render: () => (
         <>
-          <label className="field">
-            <span>Remote</span>
-            <select value={remoteEntity} onChange={(e) => setRemoteEntity(e.target.value)}>
-              <option value="">Choose…</option>
-              {remotes.map((entity) => (
-                <option key={entity.entity_id} value={entity.entity_id}>
-                  {entity.name}
-                </option>
-              ))}
-            </select>
-            <p className="hint">
-              This list comes from the Android TV Remote integration. If it is empty,
-              add your TV in Home Assistant first.
-            </p>
-          </label>
+          <EntityPicker
+            label="Remote"
+            entities={remotes}
+            value={remoteEntity === '' ? null : remoteEntity}
+            onChange={(id) => setRemoteEntity(id ?? '')}
+            emptyLabel="Choose…"
+            hint="This list comes from the Android TV Remote integration. If it is empty, add your TV in Home Assistant first."
+          />
 
-          <label className="field">
-            <span>Media player (optional)</span>
-            <select
-              value={mediaPlayerEntity}
-              onChange={(e) => setMediaPlayerEntity(e.target.value)}
-            >
-              <option value="">Skip for now</option>
-              {mediaPlayers.map((entity) => (
-                <option key={entity.entity_id} value={entity.entity_id}>
-                  {entity.name}
-                </option>
-              ))}
-            </select>
-            <p className="hint">Only needed if you want pausing to work.</p>
-          </label>
+          <EntityPicker
+            label="Media player (optional)"
+            entities={mediaPlayers}
+            value={mediaPlayerEntity === '' ? null : mediaPlayerEntity}
+            onChange={(id) => setMediaPlayerEntity(id ?? '')}
+            emptyLabel="Skip for now"
+            hint="Only needed if you want pausing to work. If a name appears twice, pick the one from your TV's own integration."
+          />
         </>
       ),
     },

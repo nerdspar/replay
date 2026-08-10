@@ -33,6 +33,11 @@ export interface AppContext {
   /** True once the LAN-direct listener is actually accepting connections. */
   directListening: boolean
   /**
+   * entity_id → integration, for telling apart entities that share a friendly
+   * name. Returns an empty map when unavailable; callers must degrade quietly.
+   */
+  entityPlatforms: () => Promise<Map<string, string>>
+  /**
    * Called after settings are written. Lets the runtime bring up the direct
    * listener the moment a PIN exists, without an add-on restart.
    */
@@ -85,6 +90,8 @@ export function createContext(config: RuntimeConfig): AppContext {
     // -Infinity, not 0: the retry guard must never block the first attempt.
     addonSlugCheckedAt: Number.NEGATIVE_INFINITY,
     directListening: false,
+    // Replaced at boot once the WebSocket exists; harmless until then.
+    entityPlatforms: async () => new Map<string, string>(),
   }
 
   bus.subscribe((event) => {

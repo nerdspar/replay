@@ -3,6 +3,8 @@ import { z } from 'zod'
 import type { AppContext } from '../../context.js'
 import type { AppEvent } from '../../core/events.js'
 import { ensureAddonSlug } from '../../ha/supervisor.js'
+import { formatPlatform } from '../../ha/entity-registry.js'
+import type { EntityOption } from '../../ha/rest.js'
 
 const SSE_KEEPALIVE_MS = 20_000
 
@@ -19,8 +21,25 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
    */
   app.get('/health', async () => ({ ok: true }))
 
-  /** Setup dropdowns (§8.3). */
-  app.get('/api/entities', async () => ctx.ha.getTargetEntities())
+  /**
+   * Setup dropdowns (§8.3), annotated with the integration each entity came
+   * from. Friendly names collide — running Music Assistant alongside a native
+   * integration gives two media players with the same name — and the
+   * integration is what tells them apart.
+   */
+  app.get('/api/entities', async () => {
+    const [{ remotes, mediaPlayers }, platforms] = await Promise.all([
+      ctx.ha.getTargetEntities(),
+      ctx.entityPlatforms(),
+    ])
+
+    const annotate = (entity: EntityOption): EntityOption => {
+      const platform = platforms.get(entity.entity_id)
+      return platform ? { ...entity, platform: formatPlatform(platform) } : entity
+    }
+
+    return { remotes: remotes.map(annotate), mediaPlayers: mediaPlayers.map(annotate) }
+  })
 
   /**
    * "Did the TV react?" in the first-run wizard (§8.3 step 2). Abstract keys

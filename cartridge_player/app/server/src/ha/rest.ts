@@ -12,6 +12,8 @@ export interface EntityOption {
   name: string
   domain: string
   state: string
+  /** Integration that provides it, when known. Disambiguates equal names. */
+  platform?: string
 }
 
 export interface HomeAssistantRestOptions {

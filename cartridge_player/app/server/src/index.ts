@@ -4,6 +4,7 @@ import { createContext } from './context.js'
 import { createLogger } from './log.js'
 import { HomeAssistantWs } from './ha/ws.js'
 import { ensureAddonSlug } from './ha/supervisor.js'
+import { createEntityPlatformLookup } from './ha/entity-registry.js'
 import { buildServer } from './http/server.js'
 import { resolveDirectMode } from './http/direct.js'
 
@@ -48,6 +49,9 @@ async function main(): Promise<void> {
     },
   })
   ws.start()
+
+  // Lets the setup dropdowns say which integration each entity came from.
+  ctx.entityPlatforms = createEntityPlatformLookup(ws)
 
   const ingress = buildServer(ctx, { requirePin: false })
   await ingress.listen({ host: '0.0.0.0', port: config.ingressPort })

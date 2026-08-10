@@ -146,6 +146,21 @@ using the sidebar is **not** — it contains a session token that rotates.
 | **Wait before Select** | How long Stremio needs to list streams. Too short and it presses Select on an empty page. |
 | **When a cartridge is lifted off** | Do nothing (default), pause, back, or home. |
 
+### If the same player appears twice
+
+Friendly names are not unique, and Music Assistant mirrors players it can send
+audio to — so a household running both ends up with two entries called, say,
+"Living Room".
+
+The pickers group entities by the integration they came from, and any name that
+still appears more than once carries its entity id, so the two are always
+distinguishable.
+
+**Pick the one from your TV's own integration.** The Music Assistant copy is for
+audio and will not pause the app on screen; the only symptom of choosing it is
+that lifting a cartridge off silently does nothing. The app warns you if you
+select one.
+
 The two delays are the ones worth tuning against your own hardware. The defaults
 are starting points, not measurements.
 

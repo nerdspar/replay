@@ -154,6 +154,10 @@ textarea {
   margin: 4px 0 0;
 }
 
+.hint.warn {
+  color: var(--warn);
+}
+
 .row {
   display: flex;
   align-items: center;
