@@ -1,0 +1,96 @@
+name: Build add-on images
+
+# Publishing prebuilt images is what makes an update a `docker pull` — seconds,
+# with a progress bar — instead of Home Assistant compiling better-sqlite3 from
+# source on the user's box with no visible output.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cartridge_player/**'
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - 'cartridge_player/**'
+  workflow_dispatch:
+
+jobs:
+  # Nothing gets published unless the code is actually sound.
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install server dependencies
+        working-directory: cartridge_player/app/server
+        run: npm ci
+
+      - name: Install web dependencies
+        working-directory: cartridge_player/app/web
+        run: npm ci
+
+      - name: Typecheck server
+        working-directory: cartridge_player/app/server
+        run: npm run typecheck
+
+      - name: Test server
+        working-directory: cartridge_player/app/server
+        run: npm test
+
+      - name: Test web
+        working-directory: cartridge_player/app/web
+        run: npm test
+
+      - name: Build web
+        working-directory: cartridge_player/app/web
+        run: npm run build
+
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Must match `arch` in cartridge_player/config.yaml.
+        arch: [aarch64, amd64, armv7]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read add-on version
+        id: meta
+        run: |
+          version="$(grep -E '^version:' cartridge_player/config.yaml | cut -d'"' -f2)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Add-on version: ${version}"
+
+      # Lets the aarch64 and armv7 images build on an amd64 runner.
+      - uses: docker/setup-qemu-action@v3
+
+      - name: Log in to the container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build${{ github.event_name != 'pull_request' && ' and publish' || '' }}
+        uses: home-assistant/builder@master
+        with:
+          args: |
+            --${{ matrix.arch }} \
+            --target /data/cartridge_player \
+            --image "{arch}-cartridge-player" \
+            --docker-hub ghcr.io/${{ github.repository_owner }}/replay \
+            --addon \
+            ${{ github.event_name == 'pull_request' && '--test' || '' }}
