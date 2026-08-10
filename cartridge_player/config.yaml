@@ -1,12 +1,14 @@
 name: Cartridge Player
-version: "0.1.1"
+version: "0.1.2"
 slug: cartridge_player
+# Prebuilt by CI, so an update is a pull with a progress bar rather than
+# Home Assistant compiling better-sqlite3 on the user's own machine.
+image: ghcr.io/nerdspar/replay/{arch}-cartridge-player
 description: Tap NFC cartridges to launch shows on your TV
 url: https://github.com/nerdspar/replay
 arch:
   - aarch64
   - amd64
-  - armv7
 init: false
 ingress: true
 ingress_port: 8099

@@ -60,8 +60,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Must match `arch` in cartridge_player/config.yaml.
-        arch: [aarch64, amd64, armv7]
+        # Must match `arch` in cartridge_player/config.yaml. armv7 is absent
+        # because Home Assistant's builder no longer accepts it — it fails with
+        # "Argument '--armv7' unknown". Add-on builds are 64-bit only now.
+        arch: [aarch64, amd64]
 
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +92,5 @@ jobs:
           args: |
             --${{ matrix.arch }} \
             --target /data/cartridge_player \
-            --image "{arch}-cartridge-player" \
-            --docker-hub ghcr.io/${{ github.repository_owner }}/replay \
             --addon \
             ${{ github.event_name == 'pull_request' && '--test' || '' }}

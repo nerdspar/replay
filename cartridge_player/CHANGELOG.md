@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.2
+
+Updates are now a download instead of a build.
+
+Until now Home Assistant compiled the add-on on your own machine every time —
+a compiler toolchain, two npm installs, `better-sqlite3` built from C++ source,
+and a web build. That took minutes, and the add-on page showed no progress
+because build output does not go there.
+
+CI now publishes prebuilt images, so Supervisor pulls one. That is seconds, and
+the progress bar works.
+
+**armv7 (32-bit ARM) is no longer supported.** Home Assistant's own builder has
+dropped it — it refuses the architecture outright — so images cannot be produced
+for it. 64-bit ARM (`aarch64`) and `amd64` are unaffected. Raspberry Pi 2 and
+early Pi 3 installs running 32-bit Home Assistant OS are the ones affected; a
+64-bit install works.
+
 ## 0.1.1
 
 Fixes the add-on failing to start, which showed up as **404: not found** on the
