@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CRICUT_DESIGN_AREA,
+  CRICUT_SAFE_MARGIN,
   PAGE_SIZES,
   STICKER_PRESETS,
+  fitsCricutArea,
   paginate,
   planGrid,
   withCopies,
@@ -121,21 +124,14 @@ describe('presets', () => {
     expect(PAGE_SIZES[0]!.id).toBe('letter')
   })
 
-  /** The preset's own description quotes these numbers, so pin them. */
-  it('fits twice as many mini posters as cartridge labels', () => {
-    const mini = STICKER_PRESETS.find((p) => p.id === 'mini-poster')!
+  it('keeps the cartridge label at true poster proportions, so nothing is cropped', () => {
     const label = STICKER_PRESETS.find((p) => p.id === 'cartridge-label')!
-
-    expect(plan(LETTER, mini.width, mini.height).perPage).toBe(12)
-    expect(plan(A4, mini.width, mini.height).perPage).toBe(12)
-    expect(plan(LETTER, label.width, label.height).perPage).toBe(6)
+    expect(label.height / label.width).toBeCloseTo(1.5, 5)
   })
 
-  it('keeps 2:3 presets at true poster proportions, so nothing is cropped', () => {
-    for (const id of ['cartridge-label', 'mini-poster']) {
-      const preset = STICKER_PRESETS.find((p) => p.id === id)!
-      expect(preset.height / preset.width, id).toBeCloseTo(1.5, 5)
-    }
+  it('ships only presets grounded in a real measurement', () => {
+    // The shell for one, the NTAG215 spec for the other. Nothing invented.
+    expect(STICKER_PRESETS.map((p) => p.id)).toEqual(['cartridge-label', 'tag-dot'])
   })
 
   it('matches the tag dot to a 25 mm NTAG215 sticker', () => {
@@ -166,5 +162,34 @@ describe('the cartridge label on real paper', () => {
   it('gains a row on A4 if the margin is tightened', () => {
     expect(plan(A4, 60, 90, 3, 3).rows).toBe(3)
     expect(plan(A4, 60, 90, 10, 0).rows).toBe(3)
+  })
+})
+
+describe('Cricut Print Then Cut', () => {
+  /**
+   * A Cricut prints registration marks around the design and reads them back,
+   * so the design has to sit inside a smaller box than the page. The 10 mm
+   * default does not.
+   */
+  it('rejects the default margin, which overflows the registerable area', () => {
+    expect(fitsCricutArea(LETTER, 10)).toBe(false)
+    expect(fitsCricutArea(A4, 10)).toBe(false)
+  })
+
+  it('accepts the safe margin on both page sizes', () => {
+    expect(fitsCricutArea(LETTER, CRICUT_SAFE_MARGIN)).toBe(true)
+    expect(fitsCricutArea(A4, CRICUT_SAFE_MARGIN)).toBe(true)
+  })
+
+  it('does not cost a row or column to switch to it', () => {
+    const label = STICKER_PRESETS.find((p) => p.id === 'cartridge-label')!
+    expect(plan(LETTER, label.width, label.height, CRICUT_SAFE_MARGIN).perPage).toBe(
+      plan(LETTER, label.width, label.height, 10).perPage,
+    )
+  })
+
+  it('matches the areas Cricut publishes, converted from inches', () => {
+    expect(CRICUT_DESIGN_AREA.letter!.width).toBeCloseTo(189.0, 1)
+    expect(CRICUT_DESIGN_AREA.letter!.height).toBeCloseTo(252.5, 1)
   })
 })

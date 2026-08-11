@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { episodeBadge } from '../components/Poster'
 import {
+  CRICUT_SAFE_MARGIN,
   PAGE_SIZES,
   STICKER_PRESETS,
+  fitsCricutArea,
   paginate,
   planGrid,
   withCopies,
@@ -33,6 +35,7 @@ export function PrintSheet() {
   const [copies, setCopies] = useState(1)
   const [fit, setFit] = useState<Fit>('cover')
   const [guides, setGuides] = useState(true)
+  const [cricut, setCricut] = useState(false)
 
   const [artworkReady, setArtworkReady] = useState(false)
   const sheetsRef = useRef<HTMLDivElement>(null)
@@ -74,6 +77,8 @@ export function PrintSheet() {
     () => cards.filter((card) => selected.has(card.id)),
     [cards, selected],
   )
+
+  const cricutOk = useMemo(() => fitsCricutArea(page, margin), [page, margin])
 
   const plan = useMemo(
     () => planGrid({ page, margin, gap, sticker: { width, height } }),
@@ -266,6 +271,36 @@ export function PrintSheet() {
           <p className="hint">
             Most printers cannot print to the very edge. Keep a margin of about
             10 mm unless you know yours goes closer.
+          </p>
+
+          {/*
+            A Cricut prints registration marks around the design and reads them
+            back, so the design must sit inside a smaller box than the page. The
+            10 mm default overflows it, and the failure is late and annoying:
+            Design Space rejects the size, or the cut lands off-register.
+          */}
+          <div className="switch" style={{ marginTop: 14 }}>
+            <span>Cutting with a Cricut</span>
+            <input
+              type="checkbox"
+              checked={cricut}
+              onChange={(e) => {
+                setCricut(e.target.checked)
+                if (e.target.checked) {
+                  setMargin(CRICUT_SAFE_MARGIN)
+                  // The machine does the cutting; printed guides would just be
+                  // ink left on the sticker.
+                  setGuides(false)
+                }
+              }}
+            />
+          </div>
+          <p className={`hint ${cricut && !cricutOk ? 'warn' : ''}`}>
+            {cricut
+              ? cricutOk
+                ? `Margins set to ${CRICUT_SAFE_MARGIN} mm and cut guides turned off, so the sheet stays inside the area Print Then Cut can register.`
+                : `A ${margin} mm margin puts the stickers outside the area Print Then Cut can register on ${page.label}. Use ${CRICUT_SAFE_MARGIN} mm or more.`
+              : 'Sets margins Print Then Cut can register, and turns off cut guides since the machine does the cutting.'}
           </p>
 
           <label className="field" style={{ marginTop: 14, marginBottom: 0 }}>

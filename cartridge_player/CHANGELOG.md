@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.6
+
+The **Mini poster** preset is gone. The two that remain are both grounded in a
+real measurement — the cartridge shell and the NTAG215 spec — where that one was
+invented.
+
+New **Cutting with a Cricut** option. Print Then Cut prints registration marks
+around the design and reads them back, so the design must sit inside a smaller
+box than the page: 189 × 252.5 mm on US Letter. The 10 mm default margin
+overflowed it. The option sets a 14 mm margin, which fits, and turns cut guides
+off since the machine does the cutting — still six labels per page.
+
 ## 0.1.5
 
 Sticker sheets default to **US Letter** instead of A4.

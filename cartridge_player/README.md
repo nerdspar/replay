@@ -100,7 +100,6 @@ up the sheet.
 | Preset | Size | Use |
 |---|---|---|
 | **Cartridge label** | 60 × 90 mm, 4 mm corners | The cartridge shell. This is the one you want. |
-| **Mini poster** | 45 × 67.5 mm, 3 mm corners | A smaller 2:3 label — 12 per page. For a storage box or shelf; too small for the cartridge itself. |
 | **Tag dot** | 25 mm round | Labelling the NFC tag itself. |
 
 The cartridge label is exactly 2:3 — the same shape as a movie poster — so
@@ -126,6 +125,27 @@ the size in the table. Turn them off for a clean sheet, or if you are cutting by
 machine and would rather register on the artwork.
 
 Sheets default to **US Letter**; A4 is a click away.
+
+### Cutting with a Cricut
+
+Turn on **Cutting with a Cricut** before printing. Print Then Cut prints
+registration marks around the design and reads them back, so the design has to
+sit inside a smaller box than the page — Cricut's usable area on US Letter is
+7.44 × 9.94 in (189 × 252.5 mm). The 10 mm default margin overflows that. The
+setting widens the margin to 14 mm, which fits, and turns cut guides off since
+the machine does the cutting. You still get six labels to a page.
+
+What you need beyond the machine itself:
+
+- **Printable sticker material** your printer can handle — printable vinyl lasts
+  better than paper on something handled daily
+- **An Explore or Maker.** Cricut Joy cannot do Print Then Cut at all
+- A **StandardGrip mat**, and light-coloured material so the sensor can read the
+  registration marks
+
+One caveat: this app prints a sheet, it does not yet export artwork for Design
+Space. Getting the design into Design Space for Print Then Cut is the part that
+is not solved here.
 
 ## Put it on your phone's home screen
 

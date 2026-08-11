@@ -49,17 +49,6 @@ export const STICKER_PRESETS: StickerPreset[] = [
     hint: 'Fits the cartridge shell. Exactly 2:3, so posters print uncropped.',
   },
   {
-    id: 'mini-poster',
-    label: 'Mini poster',
-    width: 45,
-    height: 67.5,
-    radius: 3,
-    shape: 'rect',
-    // Not a second cartridge size — it will not fill the shell recess. It is a
-    // smaller 2:3 label for anything else: a storage box, a shelf, a case.
-    hint: 'Smaller 2:3 label — 12 per page instead of 6. For boxes and shelves; too small for the cartridge itself.',
-  },
-  {
     id: 'tag-dot',
     label: 'Tag dot',
     width: 25,
@@ -69,6 +58,33 @@ export const STICKER_PRESETS: StickerPreset[] = [
     hint: 'Matches a 25 mm NTAG215 sticker.',
   },
 ]
+
+/**
+ * Cricut's Print Then Cut works by printing registration marks around the
+ * design and reading them back, so the design has to sit inside a smaller box
+ * than the page. Cricut publishes the usable design area per paper size; these
+ * are the two this app offers, converted from inches.
+ *
+ * https://help.cricut.com/hc/en-us/articles/360009429814
+ */
+export const CRICUT_DESIGN_AREA: Record<string, { width: number; height: number }> = {
+  letter: { width: 7.44 * 25.4, height: 9.94 * 25.4 }, // 189.0 x 252.5 mm
+  a4: { width: 7.2 * 25.4, height: 10.62 * 25.4 }, // 182.9 x 269.7 mm
+}
+
+/**
+ * Margin that keeps the design inside Cricut's registerable area on both
+ * supported page sizes. Letter needs 13.5 mm; 14 rounds up for comfort, and
+ * still fits the same six cartridge labels per page as the 10 mm default.
+ */
+export const CRICUT_SAFE_MARGIN = 14
+
+/** Whether a layout stays inside the area Cricut can register and cut. */
+export function fitsCricutArea(page: PageSize, margin: number): boolean {
+  const area = CRICUT_DESIGN_AREA[page.id]
+  if (!area) return false
+  return page.width - margin * 2 <= area.width && page.height - margin * 2 <= area.height
+}
 
 export interface SheetLayout {
   page: PageSize
