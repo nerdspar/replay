@@ -22,8 +22,12 @@ const artworkQuery = z.object({
 export function referencedArtwork(ctx: AppContext): Set<string> {
   const names = new Set<string>()
   for (const card of ctx.store.listCards()) {
-    const name = artworkNameFromUrl(card.poster_url)
-    if (name) names.add(name)
+    // Both, because a card's original artwork stays offered in the picker for
+    // as long as the card exists — collecting it would break the way back.
+    for (const url of [card.poster_url, card.original_poster_url]) {
+      const name = artworkNameFromUrl(url)
+      if (name) names.add(name)
+    }
   }
   return names
 }

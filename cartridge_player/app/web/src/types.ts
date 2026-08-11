@@ -48,6 +48,8 @@ export interface Card {
   title: string
   year: string | null
   poster_url: string | null
+  /** Artwork the card was created with. Written once, never updated. */
+  original_poster_url: string | null
   season: number | null
   episode: number | null
   label: string | null

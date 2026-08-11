@@ -95,8 +95,9 @@ describe('cards', () => {
     expect(columns).toContain('provider')
     expect(columns).toContain('external_id')
     // No column holds a built launch URI — that is assembled at fire time.
+    const artwork = ['poster_url', 'original_poster_url']
     const urlish = columns.filter(
-      (c) => c.includes('uri') || (c.includes('url') && c !== 'poster_url'),
+      (c) => c.includes('uri') || (c.includes('url') && !artwork.includes(c)),
     )
     expect(urlish).toEqual([])
     store.close()

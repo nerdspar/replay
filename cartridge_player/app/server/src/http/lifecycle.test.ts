@@ -7,7 +7,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import Database from 'better-sqlite3'
 import { buildServer } from './server.js'
-import { migrate } from '../db/schema.js'
+import { SCHEMA_VERSION, migrate } from '../db/schema.js'
 import { Store } from '../db/index.js'
 import { testContext, type TestContext } from '../test/context.js'
 import { FakeProvider, FakeTarget } from '../test/helpers.js'
@@ -289,7 +289,7 @@ describe('migrating a database written before this existed', () => {
       status: string
     }
     expect(row.status).toBe('assigned')
-    expect(db.pragma('user_version', { simple: true })).toBe(2)
+    expect(db.pragma('user_version', { simple: true })).toBe(SCHEMA_VERSION)
     db.close()
   })
 
@@ -321,5 +321,101 @@ describe('migrating a database written before this existed', () => {
     expect(() =>
       store.db.prepare("UPDATE cards SET status = 'nonsense' WHERE tag_uid = '04-02'").run(),
     ).toThrow()
+  })
+})
+
+/**
+ * A card's poster comes from the provider's SEARCH results, and for Cinemeta
+ * those are IMDb images — while the artwork picker lists its META endpoint,
+ * which returns metahub's. No endpoint can produce the search image again for a
+ * known id, so once a card moved off it, it was gone for good.
+ */
+describe('the artwork a card was created with', () => {
+  it('is recorded at creation', () => {
+    const { card } = setup()
+    expect(card.original_poster_url).toBe('https://example.test/p.jpg')
+  })
+
+  it('survives changing the artwork and saving', async () => {
+    const { ctx, card } = setup()
+    const app = buildServer(ctx, { requirePin: false })
+
+    await app.inject({
+      method: 'PATCH',
+      url: `/api/cards/${card.id}`,
+      payload: { poster_url: 'https://images.metahub.space/poster/medium/tt1/img' },
+    })
+
+    const after = ctx.store.getCard(card.id)!
+    expect(after.poster_url).toBe('https://images.metahub.space/poster/medium/tt1/img')
+    // The way back is still there.
+    expect(after.original_poster_url).toBe('https://example.test/p.jpg')
+
+    await app.close()
+  })
+
+  it('cannot be overwritten by a client', async () => {
+    const { ctx, card } = setup()
+    const app = buildServer(ctx, { requirePin: false })
+
+    await app.inject({
+      method: 'PATCH',
+      url: `/api/cards/${card.id}`,
+      payload: { original_poster_url: 'https://evil.test/x.jpg' },
+    })
+
+    expect(ctx.store.getCard(card.id)!.original_poster_url).toBe(
+      'https://example.test/p.jpg',
+    )
+    await app.close()
+  })
+
+  it('survives emptying and refilling the cartridge', async () => {
+    const { ctx, card } = setup()
+    ctx.store.unassignCard(card.id, Date.now())
+    const app = buildServer(ctx, { requirePin: false })
+
+    await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: {
+        tag_uid: card.tag_uid,
+        provider: 'fake',
+        content_type: 'movie',
+        external_id: 'fake-2',
+        title: 'Something Else',
+        poster_url: 'https://example.test/other.jpg',
+      },
+    })
+
+    expect(ctx.store.getCard(card.id)!.original_poster_url).toBe(
+      'https://example.test/p.jpg',
+    )
+    await app.close()
+  })
+
+  it('backfills existing cards on upgrade rather than leaving them blank', () => {
+    const db = new Database(':memory:')
+    db.exec(`
+      CREATE TABLE cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_uid TEXT NOT NULL UNIQUE,
+        provider TEXT NOT NULL, content_type TEXT NOT NULL,
+        external_id TEXT NOT NULL, title TEXT NOT NULL,
+        year TEXT, poster_url TEXT, season INTEGER, episode INTEGER, label TEXT,
+        created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      INSERT INTO cards (tag_uid, provider, content_type, external_id, title, poster_url, created_at, updated_at)
+      VALUES ('04-01', 'stremio', 'movie', 'tt1', 'Old', 'https://old.test/p.jpg', 1, 1);
+    `)
+    db.pragma('user_version = 1')
+
+    migrate(db)
+
+    const row = db.prepare('SELECT original_poster_url FROM cards').get() as {
+      original_poster_url: string
+    }
+    expect(row.original_poster_url).toBe('https://old.test/p.jpg')
+    db.close()
   })
 })

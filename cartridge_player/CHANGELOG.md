@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.8
+
+The artwork a cartridge started with is now kept permanently and always offered
+as **Original**, so changing it is no longer a one-way door.
+
+0.1.7 showed the artwork in use, but once you picked something else and saved,
+the one you started with was gone — nothing recorded it, and it cannot be looked
+up again. It comes from the search results when a cartridge is first assigned,
+and no metadata lookup returns that same image for a title afterwards. It is now
+stored on the cartridge itself.
+
+Cartridges created before this upgrade keep whatever artwork they have now as
+their original.
+
 ## 0.1.7
 
 The artwork a cartridge is already using now appears in the picker, labelled

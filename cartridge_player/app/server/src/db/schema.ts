@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -85,6 +85,25 @@ ALTER TABLE cards ADD COLUMN status TEXT NOT NULL DEFAULT 'assigned'
 CREATE INDEX IF NOT EXISTS cards_status ON cards (status);
 `
 
+/**
+ * The artwork a card was created with, kept forever.
+ *
+ * A card's poster is set at assignment time from the provider's SEARCH results.
+ * For Cinemeta those come from IMDb, while the artwork picker lists what its
+ * META endpoint returns, which is metahub's. They are different images for the
+ * same title, and no endpoint returns the IMDb one for a known id — so once a
+ * card moved off it, it was unrecoverable.
+ *
+ * Written once at creation and never updated, so the picker can always offer
+ * the way back.
+ */
+const V3 = `
+ALTER TABLE cards ADD COLUMN original_poster_url TEXT;
+
+-- Existing cards: the best guess available is whatever they have now.
+UPDATE cards SET original_poster_url = poster_url WHERE original_poster_url IS NULL;
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -92,6 +111,9 @@ export function migrate(db: Database): void {
   }
   if (current < 2) {
     db.exec(V2)
+  }
+  if (current < 3) {
+    db.exec(V3)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

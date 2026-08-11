@@ -60,6 +60,8 @@ export interface Card {
   title: string
   year: string | null
   poster_url: string | null
+  /** Artwork the card was created with. Written once, never updated. */
+  original_poster_url: string | null
   season: number | null
   episode: number | null
   label: string | null
@@ -67,7 +69,10 @@ export interface Card {
   updated_at: number
 }
 
-export type CardInput = Omit<Card, 'id' | 'created_at' | 'updated_at' | 'status'>
+export type CardInput = Omit<
+  Card,
+  'id' | 'created_at' | 'updated_at' | 'status' | 'original_poster_url'
+>
 
 export interface Settings {
   id: 1

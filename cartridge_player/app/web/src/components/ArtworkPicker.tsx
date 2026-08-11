@@ -12,6 +12,8 @@ interface ArtworkPickerProps {
   episode: number | null
   /** Currently chosen artwork URL, if any. */
   value: string | null
+  /** What the card was created with, so there is always a way back to it. */
+  originalUrl?: string | null
   onChange: (url: string | null) => void
 }
 
@@ -29,6 +31,7 @@ export function ArtworkPicker({
   season,
   episode,
   value,
+  originalUrl,
   onChange,
 }: ArtworkPickerProps) {
   const [options, setOptions] = useState<ArtworkOption[]>([])
@@ -96,13 +99,17 @@ export function ArtworkPicker({
 
     if (custom) prepend(custom.url, CUSTOM_OPTION_ID, 'Your image')
 
+    // The artwork this card was created with. Kept on the card itself, because
+    // once a card moves off it there is no endpoint that can produce it again —
+    // it came from the provider's search results, not its metadata.
+    if (originalUrl) prepend(originalUrl, 'original', 'Original')
+
     // The SAVED artwork, not the live selection. Tracking the selection meant
-    // that picking anything else dropped the original out of the list, so there
-    // was no way back to it without abandoning the whole edit.
+    // the original vanished the moment you picked something else.
     if (saved) prepend(saved, 'current', saved.startsWith('api/artwork/file/') ? 'Your image' : 'Current')
 
     return list
-  }, [options, custom, saved])
+  }, [options, custom, saved, originalUrl])
 
   const store = async (file: File) => {
     const { blob } = await downscaleImage(file)

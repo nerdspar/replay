@@ -255,19 +255,37 @@ describe('garbage collection', () => {
 
   it('deletes the old image when a card switches artwork', async () => {
     const ctx = setup()
+    // Created with a remote poster, as the assignment flow does — uploads only
+    // happen later, through editing.
+    ctx.store.createCard(cardWith('https://example.test/p.jpg', '04-01'), 1)
+    const app = buildServer(ctx, { requirePin: false })
+
+    // Saved one at a time: housekeeping runs on every card change, so an image
+    // saved before it is referenced would be collected straight away.
     const before = ctx.artwork.save(PNG)
+    await app.inject({ method: 'PATCH', url: '/api/cards/1', payload: { poster_url: before.url } })
+
     const after = ctx.artwork.save(JPEG)
-    ctx.store.createCard(cardWith(before.url, '04-01'), 1)
+    await app.inject({ method: 'PATCH', url: '/api/cards/1', payload: { poster_url: after.url } })
+    await app.close()
+
+    expect(ctx.artwork.list()).toEqual([after.name])
+  })
+
+  it('keeps an uploaded image that is a card\'s original, so the way back survives', async () => {
+    const ctx = setup()
+    const original = ctx.artwork.save(PNG)
+    ctx.store.createCard(cardWith(original.url, '04-01'), 1)
 
     const app = buildServer(ctx, { requirePin: false })
     await app.inject({
       method: 'PATCH',
       url: '/api/cards/1',
-      payload: { poster_url: after.url },
+      payload: { poster_url: 'https://images.metahub.space/poster/medium/tt1/img' },
     })
     await app.close()
 
-    expect(ctx.artwork.list()).toEqual([after.name])
+    expect(ctx.artwork.list()).toEqual([original.name])
   })
 
   it('keeps one file when two cards share the same image', async () => {

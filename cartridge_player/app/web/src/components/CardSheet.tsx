@@ -186,6 +186,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
         season={card.season}
         episode={card.episode}
         value={poster}
+        originalUrl={card.original_poster_url}
         onChange={setPoster}
       />
 

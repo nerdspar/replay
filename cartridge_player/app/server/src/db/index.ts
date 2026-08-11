@@ -156,8 +156,9 @@ export class Store {
       .prepare(
         `INSERT INTO cards
            (tag_uid, provider, content_type, external_id, title, year,
-            poster_url, season, episode, label, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            poster_url, original_poster_url, season, episode, label,
+            created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.tag_uid,
@@ -166,6 +167,9 @@ export class Store {
         input.external_id,
         input.title,
         input.year,
+        input.poster_url,
+        // Where this card started. Deliberately absent from updateCard's
+        // allow-list, so nothing can overwrite it later.
         input.poster_url,
         input.season,
         input.episode,
