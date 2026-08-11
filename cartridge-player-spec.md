@@ -165,6 +165,13 @@ in the original YAML is ESP8266-compatible; only the platform block and pins cha
   a cartridge actually did — `playing`, `new`, `error`, `busy`, `ready`, `off`.
   Unknown names must fall through to ambient rather than sticking, so a newer
   add-on cannot strand older firmware showing a colour it does not understand.
+- Accept a `set_status_color` action, so a playing cartridge can wear a colour
+  sampled from its own artwork. Sampling belongs in the browser: the server has
+  no image decoder, and the sampling a LIGHT needs is not the sampling a STICKER
+  needs — a sticker wants the cover's dominant tone, so a mostly-black cover
+  correctly gets a black border, while a light asked for that same near-black
+  shows nothing. The light's sampler discards anything too dark or desaturated
+  to read as light and returns nothing at all rather than a muddy grey.
 - Expose the LED as a light, plus a switch that hands control over. With the
   switch off the firmware must not touch the LED at all — a half-measure where
   automatic updates still fire would revert anything set by hand at the next tag

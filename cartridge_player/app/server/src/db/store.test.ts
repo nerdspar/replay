@@ -38,6 +38,7 @@ describe('settings', () => {
       music_removal_action: 'pause',
       led_enabled: true,
       led_playing_mode: 'hold',
+      led_playing_artwork: false,
       led_palette: DEFAULT_PALETTE,
       reader_device: null,
       pin_hash: null,

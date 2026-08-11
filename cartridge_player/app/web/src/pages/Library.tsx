@@ -6,6 +6,7 @@ import { CardSheet } from '../components/CardSheet'
 import { Confirm } from '../components/Confirm'
 import { Icon } from '../components/Icon'
 import { Poster, episodeBadge } from '../components/Poster'
+import { accentColor } from '../lib/artFit'
 import type { AppStream } from '../hooks/useAppStream'
 import type { Card, CardKind, ScanEvent } from '../types'
 
@@ -74,6 +75,45 @@ export function Library({ stream }: LibraryProps) {
   }, [])
 
   useEffect(refresh, [refresh, stream.cardsVersion])
+
+  /*
+    Fills in the colour each cartridge's artwork reads as, for the reader's
+    light.
+
+    Done here rather than at assignment because it also backfills cartridges
+    that predate the feature, and because the server clears the colour whenever
+    artwork changes — so a blank is the one signal needed, wherever it came from.
+    Sampling needs a canvas, which is why it cannot happen on the server.
+
+    A few at a time: this reads pixels back off a canvas per cartridge, and a
+    library of eighty should not do eighty of those the moment it opens.
+  */
+  useEffect(() => {
+    const missing = cards.filter((c) => c.poster_url && !c.accent_color).slice(0, 4)
+    if (missing.length === 0) return
+
+    let cancelled = false
+    void (async () => {
+      let sampled = false
+      for (const card of missing) {
+        if (cancelled) return
+        const color = await accentColor(card)
+        if (!color || cancelled) continue
+        try {
+          await api.updateCard(card.id, { accent_color: color })
+          sampled = true
+        } catch {
+          // Not worth surfacing: the light falls back to its palette colour.
+        }
+      }
+      // Re-list so the next four are picked up, until none are left.
+      if (sampled && !cancelled) refresh()
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [cards, refresh])
 
   // Cartridges seen but never assigned. Derived from the scan log so they
   // survive a page reload, unlike the single live pending UID.

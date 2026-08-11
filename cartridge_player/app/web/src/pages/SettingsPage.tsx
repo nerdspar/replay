@@ -103,6 +103,7 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         music_removal_action: draft.music_removal_action,
         led_enabled: draft.led_enabled,
         led_playing_mode: draft.led_playing_mode,
+        led_playing_artwork: draft.led_playing_artwork,
         led_palette: draft.led_palette,
         public_base_url: draft.public_base_url,
         ...(pin.trim() === '' ? {} : { pin: pin.trim() }),
@@ -280,9 +281,11 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
 
       <LightSettings
         enabled={draft.led_enabled}
+        useArtwork={draft.led_playing_artwork}
         palette={draft.led_palette}
         playingMode={draft.led_playing_mode}
         onEnabledChange={(v) => set('led_enabled', v)}
+        onUseArtworkChange={(v) => set('led_playing_artwork', v)}
         onPaletteChange={(v: LedPalette) => set('led_palette', v)}
         onPlayingModeChange={(v: LedPlayingMode) => set('led_playing_mode', v)}
       />

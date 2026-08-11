@@ -130,6 +130,94 @@ function downscale(image: HTMLImageElement, box: number): CanvasRenderingContext
   return ctx
 }
 
+/** Below these, a colour cannot read as light — it reads as "off". */
+const LIGHT_MIN_SATURATION = 0.35
+const LIGHT_MIN_VALUE = 0.25
+
+/**
+ * The colour a cover should light an LED with.
+ *
+ * Deliberately NOT `dominantColor`, though the first version of this reused it
+ * and was wrong. A sticker background wants the cover's dominant tone, so a
+ * mostly-black cover correctly gets a black border. An LED asked for that same
+ * near-black shows nothing at all, and a cover with a dark background and one
+ * vivid element — which is most film posters — produced an unlit reader.
+ *
+ * So this asks a different question: what is the most identifiable colour here
+ * that would actually be visible as light? Candidates below a minimum
+ * saturation and value are discarded outright rather than dimmed, and the
+ * winner is scaled to full value so hue is all it contributes. How bright the
+ * reader gets is the palette's business, not the artwork's.
+ *
+ * Returns null when nothing qualifies — a black-and-white cover has no colour
+ * to offer, and saying so lets the caller fall back to the fixed palette
+ * instead of showing a muddy grey.
+ */
+export function lightAccent(pixels: Uint8ClampedArray): string | null {
+  const counts = new Map<number, { count: number; r: number; g: number; b: number }>()
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    if (pixels[i + 3]! < 128) continue
+
+    const r = pixels[i]!
+    const g = pixels[i + 1]!
+    const b = pixels[i + 2]!
+    if (Math.max(r, g, b) / 255 < LIGHT_MIN_VALUE) continue
+    if (saturationOf(r, g, b) < LIGHT_MIN_SATURATION) continue
+
+    const key =
+      ((r >> QUANTIZE_SHIFT) << 8) | ((g >> QUANTIZE_SHIFT) << 4) | (b >> QUANTIZE_SHIFT)
+    const bucket = counts.get(key)
+    if (bucket) {
+      bucket.count += 1
+      bucket.r += r
+      bucket.g += g
+      bucket.b += b
+    } else {
+      counts.set(key, { count: 1, r, g, b })
+    }
+  }
+
+  if (counts.size === 0) return null
+
+  let best: { score: number; r: number; g: number; b: number } | null = null
+  for (const bucket of counts.values()) {
+    const r = Math.round(bucket.r / bucket.count)
+    const g = Math.round(bucket.g / bucket.count)
+    const b = Math.round(bucket.b / bucket.count)
+    const score = bucket.count * (1 + saturationOf(r, g, b))
+    if (!best || score > best.score) best = { score, r, g, b }
+  }
+
+  // Scaled to full value: a teal sampled at half brightness and a teal sampled
+  // at full should light the reader identically, because they are the same hue.
+  const { r, g, b } = best!
+  const scale = 255 / Math.max(r, g, b)
+  return `#${[r, g, b]
+    .map((c) => Math.min(255, Math.round(c * scale)).toString(16).padStart(2, '0'))
+    .join('')}`
+}
+
+/**
+ * The colour a cartridge's artwork should light the reader with, or null.
+ *
+ * Sampled in the browser rather than on the server: the server has no image
+ * decoder, and adding one to look at a cover it never displays would be a heavy
+ * dependency for a cosmetic feature.
+ */
+export async function accentColor(card: Card): Promise<string | null> {
+  if (!card.poster_url) return null
+  try {
+    const image = await loadArtwork(card)
+    const ctx = downscale(image, SAMPLE_PX)
+    if (!ctx) return null
+    const { width, height } = ctx.canvas
+    return lightAccent(ctx.getImageData(0, 0, width, height).data)
+  } catch {
+    return null
+  }
+}
+
 const cache = new Map<string, FitBackdrop>()
 
 const cacheKey = (card: Card, fit: ArtFit) => `${card.id}:${card.updated_at}:${fit}`

@@ -31,6 +31,11 @@ const createBody = z.object({
   art_fit: z.enum(['crop', 'blur', 'color']).nullable().optional(),
   shuffle: z.boolean().optional(),
   radio_mode: z.boolean().optional(),
+  accent_color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable()
+    .optional(),
 })
 
 const patchBody = createBody.partial().omit({ tag_uid: true })
@@ -60,6 +65,7 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
       art_fit: body.art_fit ?? null,
       shuffle: body.shuffle ?? false,
       radio_mode: body.radio_mode ?? false,
+      accent_color: body.accent_color ?? null,
     }
 
     const existing = ctx.store.findCardByUid(body.tag_uid)

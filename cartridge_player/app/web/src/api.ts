@@ -67,6 +67,7 @@ export const api = {
     art_fit?: ArtFit | null
     shuffle?: boolean
     radio_mode?: boolean
+    accent_color?: string | null
   }) =>
     request<{ card: Card }>('api/cards', {
       method: 'POST',

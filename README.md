@@ -142,6 +142,17 @@ All nine colours and brightnesses are yours to change under **Settings → Reade
 light**, each with a reset button. The three speeds are fixed, because they are
 what keeps two states apart when they share a colour.
 
+**Use the cartridge's own colour** makes a playing cartridge light the reader in
+a colour taken from its own artwork. Sampled for a light rather than for a
+sticker: it looks for the most identifiable colour that would actually read as
+light, ignoring anything too dark or too grey. A poster that is mostly black
+with one vivid element lights up in that element, not in the black. Artwork with
+no colour to offer — black and white covers — keeps the fixed Playing colour.
+
+The colour is worked out by your browser the first time it lists a library, a
+few cartridges at a time, and again whenever you change a cartridge's artwork.
+Nothing to trigger by hand.
+
 To drive the light yourself, turn **Status Light Automatic** off. The firmware
 then stops touching it — including the read flash — and it behaves like any
 other light. Turn the switch back on and the reader takes it straight back. The

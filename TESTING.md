@@ -269,6 +269,11 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.7n | Set **While something is playing** to each of the three options | Stay lit holds green; Confirm shows green for 2 s; Nothing goes straight back to Ready — it must NOT stay breathing |
 | 5.7o | Press a state's reset button | That row returns to its default and the button greys out |
 | 5.7p | Reboot the reader, wait 15 min without saving settings | Custom colours come back on their own. They live in RAM on the device and are re-pushed on a timer |
+| 5.7q | Turn on **Use the cartridge's own colour**, open the library, then tap a colourful cartridge | Reader lights in a colour recognisably from that artwork |
+| 5.7r | Tap a cartridge whose poster is mostly dark with one bright element | Lights in the bright element, NOT a near-black that looks like the LED is off |
+| 5.7s | Tap a cartridge with black and white artwork | Falls back to the fixed Playing colour rather than showing grey |
+| 5.7t | Change a cartridge's artwork, reopen the library, tap it | New colour. The old one is discarded the moment artwork changes, and the browser resamples |
+| 5.7u | Tap a cartridge with no artwork at all | Fixed Playing colour, no error |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |

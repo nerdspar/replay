@@ -146,6 +146,8 @@ export interface Card {
   /** Overrides the default speaker for this one cartridge. NULL means default. */
   player_entity: string | null
   art_fit: ArtFit | null
+  /** `#rrggbb` sampled from the artwork, or null. Computed by the browser. */
+  accent_color: string | null
   /** Music only. Shuffles the queue this cartridge builds. */
   shuffle: boolean
   /** Music only. Keeps playing similar music once the selection runs out. */
@@ -173,6 +175,8 @@ export interface Settings {
   music_removal_action: MusicRemovalAction
   led_enabled: boolean
   led_playing_mode: LedPlayingMode
+  /** Wear the cartridge's own artwork colour while it plays. */
+  led_playing_artwork: boolean
   led_palette: LedPalette
   /** ESPHome device name. Blank means "whichever reader answers" (§1.2). */
   reader_device: string | null

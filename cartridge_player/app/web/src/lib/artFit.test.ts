@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dominantColor, objectFitFor } from './artFit'
+import { dominantColor, lightAccent, objectFitFor } from './artFit'
 
 /** Builds RGBA pixel data from a list of [r, g, b, count] runs. */
 function pixels(...runs: [number, number, number, number][]): Uint8ClampedArray {
@@ -72,5 +72,43 @@ describe('dominantColor', () => {
 
   it('falls back to white rather than throwing on an empty image', () => {
     expect(dominantColor(new Uint8ClampedArray(0))).toBe('#ffffff')
+  })
+})
+
+/**
+ * A different question from dominantColor, which is why it is a different
+ * function. The sticker wants the cover's tone; the LED wants a colour that
+ * will actually be visible as light.
+ */
+describe('lightAccent', () => {
+  it('finds the vivid element in a mostly-dark cover', () => {
+    // Most film posters. dominantColor correctly returns the near-black here,
+    // which as a light is indistinguishable from switched off.
+    const result = lightAccent(pixels([16, 16, 18, 3072], [20, 184, 166, 1024]))
+    expect(result).not.toBeNull()
+    expect(result).toMatch(/^#[0-9a-f]{6}$/)
+    // Teal: green and blue high, red low.
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(result!.slice(i, i + 2), 16))
+    expect(g).toBeGreaterThan(200)
+    expect(b).toBeGreaterThan(150)
+    expect(r).toBeLessThan(80)
+  })
+
+  it('scales the answer to full value, so hue is all the artwork contributes', () => {
+    // The same hue sampled dark and bright must light the reader identically —
+    // how bright it gets is the palette's decision.
+    const dim = lightAccent(pixels([0, 128, 64, 100]))
+    const bright = lightAccent(pixels([0, 255, 128, 100]))
+    expect(dim).toBe(bright)
+  })
+
+  it('returns null for a cover with no colour to offer', () => {
+    // Black and white artwork. Better to say so and let the caller use its
+    // fixed colour than to hand back a muddy grey.
+    expect(lightAccent(pixels([20, 20, 20, 500], [230, 230, 230, 500]))).toBeNull()
+  })
+
+  it('ignores a colour too dark to register, however common', () => {
+    expect(lightAccent(pixels([12, 0, 30, 4000], [255, 60, 0, 96]))).toMatch(/^#ff/)
   })
 })

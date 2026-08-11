@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.0
+
+A playing cartridge can now light the reader in a colour taken from its own
+artwork. Turn on **Use the cartridge's own colour** under Settings → Reader
+light.
+
+The colour is picked for a light rather than for a sticker: a poster that is
+mostly black with one vivid element lights up in that element, not in the black.
+Black and white artwork keeps the fixed colour, since there is nothing to
+borrow.
+
+Your browser works the colours out the first time it lists your library, and
+again whenever you change a cartridge's artwork. There is nothing to trigger.
+
+Needs the 0.4.0 firmware for the artwork colours; without it the reader keeps
+using the fixed Playing colour rather than failing.
+
 ## 0.3.0
 
 The reader's status light now says what a cartridge did, not just that it was

@@ -171,6 +171,17 @@ export class ReaderLight {
     return this.cachedPrefix
   }
 
+  /** Whether the reader's firmware knows a given action at all. */
+  private async supports(action: string): Promise<boolean> {
+    const prefix = await this.prefix()
+    if (!prefix) return false
+    try {
+      return (await this.deps.ha.listServices('esphome')).includes(`${prefix}_${action}`)
+    } catch {
+      return false
+    }
+  }
+
   private async call(action: string, data: Record<string, unknown>): Promise<void> {
     if (!this.deps.settings().led_enabled) return
 
@@ -189,7 +200,20 @@ export class ReaderLight {
     }
   }
 
-  async setStatus(state: ReaderStatus): Promise<void> {
+  /**
+   * `color` asks the reader to wear that colour for this state instead of the
+   * one in its palette — used to give a playing cartridge the colour of its own
+   * artwork.
+   *
+   * Falls back to the plain call on firmware that predates it, rather than
+   * failing. A reader that has not been reflashed should light up in the
+   * palette colour, not stay dark.
+   */
+  async setStatus(state: ReaderStatus, color?: string | null): Promise<void> {
+    if (color && (await this.supports('set_status_color'))) {
+      await this.call('set_status_color', { state, color: color.replace(/^#/, '') })
+      return
+    }
     await this.call('set_status', { state })
   }
 

@@ -57,7 +57,12 @@ const READER_STATES: StateInfo[] = [
 ]
 
 const ADDON_STATES: StateInfo[] = [
-  { key: 'playing', label: 'Playing', hint: 'The cartridge started something.', motion: 'Steady' },
+  {
+    key: 'playing',
+    label: 'Playing',
+    hint: 'The cartridge started something.',
+    motion: 'Steady',
+  },
   {
     key: 'new',
     label: 'Not set up',
@@ -79,18 +84,22 @@ const PLAYING_MODES: { value: LedPlayingMode; label: string; hint: string }[] = 
 
 interface LightSettingsProps {
   enabled: boolean
+  useArtwork: boolean
   palette: LedPalette
   playingMode: LedPlayingMode
   onEnabledChange: (enabled: boolean) => void
+  onUseArtworkChange: (use: boolean) => void
   onPaletteChange: (palette: LedPalette) => void
   onPlayingModeChange: (mode: LedPlayingMode) => void
 }
 
 export function LightSettings({
   enabled,
+  useArtwork,
   palette,
   playingMode,
   onEnabledChange,
+  onUseArtworkChange,
   onPaletteChange,
   onPlayingModeChange,
 }: LightSettingsProps) {
@@ -183,6 +192,24 @@ export function LightSettings({
               </label>
             ))}
           </div>
+
+          {playingMode === 'off' ? null : (
+            <>
+              <div className="switch" style={{ marginTop: 14 }}>
+                <span>Use the cartridge's own colour</span>
+                <input
+                  type="checkbox"
+                  checked={useArtwork}
+                  onChange={(e) => onUseArtworkChange(e.target.checked)}
+                />
+              </div>
+              <p className="hint">
+                Takes the colour from that cartridge's artwork instead of the
+                Playing colour below — the same colour used behind a square cover
+                on its sticker. Cartridges with no artwork keep the fixed colour.
+              </p>
+            </>
+          )}
 
           <h3 style={{ fontSize: 15, margin: '24px 0 4px' }}>The reader works these out</h3>
           <p className="hint" style={{ marginBottom: 10 }}>

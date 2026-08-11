@@ -171,6 +171,7 @@ const supervisor = http.createServer((req, res) => {
         services: {
           cartridge_reader_set_status: { name: 'set_status' },
           cartridge_reader_set_palette: { name: 'set_palette' },
+          cartridge_reader_set_status_color: { name: 'set_status_color' },
         },
       },
       { domain: 'remote', services: { turn_on: {}, turn_off: {}, send_command: {} } },

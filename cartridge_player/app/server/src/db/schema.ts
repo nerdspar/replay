@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -200,6 +200,23 @@ ALTER TABLE settings ADD COLUMN led_palette TEXT;
 ALTER TABLE settings ADD COLUMN reader_device TEXT;
 `
 
+/**
+ * The colour a cartridge's artwork reads as, so the reader's light can wear it
+ * while that cartridge plays.
+ *
+ * Computed in the browser, not here. The server has no image decoder and adding
+ * one to resize a cover it never displays would be a heavy dependency for a
+ * cosmetic feature — meanwhile the web app already samples artwork this exact
+ * way to fill the background of a square cover on a 2:3 sticker.
+ *
+ * NULL means "not worked out yet", which is also what a cartridge with no
+ * artwork stays. Both fall back to the fixed palette colour.
+ */
+const V6 = `
+ALTER TABLE cards ADD COLUMN accent_color TEXT;
+ALTER TABLE settings ADD COLUMN led_playing_artwork INTEGER NOT NULL DEFAULT 0;
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -217,6 +234,9 @@ export function migrate(db: Database): void {
   }
   if (current < 5) {
     db.exec(V5)
+  }
+  if (current < 6) {
+    db.exec(V6)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

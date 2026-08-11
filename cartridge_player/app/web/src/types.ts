@@ -100,6 +100,8 @@ export interface Card {
   /** Overrides the default speaker for this one cartridge. */
   player_entity: string | null
   art_fit: ArtFit | null
+  /** `#rrggbb` sampled from the artwork, for the reader's light. */
+  accent_color: string | null
   shuffle: boolean
   radio_mode: boolean
   created_at: number
@@ -120,6 +122,7 @@ export interface Settings {
   music_removal_action: MusicRemovalAction
   led_enabled: boolean
   led_playing_mode: LedPlayingMode
+  led_playing_artwork: boolean
   led_palette: LedPalette
   reader_device: string | null
   public_base_url: string | null

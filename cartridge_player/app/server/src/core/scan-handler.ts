@@ -102,7 +102,13 @@ export class ScanHandler {
         ...(sleep ? { sleep } : {}),
       })
       log.info(`fired ${card.title} -> ${steps.join(',')}`)
-      this.light(statusForPlayingMode(settings.led_playing_mode))
+      // A cartridge can wear its own artwork colour while it plays. Null when
+      // it has no artwork, or when the browser has not sampled it yet — both
+      // fall back to the palette rather than to nothing.
+      this.light(
+        statusForPlayingMode(settings.led_playing_mode),
+        settings.led_playing_artwork ? card.accent_color : null,
+      )
       return { card, scan: this.record(card.tag_uid, card.id, steps.join(','), null) }
     } catch (error) {
       this.light('error')
@@ -115,8 +121,8 @@ export class ScanHandler {
    * put a Home Assistant round trip between the tap and the launch, and letting
    * it reject would turn a cosmetic failure into a failed scan.
    */
-  private light(state: ReaderStatus): void {
-    void this.deps.light?.setStatus(state).catch(() => undefined)
+  private light(state: ReaderStatus, color?: string | null): void {
+    void this.deps.light?.setStatus(state, color).catch(() => undefined)
   }
 
   private recordFailure(

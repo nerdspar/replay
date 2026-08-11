@@ -62,6 +62,41 @@ api:
       variables:
         state: string
       then:
+        # Any plain status drops a previous cartridge's artwork colour, so it
+        # cannot linger onto the next one.
+        - lambda: "id(accent_on) = false;"
+        - script.execute:
+            id: show_status
+            state: !lambda "return state;"
+
+    # As set_status, but wearing a colour this once instead of the palette's —
+    # a playing cartridge showing the colour of its own artwork. `color` is six
+    # hex characters, no hash.
+    - action: set_status_color
+      variables:
+        state: string
+        color: string
+      then:
+        - lambda: |-
+            auto nibble = [](char c) -> int {
+              if (c >= '0' && c <= '9') return c - '0';
+              if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+              if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+              return -1;
+            };
+
+            id(accent_on) = false;
+            if (color.length() != 6) return;
+
+            int v[6];
+            for (int n = 0; n < 6; n++) {
+              v[n] = nibble(color[n]);
+              if (v[n] < 0) return;
+            }
+            id(accent_r) = (v[0] * 16 + v[1]) / 255.0f;
+            id(accent_g) = (v[2] * 16 + v[3]) / 255.0f;
+            id(accent_b) = (v[4] * 16 + v[5]) / 255.0f;
+            id(accent_on) = true;
         - script.execute:
             id: show_status
             state: !lambda "return state;"
@@ -235,6 +270,27 @@ globals:
     restore_value: false
     initial_value: "{1, 1, 0, 0, 1, 2, 0, 1, 2}"
 
+  # A colour sampled from the playing cartridge's artwork, when the add-on sends
+  # one. Overrides the palette for the playing state only — every other state
+  # means the same thing whatever is on the reader, so borrowing a cartridge's
+  # colour for them would say nothing.
+  - id: accent_r
+    type: float
+    restore_value: false
+    initial_value: "0.0f"
+  - id: accent_g
+    type: float
+    restore_value: false
+    initial_value: "0.0f"
+  - id: accent_b
+    type: float
+    restore_value: false
+    initial_value: "0.0f"
+  - id: accent_on
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
   # Working values for the breathe script, filled in by `paint`.
   - id: breathe_hi
     type: float
@@ -354,9 +410,13 @@ script:
       - lambda: |-
           if (!id(status_auto).state || idx < 0 || idx > 8) return;
 
-          const float r = id(pal_r)[idx];
-          const float g = id(pal_g)[idx];
-          const float b = id(pal_b)[idx];
+          // Index 6 is playing — the one state a cartridge may colour itself.
+          const bool accent = (idx == 6 && id(accent_on));
+          const float r = accent ? id(accent_r) : id(pal_r)[idx];
+          const float g = accent ? id(accent_g) : id(pal_g)[idx];
+          const float b = accent ? id(accent_b) : id(pal_b)[idx];
+          // Brightness stays the palette's. Artwork decides the hue; how bright
+          // the reader gets is a room decision, not a cover-art one.
           const float level = id(pal_br)[idx];
           const bool grey = (r == g && g == b);
 

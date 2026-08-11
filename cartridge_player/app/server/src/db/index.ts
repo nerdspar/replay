@@ -56,6 +56,7 @@ interface SettingsRow {
   music_removal_action: string
   led_enabled: number
   led_playing_mode: string
+  led_playing_artwork: number
   led_palette: string | null
   reader_device: string | null
   pin_hash: string | null
@@ -91,6 +92,7 @@ function toSettings(row: SettingsRow): Settings {
     music_removal_action: row.music_removal_action as MusicRemovalAction,
     led_enabled: row.led_enabled !== 0,
     led_playing_mode: row.led_playing_mode as LedPlayingMode,
+    led_playing_artwork: row.led_playing_artwork !== 0,
     // Normalised on the way out so every caller sees all nine states, whatever
     // an older release or a hand-edited row happens to hold.
     led_palette: normalizePalette(parsePalette(row.led_palette)),
@@ -127,6 +129,7 @@ const WRITABLE_SETTINGS = [
   'music_removal_action',
   'led_enabled',
   'led_playing_mode',
+  'led_playing_artwork',
   'led_palette',
   'reader_device',
   'pin_hash',
@@ -215,8 +218,9 @@ export class Store {
         `INSERT INTO cards
            (tag_uid, kind, provider, content_type, external_id, title, year,
             poster_url, original_poster_url, season, episode, label,
-            player_entity, art_fit, shuffle, radio_mode, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            player_entity, art_fit, shuffle, radio_mode, accent_color,
+            created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.tag_uid,
@@ -239,6 +243,7 @@ export class Store {
         input.art_fit,
         input.shuffle ? 1 : 0,
         input.radio_mode ? 1 : 0,
+        input.accent_color,
         now,
         now,
       )
@@ -264,6 +269,7 @@ export class Store {
       'art_fit',
       'shuffle',
       'radio_mode',
+      'accent_color',
       'status',
     ]
     const assignments: string[] = []
@@ -273,6 +279,14 @@ export class Store {
       assignments.push(`${key} = ?`)
       const value = patch[key as keyof typeof patch]
       values.push(typeof value === 'boolean' ? (value ? 1 : 0) : (value ?? null))
+    }
+
+    // New artwork means the sampled colour describes the old picture. Cleared
+    // rather than recomputed here — the server has no image decoder, and the
+    // browser fills the blank next time it lists the library.
+    if (patch.poster_url !== undefined && patch.accent_color === undefined) {
+      assignments.push('accent_color = ?')
+      values.push(null)
     }
 
     // Retyping a card moves it between devices and library tabs, so `kind`
