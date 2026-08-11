@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.10
+
+Fixes the Design Space download keeping the old artwork after you changed it.
+The printed sheet updated; the exported PNG did not.
+
+The export loads a cartridge's artwork from a fixed address whose contents
+change, and the browser was holding on to the copy it fetched the first time.
+The address now carries the cartridge's last-changed time, so a new image is
+fetched whenever the artwork actually changes.
+
 ## 0.1.9
 
 **Download images for Design Space.** Cricut imports images, not printed pages,

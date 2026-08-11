@@ -108,7 +108,7 @@ export async function renderStickerPng(
   ctx.fillRect(0, 0, w, h)
 
   const image = new Image()
-  image.src = `api/artwork/card/${card.id}`
+  image.src = artworkSourceUrl(card)
   await image.decode()
 
   const r = sourceRect(image.naturalWidth, image.naturalHeight, w, h, options.fit)
@@ -130,6 +130,18 @@ export function stickerFileName(card: Card, widthMm: number, heightMm: number): 
     .replace(/^-|-$/g, '')
     .slice(0, 40)
   return `${slug || 'cartridge'}-${widthMm}x${heightMm}mm.png`
+}
+
+/**
+ * Where to load a card's artwork from, for drawing onto a canvas.
+ *
+ * The path is stable per card but its CONTENT changes whenever the artwork
+ * does, so the card's `updated_at` rides along as a cache buster. Without it a
+ * browser that had already exported a sticker kept serving the old poster from
+ * cache — the printed sheet updated, the exported PNG did not.
+ */
+export function artworkSourceUrl(card: Card): string {
+  return `api/artwork/card/${card.id}?v=${card.updated_at}`
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

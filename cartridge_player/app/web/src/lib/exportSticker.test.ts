@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { EXPORT_DPI, mmToPx, sourceRect, stickerFileName } from './exportSticker'
+import {
+  EXPORT_DPI,
+  artworkSourceUrl,
+  mmToPx,
+  sourceRect,
+  stickerFileName,
+} from './exportSticker'
 import type { Card } from '../types'
 
 const card = (overrides: Partial<Card> = {}): Card =>
@@ -81,5 +87,28 @@ describe('filenames', () => {
   it('survives punctuation and non-latin titles', () => {
     expect(stickerFileName(card({ title: 'WALL·E' }), 60, 90)).toBe('wall-e-60x90mm.png')
     expect(stickerFileName(card({ title: '???' }), 60, 90)).toBe('cartridge-60x90mm.png')
+  })
+})
+
+describe('artwork source URL', () => {
+  /**
+   * The path is stable per card but its content is not. Without a cache buster
+   * a browser that had exported a sticker once kept drawing the old poster —
+   * the printed sheet picked up a new one, the exported PNG did not.
+   */
+  it('changes when the card changes, so a stale image is not reused', () => {
+    const before = artworkSourceUrl(card({ updated_at: 1000 }))
+    const after = artworkSourceUrl(card({ updated_at: 2000 }))
+    expect(before).not.toBe(after)
+  })
+
+  it('is relative, so it resolves under the ingress path', () => {
+    expect(artworkSourceUrl(card()).startsWith('api/')).toBe(true)
+  })
+
+  it('addresses the card, never a URL — that is what keeps it from being an open proxy', () => {
+    const url = artworkSourceUrl(card({ id: 7, poster_url: 'https://elsewhere.test/x.jpg' }))
+    expect(url).toContain('api/artwork/card/7')
+    expect(url).not.toContain('elsewhere.test')
   })
 })
