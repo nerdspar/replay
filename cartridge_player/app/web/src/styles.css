@@ -979,3 +979,67 @@ a:focus-visible {
 .steps .step.done {
   background: var(--accent);
 }
+
+/*
+  Video / Music tabs.
+
+  An underline rather than filled buttons: this sits directly above a grid of
+  posters, and two solid pills there would compete with the artwork for the
+  eye. The tap target is still the full 44px regardless of the thin visual.
+*/
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs button {
+  flex: 1;
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  /* Sits on the container's border, covering it when active. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabs button.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.tab-count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+}
+
+.tabs button.active .tab-count {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--text);
+}
+
+/*
+  The blurred layer behind a cover that does not fill its sticker. Sits under
+  the cover and fills the sticker completely, so no edge of it is ever visible.
+*/
+.sticker-art .sticker-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

@@ -1,4 +1,5 @@
 import { Icon } from './Icon'
+import type { CardKind } from '../types'
 
 interface PosterProps {
   /**
@@ -9,16 +10,18 @@ interface PosterProps {
   src?: string | null
   alt: string
   badge?: string | null
+  /** Decides the placeholder when there is no artwork. */
+  kind?: CardKind
 }
 
-export function Poster({ src, alt, badge }: PosterProps) {
+export function Poster({ src, alt, badge, kind = 'video' }: PosterProps) {
   return (
     <div className="poster">
       {src ? (
         <img src={src} alt={alt} loading="lazy" decoding="async" />
       ) : (
         <div className="fallback">
-          <Icon name="film" size={30} />
+          <Icon name={kind === 'music' ? 'music' : 'film'} size={30} />
         </div>
       )}
       {badge ? <span className="badge">{badge}</span> : null}

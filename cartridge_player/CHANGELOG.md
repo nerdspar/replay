@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.2.0
+
+Music cartridges. Tapping one plays an album, artist, playlist, radio station,
+podcast or audiobook on a speaker through Music Assistant, while video
+cartridges carry on going to the television — the same reader now serves both.
+
+The library is split into Video and Music tabs. Set a default speaker under
+Settings, and any single cartridge can override it if it belongs in another
+room. Music cartridges also carry their own shuffle and a "keep going
+afterwards" option, and lifting one pauses by default rather than reaching for
+a TV remote.
+
+Album covers are square and the sticker is not, so each music cartridge chooses
+how to reconcile that: fill and crop, or show the whole cover over a blurred or
+colour-matched background.
+
+Recent scans now shows twenty at a time with a Load more button, and keeps the
+last five hundred rather than the last two hundred.
+
+Music cartridges need the Music Assistant integration set up in Home Assistant.
+
 ## 0.1.13
 
 Adds "Turn the TV off" to the choices under "When a cartridge is lifted off".

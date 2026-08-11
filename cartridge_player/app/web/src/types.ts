@@ -1,5 +1,24 @@
-export type ContentType = 'movie' | 'series'
+export type VideoContentType = 'movie' | 'series'
+
+export type MusicContentType =
+  | 'album'
+  | 'playlist'
+  | 'artist'
+  | 'track'
+  | 'radio'
+  | 'podcast'
+  | 'audiobook'
+
+export type ContentType = VideoContentType | MusicContentType
+
+/** Which device a cartridge reaches, and which library tab it appears under. */
+export type CardKind = 'video' | 'music'
+
+/** How a cover that is not 2:3 is reconciled with the 60x90 sticker. */
+export type ArtFit = 'crop' | 'blur' | 'color'
+
 export type RemovalAction = 'none' | 'pause' | 'back' | 'home' | 'off'
+export type MusicRemovalAction = 'none' | 'pause' | 'stop'
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export interface MetaPreview {
@@ -42,6 +61,7 @@ export interface Card {
   id: number
   status: CardStatus
   tag_uid: string
+  kind: CardKind
   provider: string
   content_type: ContentType
   external_id: string
@@ -53,6 +73,11 @@ export interface Card {
   season: number | null
   episode: number | null
   label: string | null
+  /** Overrides the default speaker for this one cartridge. */
+  player_entity: string | null
+  art_fit: ArtFit | null
+  shuffle: boolean
+  radio_mode: boolean
   created_at: number
   updated_at: number
 }
@@ -67,6 +92,8 @@ export interface Settings {
   autoplay_enabled: boolean
   autoplay_delay_ms: number
   removal_action: RemovalAction
+  music_player_entity: string | null
+  music_removal_action: MusicRemovalAction
   public_base_url: string | null
   setup_complete: boolean
   pin_set: boolean

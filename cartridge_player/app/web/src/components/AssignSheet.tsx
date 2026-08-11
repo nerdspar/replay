@@ -2,12 +2,28 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { Poster } from './Poster'
 import { Sheet } from './Sheet'
-import type { Card, ContentType, Meta, MetaPreview } from '../types'
+import type { Card, CardKind, ContentType, Meta, MetaPreview } from '../types'
 
 const SEARCH_DEBOUNCE_MS = 300
 
+/** What each result is, for the badge under a music search. */
+const MUSIC_TYPE_LABEL: Record<string, string> = {
+  album: 'Album',
+  artist: 'Artist',
+  playlist: 'Playlist',
+  track: 'Track',
+  radio: 'Radio',
+  podcast: 'Podcast',
+  audiobook: 'Audiobook',
+}
+
+/** Artists rarely want their catalogue in album order. */
+const SHUFFLE_BY_DEFAULT = new Set(['artist'])
+
 interface AssignSheetProps {
   tagUid: string
+  /** Which library tab this was opened from. Decides what is searched. */
+  kind?: CardKind
   /** Set when re-pointing an existing cartridge rather than assigning a new one. */
   existing?: Card | null
   onClose: () => void
@@ -20,8 +36,22 @@ type Stage = 'search' | 'choose-scope' | 'pick-episode'
  * §8.5 — the primary interaction, and the one that has to be fast on a phone:
  * type a title, tap a poster, (for series) accept "Whole show", save.
  */
-export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetProps) {
-  const [type, setType] = useState<ContentType>(existing?.content_type ?? 'movie')
+export function AssignSheet({
+  tagUid,
+  kind = 'video',
+  existing,
+  onClose,
+  onSaved,
+}: AssignSheetProps) {
+  const music = (existing?.kind ?? kind) === 'music'
+  const provider = existing?.provider ?? (music ? 'music_assistant' : 'stremio')
+
+  // Video narrows to movie or series up front. Music searches everything at
+  // once and labels what it finds — six toggles above a phone keyboard would
+  // cost more than it saves.
+  const [type, setType] = useState<ContentType | 'music'>(
+    music ? 'music' : (existing?.content_type ?? 'movie'),
+  )
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<MetaPreview[]>([])
   const [searching, setSearching] = useState(false)
@@ -53,7 +83,7 @@ export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetP
     let cancelled = false
     const handle = setTimeout(() => {
       api
-        .search(trimmed, type)
+        .search(trimmed, type, provider)
         .then((r) => {
           if (cancelled) return
           setResults(r)
@@ -74,6 +104,7 @@ export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetP
         })
     }, SEARCH_DEBOUNCE_MS)
 
+
     // A slow response for an older query must never overwrite a newer one.
     return () => {
       cancelled = true
@@ -84,7 +115,9 @@ export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetP
   const pick = (preview: MetaPreview) => {
     setSelected(preview)
     setMetaError(null)
-    if (preview.type === 'movie') {
+    // Only a series has anything more to ask about. A movie, and every kind of
+    // music, is fully specified by the thing you just tapped.
+    if (preview.type !== 'series') {
       void save(preview, null, null)
       return
     }
@@ -121,7 +154,14 @@ export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetP
       }
       const card = existing
         ? await api.updateCard(existing.id, payload)
-        : await api.createCard({ tag_uid: tagUid, ...payload })
+        : await api.createCard({
+            tag_uid: tagUid,
+            provider,
+            ...payload,
+            // Set once at assignment rather than left for the user to find:
+            // an artist cartridge that plays alphabetically is just wrong.
+            ...(SHUFFLE_BY_DEFAULT.has(preview.type) ? { shuffle: true } : {}),
+          })
       onSaved(card)
     } catch (error) {
       setSaveError((error as ApiError).message)
@@ -228,20 +268,22 @@ export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetP
         {tagUid}
       </p>
 
-      <div className="row" style={{ marginBottom: 12 }}>
-        <button
-          className={`btn small ${type === 'movie' ? 'primary' : ''}`}
-          onClick={() => setType('movie')}
-        >
-          Movie
-        </button>
-        <button
-          className={`btn small ${type === 'series' ? 'primary' : ''}`}
-          onClick={() => setType('series')}
-        >
-          Series
-        </button>
-      </div>
+      {music ? null : (
+        <div className="row" style={{ marginBottom: 12 }}>
+          <button
+            className={`btn small ${type === 'movie' ? 'primary' : ''}`}
+            onClick={() => setType('movie')}
+          >
+            Movie
+          </button>
+          <button
+            className={`btn small ${type === 'series' ? 'primary' : ''}`}
+            onClick={() => setType('series')}
+          >
+            Series
+          </button>
+        </div>
+      )}
 
       <label className="field">
         <span>Title</span>
@@ -253,7 +295,7 @@ export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetP
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
-          placeholder="Search…"
+          placeholder={music ? 'Album, artist, playlist…' : 'Search…'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -287,10 +329,23 @@ export function AssignSheet({ tagUid, existing, onClose, onSaved }: AssignSheetP
             disabled={saving}
             onClick={() => pick(result)}
           >
-            <Poster src={result.poster} alt={result.title} />
+            <Poster
+              src={result.poster}
+              alt={result.title}
+              kind={music ? 'music' : 'video'}
+            />
             <div className="tile-body">
               <div className="tile-title">{result.title}</div>
-              <div className="tile-sub">{result.year ?? ''}</div>
+              <div className="tile-sub">
+                {music ? (
+                  <>
+                    <span className="pill">{MUSIC_TYPE_LABEL[result.type] ?? result.type}</span>
+                    {result.year ? ` ${result.year}` : ''}
+                  </>
+                ) : (
+                  (result.year ?? '')
+                )}
+              </div>
             </div>
           </button>
         ))}

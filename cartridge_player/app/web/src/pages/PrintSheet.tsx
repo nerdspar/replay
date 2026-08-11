@@ -19,6 +19,7 @@ import {
   renderStickerPng,
   stickerFileName,
 } from '../lib/exportSticker'
+import { fitBackdrop, objectFitFor, type FitBackdrop } from '../lib/artFit'
 import type { Card } from '../types'
 
 type Fit = 'cover' | 'contain'
@@ -86,6 +87,32 @@ export function PrintSheet() {
     () => cards.filter((card) => selected.has(card.id)),
     [cards, selected],
   )
+
+  /*
+    Backdrops for covers that do not fill the sticker.
+
+    Computed here rather than inside each sticker because a card can appear on
+    the sheet several times when copies are set, and reading pixels back off a
+    canvas once per copy would be wasted work. Keyed by card id, so a sticker
+    renders on a white background for one frame and then settles.
+  */
+  const [backdrops, setBackdrops] = useState<Record<number, FitBackdrop>>({})
+
+  useEffect(() => {
+    const needed = chosen.filter((card) => card.art_fit && card.art_fit !== 'crop')
+    if (needed.length === 0) return
+
+    let cancelled = false
+    void Promise.all(
+      needed.map(async (card) => [card.id, await fitBackdrop(card, card.art_fit!)] as const),
+    ).then((entries) => {
+      if (!cancelled) setBackdrops(Object.fromEntries(entries))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [chosen])
 
   const cricutOk = useMemo(() => fitsCricutArea(page, margin), [page, margin])
 
@@ -512,9 +539,24 @@ export function PrintSheet() {
                     CORS headers, and setting it would fail the load outright.
                     Nothing here reads pixels, so it is not needed.
                   */}
-                  <div className="sticker-art">
+                  <div
+                    className="sticker-art"
+                    style={{ background: backdrops[card.id]?.color ?? '#ffffff' }}
+                  >
+                    {/*
+                      Behind a cover that does not fill the sticker. A 24px
+                      image stretched to fill: the browser's own smoothing is
+                      the blur, because CSS filters are unreliable in print.
+                    */}
+                    {backdrops[card.id]?.blurUrl ? (
+                      <img className="sticker-backdrop" src={backdrops[card.id]!.blurUrl!} alt="" />
+                    ) : null}
                     {card.poster_url ? (
-                      <img src={card.poster_url} alt="" style={{ objectFit: fit }} />
+                      <img
+                        src={card.poster_url}
+                        alt=""
+                        style={{ objectFit: card.art_fit ? objectFitFor(card.art_fit) : fit }}
+                      />
                     ) : (
                       <span className="sticker-fallback">{card.title}</span>
                     )}

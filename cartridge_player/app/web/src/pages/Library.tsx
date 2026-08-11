@@ -7,7 +7,7 @@ import { Confirm } from '../components/Confirm'
 import { Icon } from '../components/Icon'
 import { Poster, episodeBadge } from '../components/Poster'
 import type { AppStream } from '../hooks/useAppStream'
-import type { Card, ScanEvent } from '../types'
+import type { Card, CardKind, ScanEvent } from '../types'
 
 interface LibraryProps {
   stream: AppStream
@@ -19,6 +19,7 @@ export function Library({ stream }: LibraryProps) {
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<CardKind>('video')
   const [assigning, setAssigning] = useState<{ uid: string; existing?: Card } | null>(null)
   const [editing, setEditing] = useState<Card | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -27,19 +28,37 @@ export function Library({ stream }: LibraryProps) {
   const [pendingAction, setPendingAction] = useState<'unassign' | 'delete' | null>(null)
   const [busy, setBusy] = useState(false)
 
+  /*
+    Tabs, not one merged grid.
+
+    A film and an album are both cartridges, but they go to different devices
+    and almost nothing you do with one applies to the other — printing a sheet,
+    picking a speaker, choosing what lifting means. Mixing them would put a
+    Test button next to an album that would play on the television.
+  */
+  const inTab = useMemo(() => cards.filter((card) => card.kind === tab), [cards, tab])
+
+  const counts = useMemo(
+    () => ({
+      video: cards.filter((c) => c.kind === 'video').length,
+      music: cards.filter((c) => c.kind === 'music').length,
+    }),
+    [cards],
+  )
+
   // Matches title, label, and year, so "blue cartridge" finds it by the note
   // written on the side as readily as by the film's name.
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (needle === '') return cards
-    return cards.filter((card) =>
+    if (needle === '') return inTab
+    return inTab.filter((card) =>
       [card.title, card.label, card.year]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
         .includes(needle),
     )
-  }, [cards, query])
+  }, [inTab, query])
   const [toast, setToast] = useState<string | null>(null)
   const [recentUnassigned, setRecentUnassigned] = useState<string[]>([])
 
@@ -87,6 +106,15 @@ export function Library({ stream }: LibraryProps) {
     }
   }
 
+  const switchTab = (next: CardKind) => {
+    setTab(next)
+    // A selection made under one tab must not survive into the other, or
+    // "Delete 3 selected" would act on cartridges nobody can see.
+    setSelected(new Set())
+    setSelecting(false)
+    setQuery('')
+  }
+
   const toggleOne = (id: number) =>
     setSelected((current) => {
       const next = new Set(current)
@@ -116,7 +144,7 @@ export function Library({ stream }: LibraryProps) {
     action: (card: Card) => Promise<unknown>,
     describe: (n: number) => string,
   ) => {
-    const targets = cards.filter((c) => selected.has(c.id))
+    const targets = inTab.filter((c) => selected.has(c.id))
     setBusy(true)
 
     const failures: string[] = []
@@ -163,6 +191,29 @@ export function Library({ stream }: LibraryProps) {
         </div>
       ) : null}
 
+      <div className="tabs" role="tablist" aria-label="Cartridge kinds">
+        <button
+          role="tab"
+          aria-selected={tab === 'video'}
+          className={tab === 'video' ? 'active' : ''}
+          onClick={() => switchTab('video')}
+        >
+          <Icon name="film" size={17} />
+          Video
+          {counts.video > 0 ? <span className="tab-count">{counts.video}</span> : null}
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'music'}
+          className={tab === 'music' ? 'active' : ''}
+          onClick={() => switchTab('music')}
+        >
+          <Icon name="music" size={17} />
+          Music
+          {counts.music > 0 ? <span className="tab-count">{counts.music}</span> : null}
+        </button>
+      </div>
+
       {toast ? <div className="banner alert">{toast}</div> : null}
       {error ? <div className="banner error">{error}</div> : null}
 
@@ -201,15 +252,15 @@ export function Library({ stream }: LibraryProps) {
           <div className="spinner" style={{ margin: '0 auto 10px' }} />
           Loading your library…
         </div>
-      ) : cards.length === 0 ? (
+      ) : inTab.length === 0 ? (
         <div className="center-empty">
-          <Icon name="film" size={40} />
-          <p>No cartridges yet.</p>
+          <Icon name={tab === 'music' ? 'music' : 'film'} size={40} />
+          <p>{tab === 'music' ? 'No music cartridges yet.' : 'No cartridges yet.'}</p>
           <p className="hint">Tap one on the reader and it will show up here.</p>
         </div>
       ) : (
         <>
-          {cards.length > 6 ? (
+          {inTab.length > 6 ? (
             <input
               type="search"
               inputMode="search"
@@ -262,8 +313,8 @@ export function Library({ stream }: LibraryProps) {
               <>
                 <span className="muted">
                   {query.trim() === ''
-                    ? `${cards.length} cartridge${cards.length === 1 ? '' : 's'}`
-                    : `${visible.length} of ${cards.length}`}
+                    ? `${inTab.length} cartridge${inTab.length === 1 ? '' : 's'}`
+                    : `${visible.length} of ${inTab.length}`}
                 </span>
                 <button className="btn small" onClick={() => setSelecting(true)}>
                   Select
@@ -303,6 +354,7 @@ export function Library({ stream }: LibraryProps) {
                   <Poster
                     src={card.poster_url}
                     alt={card.title}
+                    kind={card.kind}
                     badge={episodeBadge(card.season, card.episode)}
                   />
                 )}
@@ -346,6 +398,7 @@ export function Library({ stream }: LibraryProps) {
       {assigning ? (
         <AssignSheet
           tagUid={assigning.uid}
+          kind={tab}
           existing={assigning.existing ?? null}
           onClose={() => setAssigning(null)}
           onSaved={() => {

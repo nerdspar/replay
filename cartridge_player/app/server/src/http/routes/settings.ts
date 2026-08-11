@@ -15,6 +15,8 @@ const putBody = z.object({
   autoplay_enabled: z.boolean().optional(),
   autoplay_delay_ms: z.number().int().min(0).max(60_000).optional(),
   removal_action: z.enum(['none', 'pause', 'back', 'home', 'off']).optional(),
+  music_player_entity: z.string().nullable().optional(),
+  music_removal_action: z.enum(['none', 'pause', 'stop']).optional(),
   public_base_url: z.string().nullable().optional(),
   setup_complete: z.boolean().optional(),
   /** Write-only. `null` clears it; the hash is never returned. */

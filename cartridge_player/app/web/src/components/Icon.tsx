@@ -24,6 +24,7 @@ export type IconName =
   | 'search'
   | 'play'
   | 'close'
+  | 'music'
 
 interface IconProps {
   name: IconName
@@ -93,6 +94,14 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   play: <path d="M7.5 5.5v13l11-6.5-11-6.5Z" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  // A quaver: the one shape that reads as "music" at 17px.
+  music: (
+    <>
+      <path d="M9 18V5l10-2v13" />
+      <circle cx="6.5" cy="18" r="2.5" />
+      <circle cx="16.5" cy="16" r="2.5" />
+    </>
+  ),
 }
 
 export function Icon({ name, size = 20, className }: IconProps) {

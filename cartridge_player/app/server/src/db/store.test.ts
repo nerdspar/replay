@@ -129,9 +129,9 @@ describe('cards', () => {
 })
 
 describe('scan log', () => {
-  it('caps at 200 rows, keeping the newest (§4)', () => {
+  it('caps at 500 rows, keeping the newest (§4)', () => {
     const store = memoryStore()
-    for (let i = 0; i < 250; i++) {
+    for (let i = 0; i < 620; i++) {
       store.recordScan({
         tag_uid: `04-${i}`,
         matched_card_id: null,
@@ -142,15 +142,15 @@ describe('scan log', () => {
     }
 
     const count = store.db.prepare('SELECT COUNT(*) AS n FROM scan_events').get() as { n: number }
-    expect(count.n).toBe(200)
+    expect(count.n).toBe(500)
 
     const newest = store.listScans(1)[0]
-    expect(newest?.tag_uid).toBe('04-249')
+    expect(newest?.tag_uid).toBe('04-619')
 
     const oldest = store.db
       .prepare('SELECT tag_uid FROM scan_events ORDER BY id ASC LIMIT 1')
       .get() as { tag_uid: string }
-    expect(oldest.tag_uid).toBe('04-50')
+    expect(oldest.tag_uid).toBe('04-120')
 
     store.close()
   })

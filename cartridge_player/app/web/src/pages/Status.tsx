@@ -15,8 +15,13 @@ function when(ms: number): string {
   return new Date(ms).toLocaleString()
 }
 
+/** Enough to see what just happened without a wall of text on a phone. */
+const SCAN_PAGE = 20
+
 export function Status({ stream, settings: initial }: StatusProps) {
   const [scans, setScans] = useState<ScanEvent[]>([])
+  const [limit, setLimit] = useState(SCAN_PAGE)
+  const [total, setTotal] = useState(0)
   const [lastError, setLastError] = useState<{ message: string; at: number } | null>(null)
   const [copied, setCopied] = useState(false)
   const [tvTest, setTvTest] = useState<'idle' | 'sending' | 'sent'>('idle')
@@ -33,13 +38,16 @@ export function Status({ stream, settings: initial }: StatusProps) {
 
   useEffect(() => {
     api
-      .scans(50)
+      .scans(limit + 1)
       .then(({ scans: rows, last_error }) => {
-        setScans(rows)
+        // One more than asked for, purely to know whether to offer Load more.
+        // Cheaper than a second count query for a list this small.
+        setTotal(rows.length)
+        setScans(rows.slice(0, limit))
         setLastError(last_error)
       })
       .catch(() => undefined)
-  }, [stream.lastScan, stream.cardsVersion])
+  }, [limit, stream.lastScan, stream.cardsVersion])
 
   const testTv = async () => {
     setTvTest('sending')
@@ -173,6 +181,15 @@ export function Status({ stream, settings: initial }: StatusProps) {
             ))}
           </div>
         )}
+        {total > limit ? (
+          <button
+            className="btn block"
+            style={{ marginTop: 12 }}
+            onClick={() => setLimit((n) => n + SCAN_PAGE)}
+          >
+            Load more
+          </button>
+        ) : null}
       </div>
     </>
   )

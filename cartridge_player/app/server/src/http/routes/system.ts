@@ -77,7 +77,7 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
 
   app.get('/api/scans', async (request) => {
     const { limit } = z
-      .object({ limit: z.coerce.number().int().min(1).max(200).default(50) })
+      .object({ limit: z.coerce.number().int().min(1).max(500).default(50) })
       .parse(request.query)
     return {
       scans: ctx.store.listScans(limit),

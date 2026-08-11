@@ -1,4 +1,5 @@
-import type { Card } from '../types'
+import type { ArtFit, Card } from '../types'
+import { fitBackdrop, objectFitFor } from './artFit'
 
 /**
  * Renders one sticker as a PNG for Cricut Design Space.
@@ -26,6 +27,17 @@ export interface StickerExportOptions {
   round: boolean
   fit: 'cover' | 'contain'
   dpi?: number
+}
+
+/**
+ * A card's own fit wins over the sheet's.
+ *
+ * The sheet setting is about the shape of the sticker; `art_fit` is about one
+ * particular cover, chosen while looking at it. Video cards have no `art_fit`
+ * and keep whatever the sheet says.
+ */
+function fitFor(card: Card, sheetFit: 'cover' | 'contain'): 'cover' | 'contain' {
+  return card.art_fit ? objectFitFor(card.art_fit) : sheetFit
 }
 
 /** Source rectangle for drawing `image` into `w x h` the way object-fit would. */
@@ -102,17 +114,31 @@ export async function renderStickerPng(
   }
   ctx.clip()
 
-  // White behind the artwork: 'contain' leaves bars, and a transparent bar
-  // would be cut away rather than printed.
-  ctx.fillStyle = '#ffffff'
+  const fit = fitFor(card, options.fit)
+  const backdrop = await fitBackdrop(card, card.art_fit ?? 'crop')
+
+  // Something opaque behind the artwork: 'contain' leaves bars, and a
+  // transparent bar would be cut away rather than printed.
+  ctx.fillStyle = backdrop.color
   ctx.fillRect(0, 0, w, h)
+
+  ctx.imageSmoothingQuality = 'high'
+
+  if (backdrop.blurUrl) {
+    // A 24px image stretched over the whole sticker. The renderer's own
+    // smoothing is the blur — see artFit.ts for why not a filter.
+    const tiny = new Image()
+    tiny.src = backdrop.blurUrl
+    await tiny.decode()
+    const b = sourceRect(tiny.naturalWidth, tiny.naturalHeight, w, h, 'cover')
+    ctx.drawImage(tiny, b.sx, b.sy, b.sw, b.sh, b.dx, b.dy, b.dw, b.dh)
+  }
 
   const image = new Image()
   image.src = artworkSourceUrl(card)
   await image.decode()
 
-  const r = sourceRect(image.naturalWidth, image.naturalHeight, w, h, options.fit)
-  ctx.imageSmoothingQuality = 'high'
+  const r = sourceRect(image.naturalWidth, image.naturalHeight, w, h, fit)
   ctx.drawImage(image, r.sx, r.sy, r.sw, r.sh, r.dx, r.dy, r.dw, r.dh)
 
   const blob = await new Promise<Blob | null>((resolve) =>

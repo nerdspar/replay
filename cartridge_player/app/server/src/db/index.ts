@@ -18,7 +18,16 @@ import type {
 } from '../types.js'
 import { kindOfContentType } from '../types.js'
 
-const SCAN_LOG_CAP = 200
+/**
+ * How many scans are kept, at roughly 100 bytes each.
+ *
+ * Count-based rather than time-based on purpose. The log answers "what happened
+ * when I tapped that card", and a date rule would empty it after a quiet
+ * fortnight — precisely when someone opens Status to find out why nothing has
+ * happened. It also governs how long a stray tag lingers under "seen but not
+ * assigned", which should likewise be a number of scans, not a date.
+ */
+const SCAN_LOG_CAP = 500
 
 interface SettingsRow {
   id: 1

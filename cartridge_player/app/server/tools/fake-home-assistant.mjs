@@ -56,12 +56,100 @@ const STATES = [
 
 /** What `config/entity_registry/list` returns — the platform is the giveaway. */
 const ENTITY_REGISTRY = [
-  { entity_id: 'remote.living_room_tv', platform: 'androidtv_remote' },
-  { entity_id: 'remote.bedroom_tv', platform: 'androidtv_remote' },
-  { entity_id: 'media_player.living_room', platform: 'androidtv_remote' },
-  { entity_id: 'media_player.living_room_2', platform: 'music_assistant' },
-  { entity_id: 'media_player.kitchen_speaker', platform: 'music_assistant' },
+  { entity_id: 'remote.living_room_tv', platform: 'androidtv_remote', config_entry_id: 'atv-1' },
+  { entity_id: 'remote.bedroom_tv', platform: 'androidtv_remote', config_entry_id: 'atv-1' },
+  { entity_id: 'media_player.living_room', platform: 'androidtv_remote', config_entry_id: 'atv-1' },
+  {
+    entity_id: 'media_player.living_room_2',
+    platform: 'music_assistant',
+    config_entry_id: 'mass-1',
+  },
+  {
+    entity_id: 'media_player.kitchen_speaker',
+    platform: 'music_assistant',
+    config_entry_id: 'mass-1',
+  },
 ]
+
+/**
+ * Canned music_assistant.search results, shaped like the real thing: grouped
+ * under plural keys, artists as a list of objects, cover art sometimes only in
+ * the metadata block. Filtered by substring so searching behaves plausibly.
+ */
+const MUSIC_LIBRARY = {
+  albums: [
+    {
+      uri: 'library://album/12',
+      name: 'Rumours',
+      media_type: 'album',
+      year: 1977,
+      artists: [{ name: 'Fleetwood Mac' }],
+      image: 'https://placehold.co/600x600/1f6feb/ffffff/png?text=Rumours',
+    },
+    {
+      uri: 'library://album/13',
+      name: 'Kind of Blue',
+      media_type: 'album',
+      year: 1959,
+      artists: [{ name: 'Miles Davis' }],
+      image: 'https://placehold.co/600x600/0d1117/ffffff/png?text=Kind+of+Blue',
+    },
+  ],
+  artists: [
+    {
+      uri: 'library://artist/3',
+      name: 'Fleetwood Mac',
+      media_type: 'artist',
+      metadata: { images: [{ path: 'https://placehold.co/600x600/8957e5/fff/png?text=FM', type: 'thumb' }] },
+    },
+  ],
+  playlists: [
+    {
+      uri: 'library://playlist/7',
+      name: 'Sunday Morning',
+      media_type: 'playlist',
+      image: 'https://placehold.co/600x600/238636/ffffff/png?text=Sunday',
+    },
+  ],
+  tracks: [],
+  radio: [
+    {
+      uri: 'radiobrowser://station/99',
+      name: 'BBC Radio 6 Music',
+      media_type: 'radio',
+      image: 'https://placehold.co/600x600/da3633/ffffff/png?text=6+Music',
+    },
+  ],
+  podcasts: [],
+  audiobooks: [],
+}
+
+function musicSearch(data) {
+  const needle = String(data.name ?? '').toLowerCase()
+  const wanted = new Set(
+    Array.isArray(data.media_type) ? data.media_type : data.media_type ? [data.media_type] : [],
+  )
+  const keyFor = {
+    album: 'albums',
+    artist: 'artists',
+    playlist: 'playlists',
+    track: 'tracks',
+    radio: 'radio',
+    podcast: 'podcasts',
+    audiobook: 'audiobooks',
+  }
+  const allowed = new Set(
+    wanted.size === 0 ? Object.values(keyFor) : [...wanted].map((t) => keyFor[t]),
+  )
+
+  const out = {}
+  for (const [key, items] of Object.entries(MUSIC_LIBRARY)) {
+    out[key] = allowed.has(key)
+      ? items.filter((i) => i.name.toLowerCase().includes(needle)).slice(0, data.limit ?? 5)
+      : []
+  }
+  return out
+}
 
 const supervisor = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x')
@@ -87,6 +175,19 @@ const supervisor = http.createServer((req, res) => {
         at: Date.now(),
       })
       console.log(`[ha] ${service[1]}.${service[2]}`, body)
+
+      // Services that answer back only do so when explicitly asked, exactly
+      // like the real API.
+      if (
+        url.searchParams.get('return_response') === 'true' &&
+        service[1] === 'music_assistant' &&
+        service[2] === 'search'
+      ) {
+        return json({
+          changed_states: [],
+          service_response: musicSearch(JSON.parse(body || '{}')),
+        })
+      }
       json([])
     })
     return

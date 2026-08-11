@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../api'
 import { EntityPicker } from '../components/EntityPicker'
-import type { EntityOption, RemovalAction, Settings } from '../types'
+import type {
+  EntityOption,
+  MusicRemovalAction,
+  RemovalAction,
+  Settings,
+} from '../types'
 
 const REMOVAL_OPTIONS: { value: RemovalAction; label: string; hint: string }[] = [
   { value: 'none', label: 'Do nothing', hint: 'Leave whatever is playing alone.' },
@@ -9,6 +14,28 @@ const REMOVAL_OPTIONS: { value: RemovalAction; label: string; hint: string }[] =
   { value: 'back', label: 'Back', hint: 'Send the Back key.' },
   { value: 'home', label: 'Home', hint: 'Return the TV to its home screen.' },
   { value: 'off', label: 'Turn the TV off', hint: 'Power the TV down.' },
+]
+
+/**
+ * A speaker's whole vocabulary. There is no Back, no Home and no screen to
+ * return to, which is why this is a separate list from the television's.
+ */
+const MUSIC_REMOVAL_OPTIONS: {
+  value: MusicRemovalAction
+  label: string
+  hint: string
+}[] = [
+  {
+    value: 'pause',
+    label: 'Pause',
+    hint: 'Keeps its place, so putting the cartridge back carries on where it stopped.',
+  },
+  {
+    value: 'stop',
+    label: 'Stop',
+    hint: 'Clears the queue. Putting the cartridge back starts it over.',
+  },
+  { value: 'none', label: 'Keep playing', hint: 'The music carries on regardless.' },
 ]
 
 interface SettingsPageProps {
@@ -21,7 +48,8 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
   const [entities, setEntities] = useState<{
     remotes: EntityOption[]
     mediaPlayers: EntityOption[]
-  }>({ remotes: [], mediaPlayers: [] })
+    musicPlayers: EntityOption[]
+  }>({ remotes: [], mediaPlayers: [], musicPlayers: [] })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +58,10 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
   useEffect(() => setDraft(settings), [settings])
 
   useEffect(() => {
-    api.entities().then(setEntities).catch(() => setEntities({ remotes: [], mediaPlayers: [] }))
+    api
+      .entities()
+      .then(setEntities)
+      .catch(() => setEntities({ remotes: [], mediaPlayers: [], musicPlayers: [] }))
   }, [])
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
@@ -65,6 +96,8 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         autoplay_enabled: draft.autoplay_enabled,
         autoplay_delay_ms: draft.autoplay_delay_ms,
         removal_action: draft.removal_action,
+        music_player_entity: draft.music_player_entity,
+        music_removal_action: draft.music_removal_action,
         public_base_url: draft.public_base_url,
         ...(pin.trim() === '' ? {} : { pin: pin.trim() }),
       })
@@ -113,6 +146,24 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         />
 
         {mediaPlayerWarning ? <p className="hint warn">{mediaPlayerWarning}</p> : null}
+      </div>
+
+      <div className="card">
+        <h2>Your speaker</h2>
+        <div style={{ marginTop: 12 }}>
+          <EntityPicker
+            label="Default speaker"
+            entities={entities.musicPlayers}
+            value={draft.music_player_entity}
+            onChange={(id) => set('music_player_entity', id)}
+            emptyLabel="Not set"
+            hint={
+              entities.musicPlayers.length === 0
+                ? 'No Music Assistant players found. Music cartridges need the Music Assistant integration set up in Home Assistant first.'
+                : 'Where music cartridges play. Any single cartridge can override this.'
+            }
+          />
+        </div>
       </div>
 
       <div className="card">
@@ -178,7 +229,7 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
       </div>
 
       <div className="card">
-        <h2>When a cartridge is lifted off</h2>
+        <h2>When a video cartridge is lifted off</h2>
         <div className="radio-list" style={{ marginTop: 8 }}>
           {REMOVAL_OPTIONS.map((option) => (
             <label key={option.value}>
@@ -187,6 +238,28 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
                 name="removal"
                 checked={draft.removal_action === option.value}
                 onChange={() => set('removal_action', option.value)}
+              />
+              <span>
+                {option.label}
+                <span className="hint" style={{ display: 'block' }}>
+                  {option.hint}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <h2>When a music cartridge is lifted off</h2>
+        <div className="radio-list" style={{ marginTop: 8 }}>
+          {MUSIC_REMOVAL_OPTIONS.map((option) => (
+            <label key={option.value}>
+              <input
+                type="radio"
+                name="music-removal"
+                checked={draft.music_removal_action === option.value}
+                onChange={() => set('music_removal_action', option.value)}
               />
               <span>
                 {option.label}

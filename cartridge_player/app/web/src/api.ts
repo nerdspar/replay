@@ -1,4 +1,5 @@
 import type {
+  ArtFit,
   ArtworkOption,
   Card,
   ContentType,
@@ -62,6 +63,10 @@ export const api = {
     season?: number | null
     episode?: number | null
     label?: string | null
+    player_entity?: string | null
+    art_fit?: ArtFit | null
+    shuffle?: boolean
+    radio_mode?: boolean
   }) =>
     request<{ card: Card }>('api/cards', {
       method: 'POST',
@@ -86,7 +91,11 @@ export const api = {
   testCard: (id: number) =>
     request<{ scan: ScanEvent; ok: boolean }>(`api/cards/${id}/test`, { method: 'POST' }),
 
-  search: (q: string, type: ContentType, provider = 'stremio') =>
+  /**
+   * `type` accepts the widening value `music`, meaning "anything a music
+   * provider can find" — the music tab has one box rather than six toggles.
+   */
+  search: (q: string, type: ContentType | 'music', provider = 'stremio') =>
     request<{ provider: string; results: MetaPreview[] }>(
       `api/search?q=${encodeURIComponent(q)}&type=${type}&provider=${provider}`,
     ).then((r) => r.results),
@@ -146,7 +155,12 @@ export const api = {
     }).then((r) => r.settings),
 
   entities: () =>
-    request<{ remotes: EntityOption[]; mediaPlayers: EntityOption[] }>('api/entities'),
+    request<{
+      remotes: EntityOption[]
+      mediaPlayers: EntityOption[]
+      /** Only the players Music Assistant can actually play to. */
+      musicPlayers: EntityOption[]
+    }>('api/entities'),
 
   sendKey: (key: 'home' | 'select' | 'back') =>
     request<{ ok: true }>('api/target/key', {

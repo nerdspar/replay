@@ -1,10 +1,31 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import type { AppContext } from '../../context.js'
+import type { ContentType } from '../../types.js'
 
 const searchQuery = z.object({
   q: z.string().default(''),
-  type: z.enum(['movie', 'series']).default('movie'),
+  /*
+    `music` is a deliberate widening rather than a content type: the music tab
+    has one search box, because putting six toggles (album, artist, playlist,
+    radio, podcast, audiobook) above a phone keyboard would be worse than
+    showing everything and labelling each result. Providers narrow when given a
+    real type and search across their whole vocabulary otherwise.
+  */
+  type: z
+    .enum([
+      'movie',
+      'series',
+      'music',
+      'album',
+      'playlist',
+      'artist',
+      'track',
+      'radio',
+      'podcast',
+      'audiobook',
+    ])
+    .default('movie'),
   // Required by contract, defaulted server-side so the shape stays stable when a
   // second provider lands (§7).
   provider: z.string().optional(),
@@ -18,7 +39,7 @@ export function registerCatalogRoutes(app: FastifyInstance, ctx: AppContext): vo
   app.get('/api/search', async (request) => {
     const { q, type, provider: providerId } = searchQuery.parse(request.query)
     const provider = ctx.providers.get(providerId ?? ctx.providers.defaultProviderId)
-    const results = await provider.search(q, type)
+    const results = await provider.search(q, type as ContentType)
     return { provider: provider.id, results }
   })
 
