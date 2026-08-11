@@ -831,9 +831,20 @@ a:focus-visible {
 }
 
 /* Drawn outside the sticker box, so a cut guide never prints on the artwork. */
+/*
+ * Sits exactly on the sticker boundary, so cutting along the line gives the
+ * stated size. It used to be offset a third of the gutter outwards, which meant
+ * cutting on it produced a sticker 2 mm too big in each direction — fatal for a
+ * label that has to seat in a recess.
+ *
+ * `outline` rather than `border` because it does not take up layout space, and
+ * it follows border-radius, so a 4 mm corner is guided as a 4 mm corner. The
+ * 0.2 mm stroke straddles the edge, so roughly 0.1 mm of ink falls inside — and
+ * the blade goes through that anyway.
+ */
 .sticker.guides {
   outline: 0.2mm dashed #b0b0b0;
-  outline-offset: calc(var(--sheet-gap) / 3);
+  outline-offset: 0;
 }
 
 .sticker-art {

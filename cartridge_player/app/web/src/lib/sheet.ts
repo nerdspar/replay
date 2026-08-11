@@ -11,9 +11,11 @@ export interface PageSize {
   height: number
 }
 
+// US Letter first: it is the default, and the first entry is what the print
+// page opens on.
 export const PAGE_SIZES: PageSize[] = [
-  { id: 'a4', label: 'A4', width: 210, height: 297 },
   { id: 'letter', label: 'US Letter', width: 215.9, height: 279.4 },
+  { id: 'a4', label: 'A4', width: 210, height: 297 },
 ]
 
 export interface StickerPreset {
@@ -53,7 +55,9 @@ export const STICKER_PRESETS: StickerPreset[] = [
     height: 67.5,
     radius: 3,
     shape: 'rect',
-    hint: 'A smaller 2:3 sticker, for spares and swaps.',
+    // Not a second cartridge size — it will not fill the shell recess. It is a
+    // smaller 2:3 label for anything else: a storage box, a shelf, a case.
+    hint: 'Smaller 2:3 label — 12 per page instead of 6. For boxes and shelves; too small for the cartridge itself.',
   },
   {
     id: 'tag-dot',

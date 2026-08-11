@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.5
+
+Sticker sheets default to **US Letter** instead of A4.
+
+**Cut guides now sit exactly on the sticker edge.** They were drawn a millimetre
+outside it, so cutting along the line produced a label 2 mm too big in each
+direction — enough to stop a 60 × 90 mm label seating in the cartridge recess.
+
+The **Mini poster** preset says what it is actually for: a smaller 2:3 label for
+a storage box or shelf, twelve to a page. It is not a second cartridge size and
+will not fill the shell.
+
 ## 0.1.4
 
 **Play on the TV** has moved off the library tiles and into a cartridge's Edit

@@ -117,6 +117,20 @@ describe('presets', () => {
     expect(STICKER_PRESETS[0]!.id).toBe('cartridge-label')
   })
 
+  it('opens on US Letter — the print page uses the first page size', () => {
+    expect(PAGE_SIZES[0]!.id).toBe('letter')
+  })
+
+  /** The preset's own description quotes these numbers, so pin them. */
+  it('fits twice as many mini posters as cartridge labels', () => {
+    const mini = STICKER_PRESETS.find((p) => p.id === 'mini-poster')!
+    const label = STICKER_PRESETS.find((p) => p.id === 'cartridge-label')!
+
+    expect(plan(LETTER, mini.width, mini.height).perPage).toBe(12)
+    expect(plan(A4, mini.width, mini.height).perPage).toBe(12)
+    expect(plan(LETTER, label.width, label.height).perPage).toBe(6)
+  })
+
   it('keeps 2:3 presets at true poster proportions, so nothing is cropped', () => {
     for (const id of ['cartridge-label', 'mini-poster']) {
       const preset = STICKER_PRESETS.find((p) => p.id === id)!

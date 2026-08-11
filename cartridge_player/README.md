@@ -100,7 +100,7 @@ up the sheet.
 | Preset | Size | Use |
 |---|---|---|
 | **Cartridge label** | 60 × 90 mm, 4 mm corners | The cartridge shell. This is the one you want. |
-| **Mini poster** | 45 × 67.5 mm, 3 mm corners | A smaller sticker for spares and swaps. |
+| **Mini poster** | 45 × 67.5 mm, 3 mm corners | A smaller 2:3 label — 12 per page. For a storage box or shelf; too small for the cartridge itself. |
 | **Tag dot** | 25 mm round | Labelling the NFC tag itself. |
 
 The cartridge label is exactly 2:3 — the same shape as a movie poster — so
@@ -120,9 +120,12 @@ corner instead, since that is the one thing a poster cannot tell you.
 "Scale" box). If the printer is allowed to shrink the page to fit its own
 margins, the stickers come out slightly too small and stop matching the shell.
 
-Cut guides are dashed lines drawn in the gap *between* stickers, never on the
-artwork itself, and they follow the corner radius so they match the shape you
-are cutting to.
+**Cut guides** are dashed lines showing where to cut. They sit exactly on each
+sticker's edge and follow its corner radius, so cutting along the line gives you
+the size in the table. Turn them off for a clean sheet, or if you are cutting by
+machine and would rather register on the artwork.
+
+Sheets default to **US Letter**; A4 is a click away.
 
 ## Put it on your phone's home screen
 

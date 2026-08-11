@@ -291,7 +291,10 @@ export function PrintSheet() {
             />
           </div>
           <p className="hint">
-            Guides are drawn in the gap between stickers, never on the artwork.
+            Dashed lines showing where to cut. They sit exactly on the edge of
+            each sticker and follow its corner radius, so cutting along the line
+            gives you the size above. Turn them off for a clean sheet, or if
+            you are cutting by machine.
           </p>
 
           <div className="row" style={{ gap: 8, marginTop: 12 }}>
