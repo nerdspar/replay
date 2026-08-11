@@ -283,6 +283,8 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.8b | Put a MUSIC cartridge on while looking at the Video tab | Bar still shows it. It sits above the tabs so a cartridge in the other tab is not invisible |
 | 5.8c | Background the app during playback, then reopen it | Bar is correct without a reload — it is refetched, not only streamed |
 | 5.8d | Lift the cartridge | Bar disappears and the ring clears |
+| 5.8e | Tap a cartridge that is NOT set up | White flash, then **blue** and stays blue. It must not go white-breathing and then amber — the answer arrives in about 50 ms, well inside the flash, and the reader must not start waiting for something it already has |
+| 5.8f | Press **Test Light** and watch for five seconds | One flash, back to Ready. No amber: nothing was asked, so nothing is owed an answer |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |

@@ -228,6 +228,13 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
+  # Something answered THIS scan. Set the moment a status arrives, cleared when
+  # a new tag is read. See flash_read for why the flash cannot simply assume it
+  # is still the most recent thing to have happened.
+  - id: answered
+    type: bool
+    restore_value: false
+    initial_value: "false"
 
   # ---- palette -----------------------------------------------------------
   #
@@ -485,11 +492,34 @@ script:
   - id: flash_read
     mode: restart
     then:
+      - lambda: "id(answered) = false;"
       - script.execute:
           id: paint
           idx: 3
       - delay: 120ms
-      - script.execute: enter_working
+      # Only wait for an answer that has not already arrived.
+      #
+      # The add-on replies in well under this flash — about 50ms for a tag it
+      # recognises as unassigned. Entering the working state unconditionally
+      # therefore overwrote a status that had ALREADY come back, and re-armed a
+      # timer nothing would ever clear: blue for a moment, then white breathing,
+      # then amber claiming nobody had answered. Which was untrue, and was the
+      # firmware's own doing.
+      - if:
+          condition:
+            lambda: "return !id(answered);"
+          then:
+            - script.execute: enter_working
+
+  # The Test Light button. A flash and back to ambient, nothing more.
+  - id: test_flash
+    mode: restart
+    then:
+      - script.execute:
+          id: paint
+          idx: 3
+      - delay: 120ms
+      - script.execute: show_ambient
 
   # Fired the event, waiting for someone to answer it.
   #
@@ -551,12 +581,18 @@ script:
       - script.stop: error_clear
       - lambda: |-
           if (!id(status_auto).state) return;
+          // Whatever this is, something out there is listening.
+          id(answered) = true;
 
           // "playing" clears itself after a moment; "playing_hold" stays lit
           // for as long as the cartridge is on the reader. Which one arrives
           // is the add-on's setting to make, not the firmware's to guess.
           if (state == "busy") {
-            id(holding) = true;               // awaiting deliberately stays true
+            id(holding) = true;
+            // Set here rather than inherited from enter_working, which may have
+            // been skipped by the guard in flash_read. "Busy" means someone is
+            // working on it, so the long backstop should be armed either way.
+            id(awaiting) = true;
           } else if (state == "playing") {
             id(holding) = false;
             id(awaiting) = false;
@@ -706,7 +742,9 @@ button:
     name: "Test Light"
     icon: mdi:lightbulb-on-outline
     on_press:
-      - script.execute: flash_read
+      # Deliberately NOT flash_read: no tag was read, so nothing is coming back,
+      # and waiting for an answer would end in "no answer" every time.
+      - script.execute: test_flash
 
 sensor:
   - platform: wifi_signal

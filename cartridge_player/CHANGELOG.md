@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.1
+
+Firmware fix. Scanning a cartridge that is not set up yet showed white
+breathing and then a flashing amber "nothing answered", when the add-on had in
+fact answered immediately.
+
+The reply arrives in about 50 ms — inside the 120 ms read flash — so the reader
+was overwriting a status it had already received and then waiting for it all
+over again. It now checks before it starts waiting.
+
+Also stops the Test Light button ending in that same amber. Nothing was asked
+of the add-on, so nothing was owed.
+
+The add-on itself is unchanged; this release exists to carry the firmware fix.
+
 ## 0.5.0
 
 The library now shows which cartridge is on the reader, in a bar at the top,

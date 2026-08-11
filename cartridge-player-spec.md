@@ -161,6 +161,11 @@ in the original YAML is ESP8266-compatible; only the platform block and pins cha
 - Show connection state on the LED without being asked: red for no wifi, amber
   for wifi-but-no-Home-Assistant, dim white for ready. This is the reader saying
   whether *it* is the problem, so it cannot come from HA.
+- Never start waiting for an answer that has already arrived. The add-on replies
+  in roughly 50ms, well inside the read flash, so the flash must check before
+  entering its waiting state — otherwise it overwrites a status already received
+  and re-arms a timeout nothing will clear, which reads as "nobody answered"
+  when something plainly did.
 - Accept a `set_status` action taking a state name, so the add-on can report what
   a cartridge actually did — `playing`, `new`, `error`, `busy`, `ready`, `off`.
   Unknown names must fall through to ambient rather than sticking, so a newer
