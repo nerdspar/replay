@@ -4,7 +4,17 @@ import type { AppContext } from '../../context.js'
 import { AppError } from '../../errors.js'
 import { collectArtworkGarbage } from './artwork.js'
 
-const contentType = z.enum(['movie', 'series'])
+const contentType = z.enum([
+  'movie',
+  'series',
+  'album',
+  'playlist',
+  'artist',
+  'track',
+  'radio',
+  'podcast',
+  'audiobook',
+])
 
 const createBody = z.object({
   tag_uid: z.string().min(1),
@@ -17,6 +27,10 @@ const createBody = z.object({
   season: z.number().int().nullable().optional(),
   episode: z.number().int().nullable().optional(),
   label: z.string().nullable().optional(),
+  player_entity: z.string().nullable().optional(),
+  art_fit: z.enum(['crop', 'blur', 'color']).nullable().optional(),
+  shuffle: z.boolean().optional(),
+  radio_mode: z.boolean().optional(),
 })
 
 const patchBody = createBody.partial().omit({ tag_uid: true })
@@ -42,6 +56,10 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
       season: body.season ?? null,
       episode: body.episode ?? null,
       label: body.label ?? null,
+      player_entity: body.player_entity ?? null,
+      art_fit: body.art_fit ?? null,
+      shuffle: body.shuffle ?? false,
+      radio_mode: body.radio_mode ?? false,
     }
 
     const existing = ctx.store.findCardByUid(body.tag_uid)

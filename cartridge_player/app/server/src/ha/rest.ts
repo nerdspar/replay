@@ -49,6 +49,28 @@ export class HomeAssistantRest implements ServiceCaller {
     })
   }
 
+  /**
+   * A service call that answers back.
+   *
+   * Most services return nothing, which is why `callService` returns void. A
+   * few — Music Assistant's search among them — exist purely to hand data back,
+   * and Home Assistant only includes it when explicitly asked. Without the
+   * query parameter the call succeeds and returns an empty body, which looks
+   * exactly like "no results".
+   */
+  async callServiceForResponse<T>(
+    domain: string,
+    service: string,
+    data: Record<string, unknown>,
+  ): Promise<T> {
+    const body = (await this.request(
+      `/services/${domain}/${service}?return_response=true`,
+      { method: 'POST', body: JSON.stringify(data) },
+    )) as { service_response?: T } | null
+
+    return (body?.service_response ?? ({} as T)) as T
+  }
+
   async getStates(): Promise<HassState[]> {
     return (await this.request('/states', { method: 'GET' })) as HassState[]
   }

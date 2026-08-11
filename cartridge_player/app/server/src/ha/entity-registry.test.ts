@@ -41,15 +41,31 @@ describe('entity platform lookup', () => {
     const lookup = createEntityPlatformLookup(
       fakeWs(
         vi.fn(async () => [
-          { entity_id: 'media_player.living_room', platform: 'androidtv_remote' },
-          { entity_id: 'media_player.living_room_2', platform: 'music_assistant' },
+          {
+            entity_id: 'media_player.living_room',
+            platform: 'androidtv_remote',
+            config_entry_id: 'entry-tv',
+          },
+          {
+            entity_id: 'media_player.living_room_2',
+            platform: 'music_assistant',
+            config_entry_id: 'entry-mass',
+          },
         ]) as unknown as HomeAssistantWs['command'],
       ),
     )
 
     const map = await lookup()
-    expect(map.get('media_player.living_room')).toBe('androidtv_remote')
-    expect(map.get('media_player.living_room_2')).toBe('music_assistant')
+    expect(map.get('media_player.living_room')).toEqual({
+      platform: 'androidtv_remote',
+      configEntryId: 'entry-tv',
+    })
+    // The config entry is what addresses a Music Assistant search, and it is
+    // reachable ONLY here — no state or REST endpoint carries it.
+    expect(map.get('media_player.living_room_2')).toEqual({
+      platform: 'music_assistant',
+      configEntryId: 'entry-mass',
+    })
   })
 
   it('caches, so opening Settings repeatedly does not hammer the socket', async () => {
@@ -101,7 +117,9 @@ describe('entity platform lookup', () => {
       ),
     )
 
-    expect([...(await lookup())]).toEqual([['media_player.b', 'cast']])
+    expect([...(await lookup())]).toEqual([
+      ['media_player.b', { platform: 'cast', configEntryId: null }],
+    ])
   })
 })
 
@@ -121,11 +139,14 @@ describe('GET /api/entities', () => {
   ]
 
   function withStates(platforms: Map<string, string>) {
+    const origins = new Map(
+      [...platforms].map(([id, platform]) => [id, { platform, configEntryId: null }]),
+    )
     active = testContext()
     const { ctx } = active
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(ctx.ha as any).getStates = async () => states
-    ctx.entityPlatforms = async () => platforms
+    ctx.entityPlatforms = async () => origins
     return ctx
   }
 

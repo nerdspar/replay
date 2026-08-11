@@ -33,6 +33,8 @@ describe('settings', () => {
       autoplay_enabled: true,
       autoplay_delay_ms: 3000,
       removal_action: 'none',
+      music_player_entity: null,
+      music_removal_action: 'pause',
       pin_hash: null,
       public_base_url: null,
       setup_complete: false,

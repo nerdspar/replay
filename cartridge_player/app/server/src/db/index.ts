@@ -5,14 +5,18 @@ import type { Database as Db } from 'better-sqlite3'
 import { migrate } from './schema.js'
 import { SQL_NORMALIZED_UID, normalizeUid } from '../core/uid.js'
 import type {
+  ArtFit,
   Card,
   CardInput,
+  CardKind,
   CardStatus,
   ContentType,
+  MusicRemovalAction,
   RemovalAction,
   ScanEvent,
   Settings,
 } from '../types.js'
+import { kindOfContentType } from '../types.js'
 
 const SCAN_LOG_CAP = 200
 
@@ -26,14 +30,24 @@ interface SettingsRow {
   autoplay_enabled: number
   autoplay_delay_ms: number
   removal_action: string
+  music_player_entity: string | null
+  music_removal_action: string
   pin_hash: string | null
   public_base_url: string | null
   setup_complete: number
 }
 
-interface CardRow extends Omit<Card, 'content_type' | 'status'> {
+interface CardRow
+  extends Omit<
+    Card,
+    'content_type' | 'status' | 'kind' | 'art_fit' | 'shuffle' | 'radio_mode'
+  > {
   content_type: string
   status: string
+  kind: string
+  art_fit: string | null
+  shuffle: number
+  radio_mode: number
 }
 
 function toSettings(row: SettingsRow): Settings {
@@ -47,6 +61,8 @@ function toSettings(row: SettingsRow): Settings {
     autoplay_enabled: row.autoplay_enabled !== 0,
     autoplay_delay_ms: row.autoplay_delay_ms,
     removal_action: row.removal_action as RemovalAction,
+    music_player_entity: row.music_player_entity,
+    music_removal_action: row.music_removal_action as MusicRemovalAction,
     pin_hash: row.pin_hash,
     public_base_url: row.public_base_url,
     setup_complete: row.setup_complete !== 0,
@@ -58,6 +74,10 @@ function toCard(row: CardRow): Card {
     ...row,
     content_type: row.content_type as ContentType,
     status: row.status as CardStatus,
+    kind: row.kind as CardKind,
+    art_fit: row.art_fit as ArtFit | null,
+    shuffle: row.shuffle !== 0,
+    radio_mode: row.radio_mode !== 0,
   }
 }
 
@@ -71,6 +91,8 @@ const WRITABLE_SETTINGS = [
   'autoplay_enabled',
   'autoplay_delay_ms',
   'removal_action',
+  'music_player_entity',
+  'music_removal_action',
   'pin_hash',
   'public_base_url',
   'setup_complete',
@@ -155,13 +177,16 @@ export class Store {
     const info = this.db
       .prepare(
         `INSERT INTO cards
-           (tag_uid, provider, content_type, external_id, title, year,
+           (tag_uid, kind, provider, content_type, external_id, title, year,
             poster_url, original_poster_url, season, episode, label,
-            created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            player_entity, art_fit, shuffle, radio_mode, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.tag_uid,
+        // Derived, never supplied by the client: the content type is the single
+        // source of truth for which device a scan reaches.
+        kindOfContentType(input.content_type),
         input.provider,
         input.content_type,
         input.external_id,
@@ -174,6 +199,10 @@ export class Store {
         input.season,
         input.episode,
         input.label,
+        input.player_entity,
+        input.art_fit,
+        input.shuffle ? 1 : 0,
+        input.radio_mode ? 1 : 0,
         now,
         now,
       )
@@ -195,6 +224,10 @@ export class Store {
       'season',
       'episode',
       'label',
+      'player_entity',
+      'art_fit',
+      'shuffle',
+      'radio_mode',
       'status',
     ]
     const assignments: string[] = []
@@ -202,7 +235,15 @@ export class Store {
     for (const key of allowed) {
       if (!(key in patch)) continue
       assignments.push(`${key} = ?`)
-      values.push(patch[key as keyof typeof patch] ?? null)
+      const value = patch[key as keyof typeof patch]
+      values.push(typeof value === 'boolean' ? (value ? 1 : 0) : (value ?? null))
+    }
+
+    // Retyping a card moves it between devices and library tabs, so `kind`
+    // follows `content_type` rather than being set independently.
+    if (patch.content_type !== undefined) {
+      assignments.push('kind = ?')
+      values.push(kindOfContentType(patch.content_type))
     }
     if (assignments.length === 0) return this.getCard(id)
 

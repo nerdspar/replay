@@ -8,6 +8,19 @@ const CACHE_TTL_MS = 60_000
 interface RegistryEntry {
   entity_id?: string
   platform?: string
+  config_entry_id?: string | null
+}
+
+/** What the registry knows about an entity that its state does not say. */
+export interface EntityOrigin {
+  /** The integration it came from, e.g. `music_assistant`. */
+  platform: string
+  /**
+   * Which configured instance of that integration. Music Assistant's search
+   * action is addressed by config entry rather than by entity, so choosing a
+   * speaker is what tells us which server to search.
+   */
+  configEntryId: string | null
 }
 
 /**
@@ -25,10 +38,10 @@ interface RegistryEntry {
 export function createEntityPlatformLookup(
   ws: HomeAssistantWs,
   now: () => number = Date.now,
-): () => Promise<Map<string, string>> {
-  let cache: Map<string, string> | null = null
+): () => Promise<Map<string, EntityOrigin>> {
+  let cache: Map<string, EntityOrigin> | null = null
   let fetchedAt = Number.NEGATIVE_INFINITY
-  let inFlight: Promise<Map<string, string>> | null = null
+  let inFlight: Promise<Map<string, EntityOrigin>> | null = null
 
   return async () => {
     if (cache && now() - fetchedAt < CACHE_TTL_MS) return cache
@@ -40,9 +53,14 @@ export function createEntityPlatformLookup(
           type: 'config/entity_registry/list',
         })
 
-        const map = new Map<string, string>()
+        const map = new Map<string, EntityOrigin>()
         for (const entry of entries ?? []) {
-          if (entry?.entity_id && entry.platform) map.set(entry.entity_id, entry.platform)
+          if (entry?.entity_id && entry.platform) {
+            map.set(entry.entity_id, {
+              platform: entry.platform,
+              configEntryId: entry.config_entry_id ?? null,
+            })
+          }
         }
         cache = map
         fetchedAt = now()
@@ -50,7 +68,7 @@ export function createEntityPlatformLookup(
       } catch (error) {
         // Older cores, restricted tokens, or a dropped socket all land here.
         log.debug(`entity registry unavailable: ${(error as Error).message}`)
-        return cache ?? new Map<string, string>()
+        return cache ?? new Map<string, EntityOrigin>()
       } finally {
         inFlight = null
       }

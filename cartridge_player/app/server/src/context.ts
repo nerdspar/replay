@@ -6,9 +6,12 @@ import { PendingUidStore } from './core/pending.js'
 import { ScanHandler } from './core/scan-handler.js'
 import { ProviderRegistry } from './providers/registry.js'
 import { StremioProvider } from './providers/stremio.js'
+import { MusicAssistantProvider } from './providers/musicassistant.js'
 import { TargetRegistry } from './targets/registry.js'
 import { AndroidTvTarget } from './targets/androidtv.js'
+import { MusicAssistantTarget } from './targets/musicassistant.js'
 import { HomeAssistantRest } from './ha/rest.js'
+import type { EntityOrigin } from './ha/entity-registry.js'
 import { loadOrCreateSessionSecret } from './http/pin.js'
 import { ArtworkStore } from './artwork/store.js'
 
@@ -36,7 +39,7 @@ export interface AppContext {
    * entity_id → integration, for telling apart entities that share a friendly
    * name. Returns an empty map when unavailable; callers must degrade quietly.
    */
-  entityPlatforms: () => Promise<Map<string, string>>
+  entityPlatforms: () => Promise<Map<string, EntityOrigin>>
   /**
    * Called after settings are written. Lets the runtime bring up the direct
    * listener the moment a PIN exists, without an add-on restart.
@@ -59,19 +62,50 @@ export function createContext(config: RuntimeConfig): AppContext {
     token: config.supervisorToken,
   })
 
-  const providers = new ProviderRegistry().register(new StremioProvider(), {
-    asDefault: true,
-  })
+  const providers = new ProviderRegistry()
+    .register(new StremioProvider(), { asDefault: true })
+    .register(
+      new MusicAssistantProvider({
+        callForResponse: (domain, service, data) =>
+          ha.callServiceForResponse(domain, service, data),
+        /*
+          Which Music Assistant server to search.
 
-  const targets = new TargetRegistry().register(
-    'androidtv',
-    (settings) =>
-      new AndroidTvTarget({
-        ha,
-        remoteEntity: settings.remote_entity,
-        mediaPlayerEntity: settings.media_player_entity,
+          Its search action is addressed by config entry rather than by entity,
+          and that id is a UUID nobody could be asked to find and paste. So it
+          is derived: the speaker chosen in Settings belongs to exactly one
+          Music Assistant instance, and the entity registry knows which. Read
+          fresh each time, because changing the speaker may change the server.
+        */
+        configEntryId: async () => {
+          const entity = store.getSettings().music_player_entity
+          if (!entity) return null
+          const origins = await context.entityPlatforms()
+          return origins.get(entity)?.configEntryId ?? null
+        },
       }),
-  )
+    )
+
+  const targets = new TargetRegistry()
+    .register(
+      'androidtv',
+      (settings) =>
+        new AndroidTvTarget({
+          ha,
+          remoteEntity: settings.remote_entity,
+          mediaPlayerEntity: settings.media_player_entity,
+        }),
+    )
+    .register(
+      'music_assistant',
+      (settings, card) =>
+        new MusicAssistantTarget({
+          ha,
+          // The cartridge wins over the household default, so one album can
+          // live in the kitchen without moving everything else there.
+          playerEntity: card?.player_entity ?? settings.music_player_entity,
+        }),
+    )
 
   const context: AppContext = {
     config,
@@ -91,7 +125,7 @@ export function createContext(config: RuntimeConfig): AppContext {
     addonSlugCheckedAt: Number.NEGATIVE_INFINITY,
     directListening: false,
     // Replaced at boot once the WebSocket exists; harmless until then.
-    entityPlatforms: async () => new Map<string, string>(),
+    entityPlatforms: async () => new Map<string, EntityOrigin>(),
   }
 
   bus.subscribe((event) => {

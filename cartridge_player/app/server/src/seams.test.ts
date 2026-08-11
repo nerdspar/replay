@@ -45,7 +45,11 @@ function seamContext() {
 describe('a second Provider slots in with no call-site changes', () => {
   it('registers alongside StremioProvider without displacing the default', () => {
     const { ctx } = seamContext()
-    expect(ctx.providers.ids().sort()).toEqual(['fake', 'stremio'])
+    expect(ctx.providers.ids().sort()).toEqual([
+      'fake',
+      'music_assistant',
+      'stremio',
+    ])
     // The default is still what the API falls back to (§7).
     expect(ctx.providers.defaultProviderId).toBe('stremio')
     expect(ctx.providers.get('stremio')).toBeInstanceOf(StremioProvider)
@@ -292,5 +296,120 @@ describe('AndroidTvTarget refuses a media_url payload loudly (§10.1)', () => {
 
     expect(outcome.scan.error).toContain('unsupported_payload')
     expect(ctx.lastError?.message).toContain('unsupported_payload')
+  })
+})
+
+/**
+ * The reason `kind` exists.
+ *
+ * One reader serves a television and a speaker. Which device a scan reaches is
+ * a property of the CARTRIDGE, so two tags held on the same reader a second
+ * apart must end up in different places — something a global `target_type`
+ * could never express.
+ */
+describe('one reader, two devices', () => {
+  function bothKinds() {
+    active = testContext()
+    const { ctx } = active
+
+    const tv = new FakeTarget()
+    const speaker = new FakeTarget()
+    ctx.targets.register('androidtv', () => tv).register('music_assistant', () => speaker)
+    ctx.providers.register(new FakeProvider('music_assistant'))
+
+    // Real delays would add seconds to the suite for no extra confidence; the
+    // steps taken are what these tests are about.
+    ctx.store.updateSettings({ home_delay_ms: 0, autoplay_delay_ms: 0 })
+
+    ctx.store.createCard(
+      {
+        tag_uid: '04-01',
+        provider: 'stremio',
+        content_type: 'movie',
+        external_id: 'tt0083658',
+        title: 'Blade Runner',
+        year: null,
+        poster_url: null,
+        season: null,
+        episode: null,
+        label: null,
+        player_entity: null,
+        art_fit: null,
+        shuffle: false,
+        radio_mode: false,
+      },
+      1,
+    )
+    ctx.store.createCard(
+      {
+        tag_uid: '04-02',
+        provider: 'music_assistant',
+        content_type: 'album',
+        external_id: 'library://album/12',
+        title: 'Rumours',
+        year: null,
+        poster_url: null,
+        season: null,
+        episode: null,
+        label: null,
+        player_entity: null,
+        art_fit: null,
+        shuffle: false,
+        radio_mode: false,
+      },
+      2,
+    )
+
+    return { ctx, tv, speaker }
+  }
+
+  it('sends each cartridge to its own device from the same reader', async () => {
+    const { ctx, tv, speaker } = bothKinds()
+
+    await ctx.scans.handleInserted('04-01')
+    await ctx.scans.handleInserted('04-02')
+
+    expect(tv.calls).toContain('launch')
+    expect(speaker.calls).toEqual(['launch'])
+    // Neither device saw the other cartridge.
+    expect(tv.calls.length + speaker.calls.length).toBe(tv.calls.length + 1)
+  })
+
+  it('skips the television wake-up dance for music', async () => {
+    const { ctx, tv, speaker } = bothKinds()
+    ctx.store.updateSettings({
+      home_first_enabled: true,
+      autoplay_enabled: true,
+    })
+
+    await ctx.scans.handleInserted('04-01')
+    await ctx.scans.handleInserted('04-02')
+
+    // Home and Select exist to dismiss a screensaver and pick a stream. A
+    // speaker has neither, so it must not inherit the delays that go with them.
+    expect(tv.calls).toEqual(['home', 'launch', 'select'])
+    expect(speaker.calls).toEqual(['launch'])
+  })
+
+  it('lifts each cartridge according to its own kind of device', async () => {
+    const { ctx, tv, speaker } = bothKinds()
+    ctx.store.updateSettings({
+      removal_action: 'off',
+      music_removal_action: 'pause',
+    })
+
+    await ctx.scans.handleRemoved('04-01')
+    await ctx.scans.handleRemoved('04-02')
+
+    // "Off" is a television idea; "pause" is what a speaker can do.
+    expect(tv.calls).toEqual(['off'])
+    expect(speaker.calls).toEqual(['pause'])
+  })
+
+  it('records which cartridge is a music one, so the library can split them', () => {
+    const { ctx } = bothKinds()
+
+    expect(ctx.store.findCardByUid('04-01')?.kind).toBe('video')
+    expect(ctx.store.findCardByUid('04-02')?.kind).toBe('music')
   })
 })

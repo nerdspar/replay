@@ -263,11 +263,134 @@ describe('deleting', () => {
   })
 })
 
+describe('migrating a database written before music existed', () => {
+  /** A v3 database: everything the app shipped with before music cartridges. */
+  function v3Database() {
+    const db = new Database(':memory:')
+    db.exec(`
+      CREATE TABLE settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        target_type TEXT NOT NULL DEFAULT 'androidtv',
+        remote_entity TEXT, media_player_entity TEXT,
+        home_first_enabled INTEGER NOT NULL DEFAULT 1,
+        home_delay_ms INTEGER NOT NULL DEFAULT 1500,
+        autoplay_enabled INTEGER NOT NULL DEFAULT 1,
+        autoplay_delay_ms INTEGER NOT NULL DEFAULT 3000,
+        removal_action TEXT NOT NULL DEFAULT 'none',
+        pin_hash TEXT, public_base_url TEXT,
+        setup_complete INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO settings (id) VALUES (1);
+      CREATE TABLE cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_uid TEXT NOT NULL UNIQUE,
+        provider TEXT NOT NULL,
+        content_type TEXT NOT NULL CHECK (content_type IN ('movie', 'series')),
+        external_id TEXT NOT NULL, title TEXT NOT NULL,
+        year TEXT, poster_url TEXT, original_poster_url TEXT,
+        season INTEGER, episode INTEGER, label TEXT,
+        status TEXT NOT NULL DEFAULT 'assigned'
+          CHECK (status IN ('assigned', 'unassigned')),
+        created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      INSERT INTO cards (tag_uid, provider, content_type, external_id, title,
+                         poster_url, label, status, created_at, updated_at)
+      VALUES ('04-01', 'stremio', 'movie', 'tt1', 'Old Card',
+              'https://old.test/p.jpg', 'blue one', 'unassigned', 7, 9);
+    `)
+    db.pragma('user_version = 3')
+    return db
+  }
+
+  it('calls every existing cartridge a video one, so nothing changes device', () => {
+    const db = v3Database()
+    migrate(db)
+
+    const row = db.prepare('SELECT * FROM cards').get() as Record<string, unknown>
+    expect(row.kind).toBe('video')
+    // The rebuild copies rather than recreates: everything else must survive it.
+    expect(row).toMatchObject({
+      id: 1,
+      tag_uid: '04-01',
+      title: 'Old Card',
+      poster_url: 'https://old.test/p.jpg',
+      original_poster_url: null,
+      label: 'blue one',
+      status: 'unassigned',
+      created_at: 7,
+      updated_at: 9,
+    })
+    expect(row.player_entity).toBeNull()
+    expect(row.art_fit).toBeNull()
+    db.close()
+  })
+
+  it('defaults lifting a music cartridge to pause', () => {
+    const db = v3Database()
+    migrate(db)
+
+    const row = db.prepare('SELECT * FROM settings').get() as Record<string, unknown>
+    expect(row.music_removal_action).toBe('pause')
+    expect(row.music_player_entity).toBeNull()
+    // The TV's own lift-off setting is untouched by the music one arriving.
+    expect(row.removal_action).toBe('none')
+    db.close()
+  })
+
+  it('keeps the unique index on the normalised uid across the table rebuild', () => {
+    const db = v3Database()
+    migrate(db)
+
+    // Same physical tag, different formatting. The index is an expression index,
+    // so a naive rebuild silently loses it and lets both rows exist.
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO cards (tag_uid, kind, provider, content_type, external_id,
+                              title, created_at, updated_at)
+           VALUES ('0401', 'video', 'stremio', 'movie', 'tt2', 'Dup', 1, 1)`,
+        )
+        .run(),
+    ).toThrow()
+    db.close()
+  })
+
+  it('accepts a music content type the old CHECK constraint forbade', () => {
+    const db = v3Database()
+    migrate(db)
+
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO cards (tag_uid, kind, provider, content_type, external_id,
+                              title, created_at, updated_at)
+           VALUES ('04-02', 'music', 'music_assistant', 'album', 'library://album/1',
+                   'Rumours', 1, 1)`,
+        )
+        .run(),
+    ).not.toThrow()
+    db.close()
+  })
+})
+
 describe('migrating a database written before this existed', () => {
   it('marks every existing cartridge assigned, so nothing stops working', () => {
     const db = new Database(':memory:')
     // A v1 database: cards table with no status column.
     db.exec(`
+      CREATE TABLE settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        target_type TEXT NOT NULL DEFAULT 'androidtv',
+        remote_entity TEXT, media_player_entity TEXT,
+        home_first_enabled INTEGER NOT NULL DEFAULT 1,
+        home_delay_ms INTEGER NOT NULL DEFAULT 1500,
+        autoplay_enabled INTEGER NOT NULL DEFAULT 1,
+        autoplay_delay_ms INTEGER NOT NULL DEFAULT 3000,
+        removal_action TEXT NOT NULL DEFAULT 'none',
+        pin_hash TEXT, public_base_url TEXT,
+        setup_complete INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO settings (id) VALUES (1);
       CREATE TABLE cards (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         tag_uid TEXT NOT NULL UNIQUE,
@@ -397,6 +520,19 @@ describe('the artwork a card was created with', () => {
   it('backfills existing cards on upgrade rather than leaving them blank', () => {
     const db = new Database(':memory:')
     db.exec(`
+      CREATE TABLE settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        target_type TEXT NOT NULL DEFAULT 'androidtv',
+        remote_entity TEXT, media_player_entity TEXT,
+        home_first_enabled INTEGER NOT NULL DEFAULT 1,
+        home_delay_ms INTEGER NOT NULL DEFAULT 1500,
+        autoplay_enabled INTEGER NOT NULL DEFAULT 1,
+        autoplay_delay_ms INTEGER NOT NULL DEFAULT 3000,
+        removal_action TEXT NOT NULL DEFAULT 'none',
+        pin_hash TEXT, public_base_url TEXT,
+        setup_complete INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO settings (id) VALUES (1);
       CREATE TABLE cards (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         tag_uid TEXT NOT NULL UNIQUE,

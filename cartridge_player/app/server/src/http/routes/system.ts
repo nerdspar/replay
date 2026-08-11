@@ -12,6 +12,9 @@ function writeEvent(reply: FastifyReply, event: AppEvent | { type: 'hello' }): v
   reply.raw.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`)
 }
 
+/** The integration a Music Assistant speaker entity comes from. */
+const MUSIC_PLATFORM = 'music_assistant'
+
 export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): void {
   /**
    * Supervisor's watchdog target. Deliberately trivial: no database, no Home
@@ -34,11 +37,21 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
     ])
 
     const annotate = (entity: EntityOption): EntityOption => {
-      const platform = platforms.get(entity.entity_id)
-      return platform ? { ...entity, platform: formatPlatform(platform) } : entity
+      const origin = platforms.get(entity.entity_id)
+      return origin ? { ...entity, platform: formatPlatform(origin.platform) } : entity
     }
 
-    return { remotes: remotes.map(annotate), mediaPlayers: mediaPlayers.map(annotate) }
+    const annotated = mediaPlayers.map(annotate)
+
+    return {
+      remotes: remotes.map(annotate),
+      mediaPlayers: annotated,
+      // The speaker picker offers only what Music Assistant can actually play
+      // to. Every media player in the house would list the TV and the doorbell.
+      musicPlayers: annotated.filter(
+        (entity) => platforms.get(entity.entity_id)?.platform === MUSIC_PLATFORM,
+      ),
+    }
   })
 
   /**
@@ -49,7 +62,9 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
     const { key } = z
       .object({ key: z.enum(['home', 'select', 'back']) })
       .parse(request.body)
-    const target = ctx.targets.create(ctx.store.getSettings())
+    // Always the video target: this is the wizard asking "did the TV react?",
+    // and a speaker has no keys to send.
+    const target = ctx.targets.createFor('video', ctx.store.getSettings())
     await target.sendKey(key)
     return { ok: true }
   })

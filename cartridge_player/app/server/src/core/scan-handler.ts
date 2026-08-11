@@ -6,7 +6,12 @@ import { AppError } from '../errors.js'
 import { createLogger } from '../log.js'
 import type { EventBus } from './events.js'
 import type { PendingUidStore } from './pending.js'
-import { runFireSequence, runRemovalAction, type Sleep } from './fire-sequence.js'
+import {
+  removalActionFor,
+  runFireSequence,
+  runRemovalAction,
+  type Sleep,
+} from './fire-sequence.js'
 
 const log = createLogger('scan')
 
@@ -60,13 +65,13 @@ export class ScanHandler {
     if (!card || card.status === 'unassigned') return null
 
     const settings = store.getSettings()
-    if (settings.removal_action === 'none') {
+    if (removalActionFor(card.kind, settings) === 'none') {
       return { card, scan: this.record(uid, card.id, 'removed:none', null) }
     }
 
     try {
-      const target = this.deps.targets.create(settings)
-      const action = await runRemovalAction(settings, target)
+      const target = this.deps.targets.createFor(card.kind, settings, card)
+      const action = await runRemovalAction(card.kind, settings, target)
       return { card, scan: this.record(uid, card.id, `removed:${action}`, null) }
     } catch (error) {
       return { card, scan: this.recordFailure(uid, card.id, 'removed', error) }
@@ -80,7 +85,7 @@ export class ScanHandler {
 
     try {
       const provider = providers.get(card.provider)
-      const target = targets.create(settings)
+      const target = targets.createFor(card.kind, settings, card)
       const steps = await runFireSequence({
         card,
         settings,

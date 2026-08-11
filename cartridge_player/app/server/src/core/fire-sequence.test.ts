@@ -135,7 +135,11 @@ describe('removal actions (§6.4)', () => {
   for (const { action, expected } of cases) {
     it(`${action} -> ${expected.join(',') || 'nothing'}`, async () => {
       const target = new FakeTarget()
-      const result = await runRemovalAction(settings({ removal_action: action }), target)
+      const result = await runRemovalAction(
+        'video',
+        settings({ removal_action: action }),
+        target,
+      )
       expect(target.calls).toEqual(expected)
       expect(result).toBe(action)
     })
