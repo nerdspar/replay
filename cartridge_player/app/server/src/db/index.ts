@@ -229,8 +229,8 @@ export class Store {
            (tag_uid, kind, provider, content_type, external_id, title, year,
             poster_url, original_poster_url, season, episode, label,
             player_entity, art_fit, shuffle, radio_mode, accent_color,
-            created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            resume_hint, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.tag_uid,
@@ -254,6 +254,7 @@ export class Store {
         input.shuffle ? 1 : 0,
         input.radio_mode ? 1 : 0,
         input.accent_color,
+        input.resume_hint,
         now,
         now,
       )
@@ -280,6 +281,7 @@ export class Store {
       'shuffle',
       'radio_mode',
       'accent_color',
+      'resume_hint',
       'status',
     ]
     const assignments: string[] = []

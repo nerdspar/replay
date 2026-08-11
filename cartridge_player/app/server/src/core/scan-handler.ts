@@ -9,6 +9,7 @@ import type { EventBus } from './events.js'
 import type { PendingUidStore } from './pending.js'
 import { type ReaderLight, type ReaderStatus } from './reader-light.js'
 import {
+  contentIdOf,
   isSameContent,
   playbackFromState,
   playerFor,
@@ -121,6 +122,15 @@ export class ScanHandler {
     try {
       const target = this.deps.targets.createFor(card.kind, settings, card)
       const action = await runRemovalAction(card.kind, settings, target)
+
+      // Only a pause leaves anything to come back to. Stop clears the queue,
+      // which is exactly the difference between the two options.
+      if (action === 'pause') {
+        await this.markPaused(card)
+      } else {
+        this.deps.store.updateCard(card.id, { resume_hint: null }, Date.now())
+      }
+
       return { card, scan: this.record(uid, card.id, `removed:${action}`, null) }
     } catch (error) {
       return { card, scan: this.recordFailure(uid, card.id, 'removed', error) }
@@ -150,10 +160,40 @@ export class ScanHandler {
     try {
       const state = await ha.getState(entity)
       if (!state || playbackFromState(state.state) !== 'paused') return false
+
+      // Where we left it, if we were the ones who paused it. This is the only
+      // test that works for a playlist: its card is named for the playlist and
+      // the player reports the track it is on, so they never match.
+      if (card.resume_hint !== null) {
+        const now = contentIdOf(state.attributes)
+        return card.resume_hint === '' || card.resume_hint === now
+      }
+
+      // Paused by hand rather than by lifting the cartridge off, so there is no
+      // mark to go on. Falls back to comparing what the player is holding,
+      // which suits an album or a single track.
       return isSameContent(state.attributes, card)
     } catch {
       // Unreadable player. Starting it again is the safe way to be wrong.
       return false
+    }
+  }
+
+  /** Remembers where a cartridge was paused, so it can carry on from there. */
+  private async markPaused(card: Card): Promise<void> {
+    const { ha, store } = this.deps
+    if (!ha) return
+
+    const entity = playerFor(card, store.getSettings())
+    if (!entity) return
+
+    try {
+      const state = await ha.getState(entity)
+      // Empty string, not null: "we paused it and the player named nothing" is
+      // different from "there is nothing to go back to".
+      store.updateCard(card.id, { resume_hint: contentIdOf(state?.attributes ?? {}) }, Date.now())
+    } catch {
+      // Leave the previous mark rather than guessing.
     }
   }
 
@@ -188,6 +228,10 @@ export class ScanHandler {
         ...(sleep ? { sleep } : {}),
       })
       log.info(`fired ${card.title} -> ${steps.join(',')}`)
+      // Started from the top, so anything it was paused at is now past.
+      if (card.resume_hint !== null) {
+        store.updateCard(card.id, { resume_hint: null }, Date.now())
+      }
 
       // Only if that cartridge is still on the reader. Lifting one mid-launch
       // is easy — the launch can take seconds — and starting to follow it here

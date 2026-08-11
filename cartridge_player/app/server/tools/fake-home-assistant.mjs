@@ -337,6 +337,7 @@ http
     } else if (url.pathname === '/player') {
       setPlayer(url.searchParams.get('state') ?? 'idle', {
         media_title: url.searchParams.get('title') ?? undefined,
+        media_content_id: url.searchParams.get('id') ?? undefined,
       })
     } else if (url.pathname === '/reset') serviceCalls.length = 0
     res.writeHead(200, { 'content-type': 'application/json' })

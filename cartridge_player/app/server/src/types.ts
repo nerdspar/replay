@@ -159,6 +159,11 @@ export interface Card {
   art_fit: ArtFit | null
   /** `#rrggbb` sampled from the artwork, or null. Computed by the browser. */
   accent_color: string | null
+  /**
+   * What the player was showing when this cartridge was lifted off and paused.
+   * NULL when there is nothing to carry on from.
+   */
+  resume_hint: string | null
   /** Music only. Shuffles the queue this cartridge builds. */
   shuffle: boolean
   /** Music only. Keeps playing similar music once the selection runs out. */

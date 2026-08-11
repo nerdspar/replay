@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.1
+
+Playlists, radio stations, podcasts and audiobooks now carry on from a pause
+like albums do. They never could: a playlist cartridge is named for the
+playlist, while the player reports whichever track it happens to be on, so
+nothing lined up and the whole thing restarted.
+
+The add-on now remembers where the player was when you lifted the cartridge
+off, and checks it is still there. If something else has been played since, the
+cartridge starts properly.
+
+Also stops the reader showing a flashing amber "nothing answered" when it boots
+with a cartridge already sitting on it — the reader reads the tag long before
+wifi is up, so the event went nowhere. It now tells Home Assistant about it as
+soon as it connects. Needs the 0.6.1 firmware.
+
 ## 0.6.0
 
 Putting a paused cartridge back on now carries on from where it stopped,

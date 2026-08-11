@@ -66,6 +66,9 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
       shuffle: body.shuffle ?? false,
       radio_mode: body.radio_mode ?? false,
       accent_color: body.accent_color ?? null,
+      // Never client-supplied: it records what the player was doing, and only
+      // this add-on is in a position to know that.
+      resume_hint: null,
     }
 
     const existing = ctx.store.findCardByUid(body.tag_uid)

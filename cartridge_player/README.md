@@ -231,10 +231,10 @@ cartridge's own content, and resumes rather than relaunching. With Stop the
 queue is cleared, so putting it back starts it again. Nothing to configure: the
 two options already mean this.
 
-It only resumes when the player plainly says it is holding that cartridge's
-content. If it says nothing, or something else is paused, the cartridge starts
-properly — losing your place is a much smaller mistake than playing the wrong
-thing.
+It resumes by remembering where the player was when you lifted the cartridge
+off, and checking it is still there. If something else has been played since,
+the cartridge starts properly — losing your place is a much smaller mistake than
+playing the wrong thing.
 
 ### Music cartridge options
 

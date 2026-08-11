@@ -556,3 +556,113 @@ describe('putting a paused cartridge back on', () => {
     cleanup()
   })
 })
+
+/**
+ * A playlist cartridge.
+ *
+ * The case that showed matching-by-content to be the wrong idea: the card is
+ * named for the playlist, and the player reports whichever track it is on, so
+ * they never match and the whole playlist restarted every time.
+ */
+describe('carrying on with something the player cannot name', () => {
+  function playlistReader(playerState: string, contentId: string, hint: string | null) {
+    const active = testContext()
+    const { ctx } = active
+    ctx.store.updateSettings({
+      home_delay_ms: 0,
+      autoplay_delay_ms: 0,
+      music_player_entity: 'media_player.kitchen',
+      music_removal_action: 'pause',
+    })
+
+    const target = new FakeTarget()
+    ctx.targets.register('music_assistant', () => target)
+    ctx.providers.register(new FakeProvider('music_assistant'))
+    const card = ctx.store.createCard(
+      {
+        tag_uid: '04-99',
+        provider: 'music_assistant',
+        content_type: 'playlist',
+        external_id: 'library://playlist/7',
+        title: 'Sunday Morning',
+        year: null,
+        poster_url: null,
+        season: null,
+        episode: null,
+        label: null,
+        player_entity: null,
+        art_fit: null,
+        accent_color: null,
+        resume_hint: hint,
+        shuffle: false,
+        radio_mode: false,
+      },
+      1,
+    )
+
+    ctx.scans = new ScanHandler({
+      store: ctx.store,
+      providers: ctx.providers,
+      targets: ctx.targets,
+      pending: ctx.pending,
+      bus: ctx.bus,
+      // Nothing here mentions the playlist — only the track it is on.
+      ha: {
+        getState: async () => ({
+          state: playerState,
+          attributes: {
+            media_content_id: contentId,
+            media_title: 'Dreams',
+            media_artist: 'Fleetwood Mac',
+          },
+        }),
+      },
+    })
+
+    return { ctx, card, target, cleanup: active.cleanup }
+  }
+
+  it('resumes a playlist paused where we left it', async () => {
+    const { ctx, target, cleanup } = playlistReader('paused', 'library://track/991', 'library://track/991')
+    await ctx.scans.handleInserted('04-99')
+
+    expect(target.calls).toEqual(['resume'])
+    cleanup()
+  })
+
+  it('starts over when something else has been played since', async () => {
+    const { ctx, target, cleanup } = playlistReader('paused', 'library://track/222', 'library://track/991')
+    await ctx.scans.handleInserted('04-99')
+
+    expect(target.calls).toContain('launch')
+    expect(target.calls).not.toContain('resume')
+    cleanup()
+  })
+
+  it('starts over when it was never paused by lifting it off', async () => {
+    const { ctx, target, cleanup } = playlistReader('paused', 'library://track/991', null)
+    await ctx.scans.handleInserted('04-99')
+
+    // No mark, and the playlist's name appears nowhere in what the player says.
+    expect(target.calls).toContain('launch')
+    cleanup()
+  })
+
+  it('remembers where it was when the cartridge comes off', async () => {
+    const { ctx, card, cleanup } = playlistReader('playing', 'library://track/991', null)
+    await ctx.scans.handleInserted('04-99')
+    await ctx.scans.handleRemoved('04-99')
+
+    expect(ctx.store.getCard(card.id)?.resume_hint).toBe('library://track/991')
+    cleanup()
+  })
+
+  it('forgets it once the playlist is started from the top again', async () => {
+    const { ctx, card, cleanup } = playlistReader('idle', 'library://track/991', 'library://track/000')
+    await ctx.scans.handleInserted('04-99')
+
+    // Relaunched, so whatever it was paused at is now in the past.
+    expect(ctx.store.getCard(card.id)?.resume_hint).toBeNull()
+    cleanup()
+  })
+})

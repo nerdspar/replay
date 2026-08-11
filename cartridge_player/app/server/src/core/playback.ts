@@ -67,6 +67,11 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value.toLowerCase() : ''
 }
 
+/** The one identifier a player gives for what it currently holds. */
+export function contentIdOf(attributes: Record<string, unknown>): string {
+  return text(attributes.media_content_id)
+}
+
 /** Everything the player says about what it is holding. */
 function contentOf(attributes: Record<string, unknown>): string[] {
   return [

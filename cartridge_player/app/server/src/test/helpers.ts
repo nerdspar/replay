@@ -64,6 +64,7 @@ export function card(overrides: Partial<Card> = {}): Card {
     player_entity: null,
     art_fit: null,
     accent_color: null,
+    resume_hint: null,
     shuffle: false,
     radio_mode: false,
     created_at: 0,

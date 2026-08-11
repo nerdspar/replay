@@ -114,6 +114,23 @@ api:
     then:
       - lambda: "id(link_up) = true;"
       - script.execute: show_ambient
+      # Tell it about a cartridge it never heard about.
+      #
+      # Only one that went undelivered, which in practice means the reader
+      # booted with a cartridge already sitting on it. A cartridge whose event
+      # DID arrive is deliberately not repeated: Home Assistant restarts on its
+      # own schedule, and having that relaunch whatever was left on the reader
+      # would be a genuine surprise rather than a recovery.
+      - if:
+          condition:
+            lambda: "return id(undelivered) && id(card_present);"
+          then:
+            - lambda: "id(undelivered) = false;"
+            - homeassistant.event:
+                event: esphome.nfc_card_inserted
+                data:
+                  uid: !lambda "return id(current_uid);"
+            - script.execute: enter_working
   on_client_disconnected:
     then:
       - lambda: "id(link_up) = false;"
@@ -235,6 +252,13 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
+  # A tag was read while nothing was connected, so the event went nowhere.
+  # Booting with a cartridge already on the reader does this every time: the
+  # RC522 is alive long before wifi is.
+  - id: undelivered
+    type: bool
+    restore_value: false
+    initial_value: "false"
 
   # ---- palette -----------------------------------------------------------
   #
@@ -347,6 +371,10 @@ rc522_spi:
                 event: esphome.nfc_card_inserted
                 data:
                   uid: !lambda "return x;"
+            # ESPHome drops an event when no client is connected, and says so
+            # in the log. Remember that, so it can be told once there is
+            # somebody to tell.
+            - lambda: "id(undelivered) = !id(link_up);"
 
   on_tag_removed:
     then:
@@ -384,6 +412,7 @@ script:
             - lambda: |-
                 id(holding) = false;
                 id(awaiting) = false;
+                id(undelivered) = false;
             - script.execute: show_ambient
 
   # ---- painting ----------------------------------------------------------
@@ -497,7 +526,8 @@ script:
           id: paint
           idx: 3
       - delay: 120ms
-      # Only wait for an answer that has not already arrived.
+      # Only wait for an answer that has not already arrived — and only if
+      # there is anything out there to answer.
       #
       # The add-on replies in well under this flash — about 50ms for a tag it
       # recognises as unassigned. Entering the working state unconditionally
@@ -507,7 +537,7 @@ script:
       # firmware's own doing.
       - if:
           condition:
-            lambda: "return !id(answered);"
+            lambda: "return !id(answered) && id(link_up);"
           then:
             - script.execute: enter_working
 

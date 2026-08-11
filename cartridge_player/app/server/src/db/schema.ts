@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 9
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -242,6 +242,27 @@ const V8 = `
 ALTER TABLE settings ADD COLUMN led_scope TEXT NOT NULL DEFAULT 'cartridge';
 `
 
+/**
+ * Where a cartridge was paused, so putting it back carries on.
+ *
+ * Recorded instead of inferred, because inferring does not work. Matching what
+ * the player reports against the cartridge only ever suited albums, artists and
+ * single tracks: a playlist card called "Sunday Morning" sits there while the
+ * player reports the track it happens to be on, so nothing matches and the
+ * whole playlist restarts. Radio, podcasts and audiobooks are the same.
+ *
+ * This holds the `media_content_id` the player was showing at the moment we
+ * paused it, which turns the question from "is this the same cartridge" into
+ * "is this still where I left it" — answerable for anything. An empty string
+ * means the player reported nothing to compare, which is still evidence: we
+ * paused it and nobody has told us otherwise.
+ *
+ * NULL means there is nothing to go back to, and the cartridge starts properly.
+ */
+const V9 = `
+ALTER TABLE cards ADD COLUMN resume_hint TEXT;
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -268,6 +289,9 @@ export function migrate(db: Database): void {
   }
   if (current < 8) {
     db.exec(V8)
+  }
+  if (current < 9) {
+    db.exec(V9)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)
