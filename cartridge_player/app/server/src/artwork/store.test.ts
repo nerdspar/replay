@@ -389,3 +389,91 @@ describe('upload and serve over HTTP', () => {
     await app.close()
   })
 })
+
+describe('serving a card\'s artwork from our own origin', () => {
+  /**
+   * Exporting a sticker draws the poster onto a canvas, and a canvas that has
+   * touched a cross-origin image cannot be read back. This route exists so the
+   * bytes are same-origin — and it takes a card id, never a URL, so it cannot
+   * be turned into an open proxy.
+   */
+  const remoteCard = (posterUrl: string) => ({
+    tag_uid: '04-01',
+    provider: 'stremio',
+    content_type: 'movie' as const,
+    external_id: 'tt1',
+    title: 'x',
+    year: null,
+    poster_url: posterUrl,
+    season: null,
+    episode: null,
+    label: null,
+  })
+
+  it('serves an uploaded image straight off disk', async () => {
+    const ctx = setup()
+    const saved = ctx.artwork.save(PNG)
+    ctx.store.createCard(remoteCard(saved.url), 1)
+
+    const app = buildServer(ctx, { requirePin: false })
+    const response = await app.inject({ method: 'GET', url: '/api/artwork/card/1' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).toContain('image/png')
+    await app.close()
+  })
+
+  it('relays a remote poster', async () => {
+    const ctx = setup()
+    ctx.store.createCard(remoteCard('https://images.metahub.space/poster/medium/tt1/img'), 1)
+    const app = buildServer(ctx, { requirePin: false })
+
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response(JPEG)) as typeof fetch
+    const response = await app.inject({ method: 'GET', url: '/api/artwork/card/1' })
+    globalThis.fetch = realFetch
+
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).toContain('image/jpeg')
+    await app.close()
+  })
+
+  it('refuses to reach anything inside the install, even via a card', async () => {
+    const ctx = setup()
+    const app = buildServer(ctx, { requirePin: false })
+    const calls: string[] = []
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      calls.push(String(input))
+      return new Response(JPEG)
+    }) as typeof fetch
+
+    for (const [i, hostile] of [
+      'http://supervisor/core/api/states',
+      'https://supervisor/addons/self/info',
+      'https://127.0.0.1:8099/api/settings',
+      'https://192.168.1.10/secret.png',
+      'https://10.0.0.5/secret.png',
+      'https://169.254.169.254/latest/meta-data/',
+      'https://homeassistant.local/x.png',
+    ].entries()) {
+      ctx.store.createCard(remoteCard(hostile), i + 1)
+      const response = await app.inject({ method: 'GET', url: `/api/artwork/card/${i + 1}` })
+      expect(response.statusCode, hostile).toBe(404)
+      ctx.store.deleteCard(i + 1)
+    }
+
+    globalThis.fetch = realFetch
+    // Never reached out at all.
+    expect(calls).toEqual([])
+    await app.close()
+  })
+
+  it('404s a card with no artwork', async () => {
+    const ctx = setup()
+    const app = buildServer(ctx, { requirePin: false })
+    const response = await app.inject({ method: 'GET', url: '/api/artwork/card/999' })
+    expect(response.statusCode).toBe(404)
+    await app.close()
+  })
+})

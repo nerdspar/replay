@@ -143,9 +143,15 @@ What you need beyond the machine itself:
 - A **StandardGrip mat**, and light-coloured material so the sensor can read the
   registration marks
 
-One caveat: this app prints a sheet, it does not yet export artwork for Design
-Space. Getting the design into Design Space for Print Then Cut is the part that
-is not solved here.
+With the option on, a **Download images for Design Space** button appears. It
+saves one PNG per cartridge at true size — 709 × 1063 px for a 60 × 90 mm label,
+300 dpi — with the area outside the rounded corners left transparent, which is
+how Print Then Cut knows to cut a rounded rectangle rather than a square.
+
+Upload those in Design Space and use Print Then Cut. Your browser may ask
+permission to download several files at once.
+
+Printing the sheet instead is for cutting by hand.
 
 ## Put it on your phone's home screen
 

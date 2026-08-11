@@ -8,6 +8,7 @@ import {
   MAX_UPLOAD_BYTES,
   artworkNameFromUrl,
   detectImageExtension,
+  isPrivateHost,
   resolveImportUrl,
 } from '../../artwork/store.js'
 
@@ -130,6 +131,65 @@ export function registerArtworkRoutes(app: FastifyInstance, ctx: AppContext): vo
       .header('cache-control', 'no-store')
       .header('x-content-type-options', 'nosniff')
       .header('content-security-policy', "default-src 'none'; sandbox")
+    return reply.send(body)
+  })
+
+  /**
+   * Serves a card's artwork from our own origin.
+   *
+   * Exporting a sticker means drawing the poster onto a canvas, and a canvas
+   * that has touched a cross-origin image cannot be read back — the export
+   * throws a SecurityError. Poster hosts do not send CORS headers, so the bytes
+   * have to come through here.
+   *
+   * Takes a CARD ID, never a URL: the address fetched is one the server looked
+   * up, which is what keeps this from being an open proxy.
+   */
+  app.get<{ Params: { id: string } }>('/api/artwork/card/:id', async (request, reply) => {
+    const card = ctx.store.getCard(Number(request.params.id))
+    if (!card?.poster_url) throw new AppError('not_found', 'No artwork for that card', 404)
+
+    // Already ours — serve it straight off disk.
+    const stored = artworkNameFromUrl(card.poster_url)
+    if (stored) {
+      const file = ctx.artwork.resolve(stored)
+      if (!file) throw new AppError('not_found', 'No such image', 404)
+      reply.type(file.contentType).header('x-content-type-options', 'nosniff')
+      return reply.send(fs.createReadStream(file.path))
+    }
+
+    let target: URL
+    try {
+      target = new URL(card.poster_url)
+    } catch {
+      throw new AppError('not_found', 'That artwork is not a fetchable image', 404)
+    }
+    if (target.protocol !== 'https:' || isPrivateHost(target.hostname)) {
+      throw new AppError('not_found', 'That artwork is not a fetchable image', 404)
+    }
+
+    let upstream: Response
+    try {
+      upstream = await fetch(target, {
+        redirect: 'follow',
+        headers: { accept: 'image/*' },
+        signal: AbortSignal.timeout(20_000),
+      })
+    } catch (error) {
+      throw new AppError('import_failed', `Could not load that artwork: ${(error as Error).message}`, 502)
+    }
+    if (!upstream.ok) {
+      throw new AppError('import_failed', `Artwork host returned ${upstream.status}`, 502)
+    }
+
+    const body = Buffer.from(await upstream.arrayBuffer())
+    const ext = detectImageExtension(body)
+    if (!ext) throw new AppError('unsupported_image', 'That artwork is not an image', 415)
+
+    reply
+      .type(ext === 'jpg' ? 'image/jpeg' : `image/${ext}`)
+      .header('cache-control', 'private, max-age=3600')
+      .header('x-content-type-options', 'nosniff')
     return reply.send(body)
   })
 

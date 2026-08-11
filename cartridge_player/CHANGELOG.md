@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.9
+
+**Download images for Design Space.** Cricut imports images, not printed pages,
+so with the Cricut option on you can now save one PNG per cartridge at true
+size — 709 × 1063 px for a 60 × 90 mm label at 300 dpi — with the corners left
+transparent so Print Then Cut cuts the rounded shape rather than a square.
+
+Turning the Cricut option on now also disables the cut guides control rather
+than only unticking it, since guides must not be printed when the machine is
+cutting.
+
 ## 0.1.8
 
 The artwork a cartridge started with is now kept permanently and always offered

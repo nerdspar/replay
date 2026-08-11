@@ -13,6 +13,12 @@ import {
   type PageSize,
   type StickerPreset,
 } from '../lib/sheet'
+import {
+  EXPORT_DPI,
+  downloadBlob,
+  renderStickerPng,
+  stickerFileName,
+} from '../lib/exportSticker'
 import type { Card } from '../types'
 
 type Fit = 'cover' | 'contain'
@@ -36,6 +42,9 @@ export function PrintSheet() {
   const [fit, setFit] = useState<Fit>('cover')
   const [guides, setGuides] = useState(true)
   const [cricut, setCricut] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const [artworkReady, setArtworkReady] = useState(false)
   const sheetsRef = useRef<HTMLDivElement>(null)
@@ -129,6 +138,40 @@ export function PrintSheet() {
   }, [page])
 
   const print = useCallback(() => window.print(), [])
+
+  /**
+   * Design Space imports images, not printed pages, so each sticker is rendered
+   * to its own PNG at true size. Sequential rather than parallel: browsers
+   * throttle bursts of downloads, and a slow one would be dropped silently.
+   */
+  const exportForCricut = async () => {
+    setExporting(true)
+    setExportError(null)
+    const failed: string[] = []
+
+    for (const [index, card] of chosen.entries()) {
+      setExportProgress(index + 1)
+      try {
+        const blob = await renderStickerPng(card, {
+          widthMm: width,
+          heightMm: height,
+          radiusMm: radius,
+          round: preset.shape === 'round',
+          fit,
+        })
+        downloadBlob(blob, stickerFileName(card, width, height))
+        await new Promise((resolve) => setTimeout(resolve, 350))
+      } catch (e) {
+        failed.push(card.title)
+      }
+    }
+
+    setExporting(false)
+    setExportProgress(0)
+    if (failed.length > 0) {
+      setExportError(`Could not make an image for: ${failed.join(', ')}`)
+    }
+  }
 
   const toggle = (id: number) =>
     setSelected((current) => {
@@ -318,18 +361,18 @@ export function PrintSheet() {
         <div className="card">
           <h2>Look</h2>
           <div className="switch">
-            <span>Cut guides</span>
+            <span className={cricut ? 'muted' : undefined}>Cut guides</span>
             <input
               type="checkbox"
-              checked={guides}
+              checked={guides && !cricut}
+              disabled={cricut}
               onChange={(e) => setGuides(e.target.checked)}
             />
           </div>
           <p className="hint">
-            Dashed lines showing where to cut. They sit exactly on the edge of
-            each sticker and follow its corner radius, so cutting along the line
-            gives you the size above. Turn them off for a clean sheet, or if
-            you are cutting by machine.
+            {cricut
+              ? 'Not used with a Cricut — the machine cuts to its own registration marks, so printed guides would only leave ink on the sticker.'
+              : 'Dashed lines showing where to cut. They sit exactly on the edge of each sticker and follow its corner radius, so cutting along the line gives you the size above. Turn them off for a clean sheet, or if you are cutting by machine.'}
           </p>
 
           <div className="row" style={{ gap: 8, marginTop: 12 }}>
@@ -397,8 +440,33 @@ export function PrintSheet() {
           </div>
         )}
 
+        {cricut ? (
+          <>
+            <button
+              className="btn primary block"
+              disabled={chosen.length === 0 || exporting}
+              onClick={() => void exportForCricut()}
+            >
+              {exporting
+                ? `Making image ${exportProgress} of ${chosen.length}…`
+                : `Download ${chosen.length} image${chosen.length === 1 ? '' : 's'} for Design Space`}
+            </button>
+            <p className="hint">
+              One PNG per cartridge at {width} × {height} mm, {EXPORT_DPI} dpi, with
+              the corners cut out so Print Then Cut follows the rounded shape.
+              Upload them in Design Space and use Print Then Cut. Your browser may
+              ask permission to download several files.
+            </p>
+            {exportError ? <p className="hint warn">{exportError}</p> : null}
+            <p className="hint" style={{ marginTop: 10 }}>
+              Printing the sheet below is for cutting by hand instead.
+            </p>
+          </>
+        ) : null}
+
         <button
-          className="btn primary block"
+          className={`btn block ${cricut ? '' : 'primary'}`}
+          style={cricut ? { marginTop: 12 } : undefined}
           disabled={pages.length === 0 || !artworkReady}
           onClick={print}
         >
@@ -436,7 +504,7 @@ export function PrintSheet() {
             <div className="sheet-grid" style={{ gridTemplateColumns: `repeat(${plan.columns}, var(--sticker-w))` }}>
               {items.map((card, index) => (
                 <div
-                  className={`sticker ${guides ? 'guides' : ''}`}
+                  className={`sticker ${guides && !cricut ? 'guides' : ''}`}
                   key={`${card.id}-${index}`}
                 >
                   {/*

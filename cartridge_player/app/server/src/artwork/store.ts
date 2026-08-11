@@ -95,6 +95,30 @@ export const IMPORT_SOURCES: { host: string; path: RegExp; label: string }[] = [
   },
 ]
 
+/**
+ * Hostnames that could reach something inside the install. A card's poster is
+ * user-writable, so the card-scoped proxy still refuses to fetch these.
+ */
+export function isPrivateHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  if (host === 'localhost' || host === 'supervisor' || host === 'homeassistant') return true
+  if (host.endsWith('.local') || host.endsWith('.internal')) return true
+  if (host === '::1' || host.startsWith('fc') || host.startsWith('fd')) return true
+
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  if (!v4) return false
+  const [a, b] = [Number(v4[1]), Number(v4[2])]
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127)
+  )
+}
+
 export function resolveImportUrl(raw: string): URL {
   let url: URL
   try {
