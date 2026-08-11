@@ -14,6 +14,12 @@ on:
       - 'cartridge_player/**'
   workflow_dispatch:
 
+# A newer push supersedes an older run. Without this they race, and a slow or
+# hung older run can publish one architecture after the newer one already did.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Nothing gets published unless the code is actually sound.
   test:
@@ -54,6 +60,12 @@ jobs:
     name: Build ${{ matrix.arch }}
     needs: test
     runs-on: ubuntu-latest
+    # These normally finish in about four minutes. One aarch64 job hung in the
+    # builder for 25+ minutes and had to be spotted by hand — during which the
+    # release was half-published (amd64 up, aarch64 missing), which is exactly
+    # the state that makes Home Assistant fail an update with "unknown error".
+    # Fail loudly instead of hanging.
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
