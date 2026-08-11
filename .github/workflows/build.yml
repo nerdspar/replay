@@ -74,7 +74,8 @@ jobs:
   build:
     name: Build ${{ matrix.arch }}
     needs: test
-    runs-on: ubuntu-latest
+    # Each architecture builds on its OWN architecture. See the matrix below.
+    runs-on: ${{ matrix.runner }}
     # These normally finish in about four minutes. One aarch64 job hung in the
     # builder for 25+ minutes and had to be spotted by hand — during which the
     # release was half-published (amd64 up, aarch64 missing), which is exactly
@@ -90,7 +91,21 @@ jobs:
         # Must match `arch` in cartridge_player/config.yaml. armv7 is absent
         # because Home Assistant's builder no longer accepts it — it fails with
         # "Argument '--armv7' unknown". Add-on builds are 64-bit only now.
-        arch: [aarch64, amd64]
+        #
+        # aarch64 builds on a real ARM runner rather than under QEMU. The image
+        # compiles better-sqlite3 from source, and that native build is what
+        # emulation could not do reliably: first a 25-minute hang, then
+        # "Illegal instruction (core dumped)" — a QEMU fault, not a code one, so
+        # nothing in the source could have prevented it. Both left the release
+        # half-published, amd64 up and aarch64 missing, which is the state that
+        # makes a Home Assistant update fail with "unknown error".
+        #
+        # GitHub's ARM runners are free for public repositories.
+        include:
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+          - arch: amd64
+            runner: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -113,9 +128,6 @@ jobs:
           version="$(grep -E '^version:' cartridge_player/config.yaml | cut -d'"' -f2)"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "Add-on version: ${version}"
-
-      # Lets the aarch64 and armv7 images build on an amd64 runner.
-      - uses: docker/setup-qemu-action@v3
 
       - name: Log in to the container registry
         if: github.event_name != 'pull_request'
