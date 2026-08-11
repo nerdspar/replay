@@ -104,15 +104,22 @@ onboard LED), so neither is available. Bit-banging blocks interrupts for the
 duration of the write; for a single LED that is 24 bits × 1.25 µs = 30 µs, far
 too short to disturb wifi. The usual warning about this applies to long strips.
 
-`type` is the only knob for RGB versus RGBW — `GRBW` for a four-die part (what
-this build uses), `GRB` for three. The scripts ask the light at runtime whether
-it has a white die, so a second setting cannot disagree with the first.
+`type: GRBW` for the four-die part this build uses; `GRB` for a three-die one.
 
-White must come from the white die where there is one. Mixing R+G+B on an RGBW
-part gives a white that shifts with viewing angle and never reaches neutral.
-Correspondingly, every colour state must explicitly extinguish the white die:
-a colour set after a white state otherwise inherits it and arrives pastel, which
-reads as a hardware fault rather than as status.
+White must come from the white die. Mixing R+G+B on an RGBW part gives a white
+that shifts with viewing angle and never reaches neutral. Every colour state
+must correspondingly extinguish that die — a colour set after a white state
+otherwise inherits it and arrives pastel, which reads as a hardware fault rather
+than as status.
+
+Set colours with `set_rgbw()` rather than `set_rgb()`, which is what makes that
+second rule structural instead of a thing to remember: `set_rgb()` leaves white
+untouched, `set_rgbw()` cannot be called without stating it.
+
+**The firmware must remain a single YAML file with no companion headers.** It is
+installed through the ESPHome Builder web editor, which manages only `.yaml` —
+anything else means dropping to a file manager or SSH, which is not a reasonable
+ask of the person maintaining this.
 
 Earlier revisions used a piezo buzzer on this pin. The LED replaces it: it
 conveys more than one state, and a reader that lives in a living room should not

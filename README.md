@@ -62,12 +62,12 @@ Pin map — these are deliberate, do not "simplify" them:
 RC522 modules often pull it high — the board then simply won't start, with no
 obvious cause. GPIO1 is UART TX and collides with the serial logger.
 
-**Set `type:` to match your LED.** The firmware ships configured for the
-**RGBW** part — four dies, one of them a dedicated white — as `type: GRBW` in
-[the YAML](esphome/cartridge-reader.yaml). For a three-die RGB part change that
-one line to `GRB`. Nothing else moves: the scripts ask the light at runtime
-whether it has a white die, so the two settings cannot fall out of step. If red
-and green come out swapped, the part wants `RGB`/`RGBW` ordering instead.
+**Set `type:` to match your LED.** The firmware is built for the **RGBW** part —
+four dies, one of them a dedicated white — as `type: GRBW` in
+[the YAML](esphome/cartridge-reader.yaml). For a three-die RGB part, set
+`type: GRB` and change each `set_rgbw(r, g, b, w)` in the scripts to
+`set_rgb(r, g, b)`; white is then mixed as `set_rgb(1, 1, 1)`. If red and green
+come out swapped, the part wants `RGB`/`RGBW` ordering instead.
 
 On an RGBW part white comes from the white die alone rather than by mixing
 R+G+B. Mixed white on those has a faint iridescence that shifts with viewing
@@ -94,6 +94,10 @@ reset line. One jumper to 3V3 fixes it; confirmed on a module that needed it.
 Copy [`esphome/cartridge-reader.yaml`](esphome/cartridge-reader.yaml) into your
 ESPHome config directory, add the secrets from
 [`esphome/secrets.yaml.example`](esphome/secrets.yaml.example), and install.
+
+It is deliberately a single file with no companion headers, so the whole thing
+can be pasted into the ESPHome Builder editor and installed without touching the
+filesystem by any other route.
 
 **Compile from YAML.** The upstream project ships prebuilt binaries for ESP32-C3
 and ESP32-S3; those will not flash to an ESP8266.
