@@ -8,6 +8,7 @@ const REMOVAL_OPTIONS: { value: RemovalAction; label: string; hint: string }[] =
   { value: 'pause', label: 'Pause', hint: 'Pause playback on the TV.' },
   { value: 'back', label: 'Back', hint: 'Send the Back key.' },
   { value: 'home', label: 'Home', hint: 'Return the TV to its home screen.' },
+  { value: 'off', label: 'Turn the TV off', hint: 'Power the TV down.' },
 ]
 
 interface SettingsPageProps {

@@ -67,6 +67,9 @@ export async function runRemovalAction(
     case 'home':
       await target.sendKey('home')
       return 'home'
+    case 'off':
+      await target.turnOff()
+      return 'off'
     case 'none':
     default:
       return 'none'

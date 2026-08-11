@@ -129,6 +129,7 @@ describe('removal actions (§6.4)', () => {
     { action: 'pause', expected: ['pause'] },
     { action: 'back', expected: ['back'] },
     { action: 'home', expected: ['home'] },
+    { action: 'off', expected: ['off'] },
   ]
 
   for (const { action, expected } of cases) {

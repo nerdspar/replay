@@ -42,7 +42,7 @@ export type LaunchPayload =
 /** Abstract, not a raw keycode. Each target maps it to its own vocabulary (§6). */
 export type TargetKey = 'home' | 'select' | 'back'
 
-export type RemovalAction = 'none' | 'pause' | 'back' | 'home'
+export type RemovalAction = 'none' | 'pause' | 'back' | 'home' | 'off'
 
 /**
  * `unassigned` is a cartridge you still own that currently plays nothing —
@@ -133,4 +133,5 @@ export interface Target {
   sendKey(key: TargetKey): Promise<void>
   stop(): Promise<void>
   pause(): Promise<void>
+  turnOff(): Promise<void>
 }

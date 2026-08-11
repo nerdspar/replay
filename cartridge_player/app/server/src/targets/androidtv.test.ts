@@ -28,6 +28,24 @@ describe('AndroidTvTarget (§6.1)', () => {
     ])
   })
 
+  it('powers the TV down through the remote entity', async () => {
+    const { ha, target } = make()
+    await target.turnOff()
+
+    expect(ha.calls).toEqual([
+      {
+        domain: 'remote',
+        service: 'turn_off',
+        data: { entity_id: 'remote.living_room_tv' },
+      },
+    ])
+  })
+
+  it('says which entity is missing when asked to power off with no remote', async () => {
+    const { target } = make({ remote: null })
+    await expect(target.turnOff()).rejects.toBeInstanceOf(TargetNotConfiguredError)
+  })
+
   it('maps abstract keys to Android TV commands', async () => {
     const { ha, target } = make()
     await target.sendKey('home')

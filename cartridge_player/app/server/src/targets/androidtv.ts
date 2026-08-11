@@ -49,6 +49,17 @@ export class AndroidTvTarget implements Target {
     })
   }
 
+  /**
+   * The remote entity rather than the media player: it is the one entity a
+   * launch already requires, so this cannot fail for a setup that otherwise
+   * works. The Android TV Remote integration powers the TV down from it.
+   */
+  async turnOff(): Promise<void> {
+    await this.options.ha.callService('remote', 'turn_off', {
+      entity_id: this.requireRemote(),
+    })
+  }
+
   async pause(): Promise<void> {
     await this.options.ha.callService('media_player', 'media_pause', {
       entity_id: this.requireMediaPlayer('pause'),

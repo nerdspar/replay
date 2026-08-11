@@ -1,5 +1,5 @@
 export type ContentType = 'movie' | 'series'
-export type RemovalAction = 'none' | 'pause' | 'back' | 'home'
+export type RemovalAction = 'none' | 'pause' | 'back' | 'home' | 'off'
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export interface MetaPreview {

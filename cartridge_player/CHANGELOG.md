@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.13
+
+Adds "Turn the TV off" to the choices under "When a cartridge is lifted off".
+
 ## 0.1.12
 
 Adds an x to each tag under "Seen but not assigned", for when you have held more
