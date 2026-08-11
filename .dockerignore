@@ -1,8 +1,6 @@
-# Supervisor builds from a fresh clone, so these are already absent there — but a
-# local `docker build` would otherwise copy macOS-native node_modules over the
-# Linux ones built inside the image, and better-sqlite3 would fail to load.
+# node_modules must never be copied in: a macOS-native better-sqlite3 would
+# overwrite the one built for the image and fail to load.
 **/node_modules
-**/dist
 **/dev-data
 **/*.db
 **/*.db-journal
@@ -12,3 +10,6 @@
 *.md
 !cartridge_player/README.md
 !cartridge_player/CHANGELOG.md
+
+# NOTE: **/dist is deliberately NOT ignored. The image copies prebuilt output
+# rather than compiling inside an emulated ARM container, which used to hang.

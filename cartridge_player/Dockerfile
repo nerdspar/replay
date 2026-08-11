@@ -1,49 +1,40 @@
 ARG BUILD_FROM
-
-# ---------------------------------------------------------------------------
-# Builder — compiles the TypeScript server, the Vite bundle, and better-sqlite3
-# against musl (no prebuilt binaries exist for Alpine).
-# ---------------------------------------------------------------------------
-FROM ${BUILD_FROM} AS builder
-
-RUN apk add --no-cache nodejs npm python3 make g++ git
-
-WORKDIR /build
-
-# Server dependencies first so the layer caches across source edits.
-COPY app/server/package.json app/server/package-lock.json* ./server/
-RUN cd server && npm install --include=dev
-
-COPY app/web/package.json app/web/package-lock.json* ./web/
-RUN cd web && npm install --include=dev
-
-COPY app/server ./server
-COPY app/web ./web
-
-RUN cd server && npm run build
-RUN cd web && npm run build
-
-# Re-resolve server deps as production-only for the runtime image. The compiled
-# better-sqlite3 binding is preserved by npm prune.
-RUN cd server && npm prune --omit=dev
-
-# ---------------------------------------------------------------------------
-# Runtime
-# ---------------------------------------------------------------------------
 FROM ${BUILD_FROM}
 
+# The JavaScript is compiled on the build machine, not in here — see
+# .github/workflows/build.yml.
+#
+# It used to be built inside this image, which meant emulating an ARM64
+# `npm install` of the whole dev toolchain. That hung outright: two of six
+# aarch64 builds stalled in npm install and were killed by the job timeout,
+# leaving a release published for amd64 only — which Home Assistant reports as
+# "an unknown error occurred" when the missing architecture tries to update.
+# It also ran vite and tsc against the Node this base image ships (20.15),
+# which is older than they support.
+#
+# None of it was necessary: tsc and vite emit the same bytes on every
+# architecture. The one thing that genuinely must be built for the target is
+# better-sqlite3, which has no musl prebuilds — so a compiler goes in, is used,
+# and comes back out in the same layer.
+
 RUN apk add --no-cache nodejs
+
+WORKDIR /app
+
+COPY app/server/package.json app/server/package-lock.json* ./
+RUN apk add --no-cache --virtual .build-deps npm python3 make g++ \
+    && npm ci --omit=dev \
+    && npm cache clean --force \
+    && apk del .build-deps
+
+# Prebuilt output, put into the build context by CI. Building from a clean
+# checkout needs `npm run build` in app/server and app/web first.
+COPY app/server/dist ./dist
+COPY app/web/dist ./web
 
 ENV NODE_ENV=production \
     CARTRIDGE_DB_PATH=/data/cartridge.db \
     CARTRIDGE_WEB_ROOT=/app/web
-
-WORKDIR /app
-
-COPY --from=builder /build/server/node_modules ./node_modules
-COPY --from=builder /build/server/dist ./dist
-COPY --from=builder /build/server/package.json ./package.json
-COPY --from=builder /build/web/dist ./web
 
 COPY run.sh /run.sh
 RUN chmod a+x /run.sh
@@ -52,6 +43,6 @@ LABEL \
   io.hass.name="Cartridge Player" \
   io.hass.description="Tap NFC cartridges to launch shows on your TV" \
   io.hass.type="addon" \
-  io.hass.version="0.1.10"
+  io.hass.version="0.1.11"
 
 CMD ["/run.sh"]

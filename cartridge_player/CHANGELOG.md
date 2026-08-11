@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.11
+
+No user-visible change. Fixes the release process, which had started failing to
+publish for 64-bit ARM — the architecture most Home Assistant boxes run.
+
+The image was compiling all of its JavaScript inside an emulated ARM container.
+That reliably hung: two of six ARM builds stalled and were killed, publishing the
+release for Intel only, which is what makes an update fail with "an unknown error
+occurred". The JavaScript is now compiled once on the build machine, since it is
+identical on every architecture.
+
 ## 0.1.10
 
 Fixes the Design Space download keeping the old artwork after you changed it.

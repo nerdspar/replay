@@ -52,9 +52,24 @@ jobs:
         working-directory: cartridge_player/app/web
         run: npm test
 
+      - name: Build server
+        working-directory: cartridge_player/app/server
+        run: npm run build
+
       - name: Build web
         working-directory: cartridge_player/app/web
         run: npm run build
+
+      # The image copies this in rather than compiling inside an emulated ARM
+      # container. tsc and vite emit identical output on every architecture, and
+      # emulating that install reliably hung.
+      - name: Share the compiled output with the image builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: cartridge_player/app/*/dist
+          retention-days: 1
+          if-no-files-found: error
 
   build:
     name: Build ${{ matrix.arch }}
@@ -79,6 +94,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Collect the compiled output
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: cartridge_player/app
+
+      - name: Confirm the build context has what the image needs
+        run: |
+          test -f cartridge_player/app/server/dist/index.js
+          test -f cartridge_player/app/web/dist/index.html
+          echo "compiled output present"
 
       - name: Read add-on version
         id: meta
