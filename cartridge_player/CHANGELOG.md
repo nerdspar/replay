@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.7
+
+The artwork a cartridge is already using now appears in the picker, labelled
+**Current**, and stays there while you look at the others — so choosing one and
+changing your mind no longer loses the original.
+
+It was missing because a cartridge's poster is set when you assign it, from the
+search results, and those come from IMDb — while the artwork list comes from a
+different endpoint that returns metahub's art. Same title, genuinely different
+images. The one you were looking at was often absent from the list beneath it.
+
 ## 0.1.6
 
 The **Mini poster** preset is gone. The two that remain are both grounded in a

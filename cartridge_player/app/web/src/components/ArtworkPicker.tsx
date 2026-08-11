@@ -37,6 +37,10 @@ export function ArtworkPicker({
   const [uploading, setUploading] = useState(false)
   const [custom, setCustom] = useState<ArtworkOption | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // What the card has stored, captured once. `value` is the live highlight and
+  // changes as the user browses; this must not.
+  const savedRef = useRef(value)
+  const saved = savedRef.current
 
   useEffect(() => {
     let cancelled = false
@@ -68,27 +72,37 @@ export function ArtworkPicker({
   }, [provider, contentType, externalId, season, episode])
 
   /**
-   * A previously uploaded image is a stored file, so it is not in the provider's
-   * list — surface it so it stays selectable.
+   * Whatever the card actually has must always appear here, or picking anything else throws
+   * it away with no way back.
+   *
+   * That is not hypothetical: a card's poster is set at assignment time from
+   * the provider's *search* results, and for Cinemeta those come from IMDb,
+   * while the artwork list comes from its *meta* endpoint, which returns
+   * metahub's art. Same title, genuinely different images, so the one you are
+   * looking at is frequently absent from the list below it.
    */
   const all = useMemo(() => {
     const list = [...options]
-    const existingCustom =
-      custom ??
-      (value?.startsWith('api/artwork/file/')
-        ? {
-            id: CUSTOM_OPTION_ID,
-            url: value,
-            kind: 'custom' as const,
-            label: 'Your image',
-            aspect: 'portrait' as const,
-          }
-        : null)
-    if (existingCustom && !list.some((o) => o.url === existingCustom.url)) {
-      list.unshift(existingCustom)
+    const prepend = (url: string, id: string, label: string) => {
+      if (list.some((o) => o.url === url)) return
+      list.unshift({
+        id,
+        url,
+        kind: url.startsWith('api/artwork/file/') ? 'custom' : 'poster',
+        label,
+        aspect: 'portrait',
+      })
     }
+
+    if (custom) prepend(custom.url, CUSTOM_OPTION_ID, 'Your image')
+
+    // The SAVED artwork, not the live selection. Tracking the selection meant
+    // that picking anything else dropped the original out of the list, so there
+    // was no way back to it without abandoning the whole edit.
+    if (saved) prepend(saved, 'current', saved.startsWith('api/artwork/file/') ? 'Your image' : 'Current')
+
     return list
-  }, [options, custom, value])
+  }, [options, custom, saved])
 
   const store = async (file: File) => {
     const { blob } = await downscaleImage(file)
