@@ -122,11 +122,24 @@ jobs:
           test -f cartridge_player/app/web/dist/index.html
           echo "compiled output present"
 
-      - name: Read add-on version
+      - name: Read the add-on's version, name and description
         id: meta
         run: |
-          version="$(grep -E '^version:' cartridge_player/config.yaml | cut -d'"' -f2)"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          # Quoting in config.yaml is inconsistent — `version` is quoted and
+          # `name` is not — and `cut -d'"'` silently returns the WHOLE LINE
+          # when there is no quote to cut on. This copes with either.
+          field() {
+            grep -E "^$1:" cartridge_player/config.yaml \
+              | sed -E "s/^$1:[[:space:]]*\"?([^\"]*)\"?[[:space:]]*$/\\1/"
+          }
+          version="$(field version)"
+          test -n "$version"
+          {
+            echo "version=${version}"
+            echo "name=$(field name)"
+            echo "description=$(field description)"
+          } >> "$GITHUB_OUTPUT"
           echo "Add-on version: ${version}"
 
       - name: Log in to the container registry
@@ -137,11 +150,63 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build${{ github.event_name != 'pull_request' && ' and publish' || '' }}
-        uses: home-assistant/builder@master
-        with:
-          args: |
-            --${{ matrix.arch }} \
-            --target /data/cartridge_player \
-            --addon \
-            ${{ github.event_name == 'pull_request' && '--test' || '' }}
+      # Built with plain docker rather than home-assistant/builder.
+      #
+      # That action is distributed as an amd64 image and drives QEMU itself, so
+      # it cannot run on an ARM runner at all — it fails with "exec format
+      # error". Since the point of the ARM runner is to stop emulating, the
+      # action had to go with it.
+      #
+      # What it did for us is not much: a docker build against the base image in
+      # build.yaml, plus the io.hass.* labels the Supervisor reads. Both are
+      # reproduced here, and each architecture now builds on its own.
+      - name: Build the image
+        id: image
+        run: |
+          set -euo pipefail
+          arch='${{ matrix.arch }}'
+          version='${{ steps.meta.outputs.version }}'
+          base="$(awk -v a="$arch" '$1 == a":" { print $2 }' cartridge_player/build.yaml)"
+          image="ghcr.io/${{ github.repository }}/${arch}-cartridge-player"
+
+          test -n "$base" || { echo "no base image for ${arch} in build.yaml"; exit 1; }
+          echo "base: ${base}"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+
+          docker build \
+            --build-arg "BUILD_FROM=${base}" \
+            --label "io.hass.arch=${arch}" \
+            --label "io.hass.type=addon" \
+            --label "io.hass.version=${version}" \
+            --label "io.hass.name=${{ steps.meta.outputs.name }}" \
+            --label "io.hass.description=${{ steps.meta.outputs.description }}" \
+            --label "io.hass.url=https://github.com/${{ github.repository }}" \
+            --label "org.opencontainers.image.version=${version}" \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            -t "${image}:${version}" \
+            -t "${image}:latest" \
+            cartridge_player
+
+      # The Supervisor reads these to decide what an image is and whether it is
+      # newer than what is installed. A missing or stale io.hass.version is an
+      # update that silently never appears.
+      - name: Confirm the image is labelled as the Supervisor expects
+        run: |
+          set -euo pipefail
+          got="$(docker inspect --format '{{index .Config.Labels "io.hass.version"}}' \
+            '${{ steps.image.outputs.image }}:${{ steps.meta.outputs.version }}')"
+          arch="$(docker inspect --format '{{index .Config.Labels "io.hass.arch"}}' \
+            '${{ steps.image.outputs.image }}:${{ steps.meta.outputs.version }}')"
+          type="$(docker inspect --format '{{index .Config.Labels "io.hass.type"}}' \
+            '${{ steps.image.outputs.image }}:${{ steps.meta.outputs.version }}')"
+          echo "version=${got} arch=${arch} type=${type}"
+          test "$got" = '${{ steps.meta.outputs.version }}'
+          test "$arch" = '${{ matrix.arch }}'
+          test "$type" = 'addon'
+
+      - name: Publish
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          docker push '${{ steps.image.outputs.image }}:${{ steps.meta.outputs.version }}'
+          docker push '${{ steps.image.outputs.image }}:latest'
