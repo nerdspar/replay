@@ -274,6 +274,15 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.7s | Tap a cartridge with black and white artwork | Falls back to the fixed Playing colour rather than showing grey |
 | 5.7t | Change a cartridge's artwork, reopen the library, tap it | New colour. The old one is discarded the moment artwork changes, and the browser resamples |
 | 5.7u | Tap a cartridge with no artwork at all | Fixed Playing colour, no error |
+| 5.7v | With **Start playing automatically** off, tap a cartridge and leave Stremio on the detail page | Reader settles to **Ready**, not green. This is the case the whole follow-the-player feature exists for |
+| 5.7w | Press play | Goes green within a few seconds |
+| 5.7x | Pause | Dim green |
+| 5.7y | Stop, or back out of playback | Back to Ready while the cartridge is still on the reader |
+| 5.7z | Turn **Follow what is actually playing** off, tap a cartridge | Green immediately on launch, as before. The escape hatch for a TV that reports its state badly |
+| 5.8a | Tap a cartridge, open the library on your phone | Bar at the top naming that cartridge, and its tile ringed |
+| 5.8b | Put a MUSIC cartridge on while looking at the Video tab | Bar still shows it. It sits above the tabs so a cartridge in the other tab is not invisible |
+| 5.8c | Background the app during playback, then reopen it | Bar is correct without a reload — it is refetched, not only streamed |
+| 5.8d | Lift the cartridge | Bar disappears and the ring clears |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |

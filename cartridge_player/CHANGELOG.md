@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.5.0
+
+The library now shows which cartridge is on the reader, in a bar at the top,
+along with whether it is playing or paused. Its tile is ringed in the grid too.
+
+Green now means something is genuinely playing. It used to mean "the cartridge
+was launched", which is not the same thing — with **Start playing
+automatically** off, a deep link lands on Stremio's detail page and nothing
+starts, and the reader claimed playback that had never begun. It reads the
+media player instead, so navigating away without pressing play returns the
+light to Ready.
+
+That needs a media player chosen under Your TV. Without one, or with **Follow
+what is actually playing** switched off, the old behaviour stands.
+
+Paused has its own colour — the Playing colour dimmed, by default.
+
+Also fixes brightness sliders in Reader light being different lengths
+depending on how long each description was.
+
+Needs the 0.5.0 firmware for the paused colour; older firmware keeps its
+default for it and everything else still works.
+
 ## 0.4.0
 
 A playing cartridge can now light the reader in a colour taken from its own

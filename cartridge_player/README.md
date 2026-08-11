@@ -34,6 +34,13 @@ walks you through it:
 There is nothing to configure in the add-on's Configuration tab, and no
 automations to create. The add-on listens for the reader itself.
 
+## What is on the reader
+
+Whichever cartridge is currently on the reader appears in a bar at the top of the
+library, with what it is doing — playing, paused, or just sitting there — and its
+tile is ringed in the grid. The bar sits above the tabs on purpose: the cartridge
+in your hand might be a music one while you are looking at video.
+
 ## Video and music
 
 The library has two tabs. **Video** cartridges open a show on the TV; **music**
