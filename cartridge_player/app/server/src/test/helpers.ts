@@ -1,4 +1,5 @@
 import { Store } from '../db/index.js'
+import { DEFAULT_PALETTE } from '../core/reader-light.js'
 import type {
   ArtworkOption,
   Card,
@@ -29,6 +30,10 @@ export function settings(overrides: Partial<Settings> = {}): Settings {
     removal_action: 'none',
     music_player_entity: 'media_player.kitchen',
     music_removal_action: 'pause',
+    led_enabled: true,
+    led_playing_mode: 'hold',
+    led_palette: DEFAULT_PALETTE,
+    reader_device: null,
     pin_hash: null,
     public_base_url: null,
     setup_complete: true,

@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -181,6 +181,25 @@ ALTER TABLE settings ADD COLUMN music_player_entity TEXT;
 ALTER TABLE settings ADD COLUMN music_removal_action TEXT NOT NULL DEFAULT 'pause';
 `
 
+/**
+ * Colours for the reader's status light.
+ *
+ * Stored here rather than on the device because the device holds them in RAM:
+ * it has no way to remember them across a reboot, and writing them to its flash
+ * every time somebody dragged a colour picker would wear it out. This is the
+ * copy of record, pushed to the reader whenever it might have lost it.
+ *
+ * `led_palette` is JSON keyed by state name, not a packed string. The packed
+ * form is a wire format for the last hop; storing it would make a schema out of
+ * a transport detail and mean re-encoding to render a settings screen.
+ */
+const V5 = `
+ALTER TABLE settings ADD COLUMN led_enabled INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE settings ADD COLUMN led_playing_mode TEXT NOT NULL DEFAULT 'hold';
+ALTER TABLE settings ADD COLUMN led_palette TEXT;
+ALTER TABLE settings ADD COLUMN reader_device TEXT;
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -195,6 +214,9 @@ export function migrate(db: Database): void {
   if (current < 4) {
     // Rebuilds `cards`, so it must not be half-applied on a crash.
     db.transaction(() => db.exec(V4))()
+  }
+  if (current < 5) {
+    db.exec(V5)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

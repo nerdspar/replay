@@ -71,6 +71,20 @@ export class HomeAssistantRest implements ServiceCaller {
     return (body?.service_response ?? ({} as T)) as T
   }
 
+  /**
+   * Service names in one domain. Used to find the reader: an ESPHome action
+   * surfaces as `<device>_set_status`, so the device that owns one is
+   * discoverable rather than something to configure and keep in sync.
+   */
+  async listServices(domain: string): Promise<string[]> {
+    const body = (await this.request('/services', { method: 'GET' })) as
+      | { domain?: string; services?: Record<string, unknown> }[]
+      | null
+
+    const entry = (body ?? []).find((d) => d?.domain === domain)
+    return Object.keys(entry?.services ?? {})
+  }
+
   async getStates(): Promise<HassState[]> {
     return (await this.request('/states', { method: 'GET' })) as HassState[]
   }

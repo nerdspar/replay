@@ -163,6 +163,20 @@ const supervisor = http.createServer((req, res) => {
   }
   if (url.pathname === '/core/api/states') return json(STATES)
 
+  // What an ESPHome device's user-defined actions look like to Home Assistant.
+  if (url.pathname === '/core/api/services') {
+    return json([
+      {
+        domain: 'esphome',
+        services: {
+          cartridge_reader_set_status: { name: 'set_status' },
+          cartridge_reader_set_palette: { name: 'set_palette' },
+        },
+      },
+      { domain: 'remote', services: { turn_on: {}, turn_off: {}, send_command: {} } },
+    ])
+  }
+
   const service = url.pathname.match(/^\/core\/api\/services\/([^/]+)\/([^/]+)$/)
   if (service && req.method === 'POST') {
     let body = ''

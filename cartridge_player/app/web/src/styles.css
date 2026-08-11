@@ -1043,3 +1043,41 @@ a:focus-visible {
   height: 100%;
   object-fit: cover;
 }
+
+/*
+  One state's colour and brightness. The swatch is a native colour input, which
+  on a phone opens the system picker — better than anything shipped here, and it
+  already knows about recently used colours.
+*/
+.led-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.led-row input[type='color'] {
+  flex: none;
+  /* Deliberately larger than the 44px tap minimum: it doubles as the preview. */
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+}
+
+/* Both engines inset the swatch by default, which wastes most of the target. */
+.led-row input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 3px;
+}
+.led-row input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: 9px;
+}
+.led-row input[type='color']::-moz-color-swatch {
+  border: 0;
+  border-radius: 9px;
+}

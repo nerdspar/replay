@@ -6,6 +6,7 @@ import { AppError } from '../errors.js'
 import { createLogger } from '../log.js'
 import type { EventBus } from './events.js'
 import type { PendingUidStore } from './pending.js'
+import { statusForPlayingMode, type ReaderLight, type ReaderStatus } from './reader-light.js'
 import {
   removalActionFor,
   runFireSequence,
@@ -21,6 +22,8 @@ export interface ScanHandlerDeps {
   targets: TargetRegistry
   pending: PendingUidStore
   bus: EventBus
+  /** Optional: the reader's status light, when one is wired up. */
+  light?: ReaderLight
   sleep?: Sleep
   now?: () => number
 }
@@ -52,9 +55,14 @@ export class ScanHandler {
       bus.emit({ type: 'pending', pending: entry })
       const scan = this.record(uid, card?.id ?? null, 'unassigned', null)
       log.info(`unassigned cartridge ${uid}`)
+      this.light('new')
       return { card, scan }
     }
 
+    // Before the launch, not after. The reader is holding a "working" state and
+    // waiting to hear that anything at all received its event; without this it
+    // would decide nobody had, seconds before the TV finished starting.
+    this.light('busy')
     return this.fire(card)
   }
 
@@ -94,10 +102,21 @@ export class ScanHandler {
         ...(sleep ? { sleep } : {}),
       })
       log.info(`fired ${card.title} -> ${steps.join(',')}`)
+      this.light(statusForPlayingMode(settings.led_playing_mode))
       return { card, scan: this.record(card.tag_uid, card.id, steps.join(','), null) }
     } catch (error) {
+      this.light('error')
       return { card, scan: this.recordFailure(card.tag_uid, card.id, 'fire', error) }
     }
+  }
+
+  /**
+   * Fire-and-forget on purpose. The light is an enhancement: awaiting it would
+   * put a Home Assistant round trip between the tap and the launch, and letting
+   * it reject would turn a cosmetic failure into a failed scan.
+   */
+  private light(state: ReaderStatus): void {
+    void this.deps.light?.setStatus(state).catch(() => undefined)
   }
 
   private recordFailure(

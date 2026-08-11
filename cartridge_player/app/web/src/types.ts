@@ -19,6 +19,30 @@ export type ArtFit = 'crop' | 'blur' | 'color'
 
 export type RemovalAction = 'none' | 'pause' | 'back' | 'home' | 'off'
 export type MusicRemovalAction = 'none' | 'pause' | 'stop'
+
+/** The nine things the reader's light can be saying. */
+export type LedStateName =
+  | 'no_wifi'
+  | 'no_ha'
+  | 'ready'
+  | 'read'
+  | 'working'
+  | 'no_answer'
+  | 'playing'
+  | 'new'
+  | 'error'
+
+export interface LedStateStyle {
+  /** `#rrggbb`. A grey is driven through the LED's white die. */
+  color: string
+  /** 0-100. */
+  brightness: number
+}
+
+export type LedPalette = Record<LedStateName, LedStateStyle>
+
+/** What the light does while a cartridge sits on the reader playing. */
+export type LedPlayingMode = 'hold' | 'confirm' | 'off'
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export interface MetaPreview {
@@ -94,6 +118,10 @@ export interface Settings {
   removal_action: RemovalAction
   music_player_entity: string | null
   music_removal_action: MusicRemovalAction
+  led_enabled: boolean
+  led_playing_mode: LedPlayingMode
+  led_palette: LedPalette
+  reader_device: string | null
   public_base_url: string | null
   setup_complete: boolean
   pin_set: boolean

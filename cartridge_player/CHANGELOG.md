@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0
+
+The reader's status light now says what a cartridge did, not just that it was
+read. Green when something starts, blue when a cartridge has nothing on it yet,
+red when a launch fails.
+
+Every colour and brightness is yours under **Settings → Reader light**, each
+with a reset button, along with a choice of whether a playing cartridge keeps
+the light on or just confirms briefly.
+
+Two new states come from the reader itself. It now shows a slow white breathe
+while it waits to hear what happened, and a fast amber pulse if nothing answers
+at all — which is the one failure this add-on can never report, because the
+usual cause is that it is not running.
+
+Needs the 0.3.0 firmware. An older reader keeps working; it simply ignores the
+new colours.
+
 ## 0.2.0
 
 Music cartridges. Tapping one plays an album, artist, playlist, radio station,

@@ -4,6 +4,7 @@ import { Store } from './db/index.js'
 import { EventBus, type ConnectionState } from './core/events.js'
 import { PendingUidStore } from './core/pending.js'
 import { ScanHandler } from './core/scan-handler.js'
+import { ReaderLight } from './core/reader-light.js'
 import { ProviderRegistry } from './providers/registry.js'
 import { StremioProvider } from './providers/stremio.js'
 import { MusicAssistantProvider } from './providers/musicassistant.js'
@@ -24,6 +25,7 @@ export interface AppContext {
   pending: PendingUidStore
   bus: EventBus
   scans: ScanHandler
+  light: ReaderLight
   ha: HomeAssistantRest
   sessionSecret: Buffer
   /** Live Home Assistant WebSocket state, surfaced in the UI (§8.6). */
@@ -107,6 +109,8 @@ export function createContext(config: RuntimeConfig): AppContext {
         }),
     )
 
+  const light = new ReaderLight({ ha, settings: () => store.getSettings() })
+
   const context: AppContext = {
     config,
     store,
@@ -116,7 +120,8 @@ export function createContext(config: RuntimeConfig): AppContext {
     pending,
     bus,
     ha,
-    scans: new ScanHandler({ store, providers, targets, pending, bus }),
+    light,
+    scans: new ScanHandler({ store, providers, targets, pending, bus, light }),
     sessionSecret: loadOrCreateSessionSecret(config.dataDir),
     connection: { state: 'disconnected' },
     lastError: null,

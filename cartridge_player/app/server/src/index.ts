@@ -18,6 +18,9 @@ function readUid(data: Record<string, unknown>): string | null {
   return typeof uid === 'string' && uid.trim() !== '' ? uid.trim() : null
 }
 
+/** Slow enough to be free, often enough that a rebooted reader self-heals. */
+const PALETTE_REFRESH_MS = 15 * 60_000
+
 async function main(): Promise<void> {
   const config = loadConfig()
   const ctx = createContext(config)
@@ -52,6 +55,22 @@ async function main(): Promise<void> {
 
   // Lets the setup dropdowns say which integration each entity came from.
   ctx.entityPlatforms = createEntityPlatformLookup(ws)
+
+  /*
+    Colours live in this add-on's database, but the reader holds them in RAM —
+    it cannot remember them across a reboot, and writing to its flash every time
+    somebody dragged a colour picker would wear the chip out.
+
+    So they are pushed: once at startup, again whenever settings are saved, and
+    on a slow timer. The timer is the part that matters. A reader that reboots
+    on its own falls back to its built-in palette with no way to say so, and
+    nothing here would otherwise notice.
+  */
+  const pushPalette = () =>
+    void ctx.light.pushPalette().catch(() => undefined)
+
+  pushPalette()
+  setInterval(pushPalette, PALETTE_REFRESH_MS).unref()
 
   const ingress = buildServer(ctx, { requirePin: false })
   await ingress.listen({ host: '0.0.0.0', port: config.ingressPort })

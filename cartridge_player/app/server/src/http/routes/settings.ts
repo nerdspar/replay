@@ -5,6 +5,7 @@ import type { Settings } from '../../types.js'
 import { AppError } from '../../errors.js'
 import { hashPin } from '../pin.js'
 import { ensureAddonSlug } from '../../ha/supervisor.js'
+import { normalizePalette } from '../../core/reader-light.js'
 
 const putBody = z.object({
   target_type: z.string().min(1).optional(),
@@ -17,6 +18,18 @@ const putBody = z.object({
   removal_action: z.enum(['none', 'pause', 'back', 'home', 'off']).optional(),
   music_player_entity: z.string().nullable().optional(),
   music_removal_action: z.enum(['none', 'pause', 'stop']).optional(),
+  led_enabled: z.boolean().optional(),
+  led_playing_mode: z.enum(['hold', 'confirm', 'off']).optional(),
+  led_palette: z
+    .record(
+      z.string(),
+      z.object({
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+        brightness: z.number().int().min(0).max(100),
+      }),
+    )
+    .optional(),
+  reader_device: z.string().nullable().optional(),
   public_base_url: z.string().nullable().optional(),
   setup_complete: z.boolean().optional(),
   /** Write-only. `null` clears it; the hash is never returned. */
@@ -73,8 +86,19 @@ export function registerSettingsRoutes(app: FastifyInstance, ctx: AppContext): v
     if (pin !== undefined) {
       patch.pin_hash = pin === null ? null : hashPin(pin)
     }
+    // Stored as JSON, sent to the reader packed. The packed form is a wire
+    // detail for the last hop and has no business in the database.
+    if (rest.led_palette !== undefined) {
+      patch.led_palette = JSON.stringify(normalizePalette(rest.led_palette as never))
+    }
 
     ctx.store.updateSettings(patch)
+
+    // Straight after the write, so dragging a colour picker shows up on the
+    // reader immediately rather than at the next scan.
+    if (rest.led_palette !== undefined || rest.led_enabled !== undefined) {
+      void ctx.light.pushPalette()
+    }
     // Setting a PIN is what unblocks the direct listener; bring it up now rather
     // than making the user restart the add-on.
     ctx.onSettingsChanged?.()

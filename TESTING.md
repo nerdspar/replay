@@ -261,6 +261,14 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.7e | Call it with `state: error` | Red, fast pulse, and **stays** — an error should not scroll past while you are in another room |
 | 5.7f | Call it with `state: nonsense` | Nothing sticks; the light stays as it was. Older firmware must not strand itself on a state a newer add-on invented |
 | 5.7g | Turn **Status Light Automatic** off, set the light to any colour from Home Assistant, then tap a tag | Colour holds. The tag still fires its event; only the light is hands-off |
+| 5.7i | **Stop the add-on**, then tap a cartridge | Flash, white breathe, then amber fast pulse after ~3 s. This is the case nothing else in the system can report |
+| 5.7j | Start the add-on, tap an assigned cartridge | White breathe through the whole TV launch, then green. The breathe must not give up part-way |
+| 5.7k | Raise **Wait after Home** to 10 s and tap again | Still green at the end. The reader waits on the add-on's word, not on a fixed timer |
+| 5.7l | Tap a cartridge that is not set up | Blue breathe, held until you assign it or lift it |
+| 5.7m | Change a colour under Settings → Reader light | The reader changes within a second, without a reflash |
+| 5.7n | Set **While something is playing** to each of the three options | Stay lit holds green; Confirm shows green for 2 s; Nothing goes straight back to Ready — it must NOT stay breathing |
+| 5.7o | Press a state's reset button | That row returns to its default and the button greys out |
+| 5.7p | Reboot the reader, wait 15 min without saving settings | Custom colours come back on their own. They live in RAM on the device and are re-pushed on a timer |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |

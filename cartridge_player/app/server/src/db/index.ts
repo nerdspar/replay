@@ -4,8 +4,11 @@ import Database from 'better-sqlite3'
 import type { Database as Db } from 'better-sqlite3'
 import { migrate } from './schema.js'
 import { SQL_NORMALIZED_UID, normalizeUid } from '../core/uid.js'
+import { normalizePalette } from '../core/reader-light.js'
 import type {
   ArtFit,
+  LedPalette,
+  LedPlayingMode,
   Card,
   CardInput,
   CardKind,
@@ -27,6 +30,16 @@ import { kindOfContentType } from '../types.js'
  * happened. It also governs how long a stray tag lingers under "seen but not
  * assigned", which should likewise be a number of scans, not a date.
  */
+/** Tolerates a null column and anything unparseable; defaults fill the gaps. */
+function parsePalette(raw: string | null): Partial<LedPalette> | null {
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as Partial<LedPalette>
+  } catch {
+    return null
+  }
+}
+
 const SCAN_LOG_CAP = 500
 
 interface SettingsRow {
@@ -41,6 +54,10 @@ interface SettingsRow {
   removal_action: string
   music_player_entity: string | null
   music_removal_action: string
+  led_enabled: number
+  led_playing_mode: string
+  led_palette: string | null
+  reader_device: string | null
   pin_hash: string | null
   public_base_url: string | null
   setup_complete: number
@@ -72,6 +89,12 @@ function toSettings(row: SettingsRow): Settings {
     removal_action: row.removal_action as RemovalAction,
     music_player_entity: row.music_player_entity,
     music_removal_action: row.music_removal_action as MusicRemovalAction,
+    led_enabled: row.led_enabled !== 0,
+    led_playing_mode: row.led_playing_mode as LedPlayingMode,
+    // Normalised on the way out so every caller sees all nine states, whatever
+    // an older release or a hand-edited row happens to hold.
+    led_palette: normalizePalette(parsePalette(row.led_palette)),
+    reader_device: row.reader_device,
     pin_hash: row.pin_hash,
     public_base_url: row.public_base_url,
     setup_complete: row.setup_complete !== 0,
@@ -102,6 +125,10 @@ const WRITABLE_SETTINGS = [
   'removal_action',
   'music_player_entity',
   'music_removal_action',
+  'led_enabled',
+  'led_playing_mode',
+  'led_palette',
+  'reader_device',
   'pin_hash',
   'public_base_url',
   'setup_complete',

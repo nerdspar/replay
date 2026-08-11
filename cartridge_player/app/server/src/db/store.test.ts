@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { Store } from './index.js'
 import { memoryStore } from '../test/helpers.js'
 import type { CardInput } from '../types.js'
+import { DEFAULT_PALETTE } from '../core/reader-light.js'
 
 const input = (overrides: Partial<CardInput> = {}): CardInput => ({
   tag_uid: '04-A3-B8',
@@ -35,6 +36,10 @@ describe('settings', () => {
       removal_action: 'none',
       music_player_entity: null,
       music_removal_action: 'pause',
+      led_enabled: true,
+      led_playing_mode: 'hold',
+      led_palette: DEFAULT_PALETTE,
+      reader_device: null,
       pin_hash: null,
       public_base_url: null,
       setup_complete: false,

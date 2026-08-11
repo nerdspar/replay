@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../api'
 import { EntityPicker } from '../components/EntityPicker'
+import { LightSettings } from '../components/LightSettings'
 import type {
   EntityOption,
+  LedPalette,
+  LedPlayingMode,
   MusicRemovalAction,
   RemovalAction,
   Settings,
@@ -98,6 +101,9 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         removal_action: draft.removal_action,
         music_player_entity: draft.music_player_entity,
         music_removal_action: draft.music_removal_action,
+        led_enabled: draft.led_enabled,
+        led_playing_mode: draft.led_playing_mode,
+        led_palette: draft.led_palette,
         public_base_url: draft.public_base_url,
         ...(pin.trim() === '' ? {} : { pin: pin.trim() }),
       })
@@ -271,6 +277,15 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
           ))}
         </div>
       </div>
+
+      <LightSettings
+        enabled={draft.led_enabled}
+        palette={draft.led_palette}
+        playingMode={draft.led_playing_mode}
+        onEnabledChange={(v) => set('led_enabled', v)}
+        onPaletteChange={(v: LedPalette) => set('led_palette', v)}
+        onPlayingModeChange={(v: LedPlayingMode) => set('led_playing_mode', v)}
+      />
 
       <div className="card">
         <h2>Home screen icon</h2>

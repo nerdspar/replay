@@ -4,6 +4,10 @@
 # The upstream prebuilt binaries are ESP32-C3/S3 and will NOT flash to an
 # ESP8266 — compile this YAML.
 #
+# ONE FILE ON PURPOSE. It is installed through the ESPHome Builder web editor,
+# which manages .yaml and nothing else, so a companion header would mean
+# dropping to a file manager or SSH before the firmware could be installed.
+#
 # Pin map (§1.1). Hardware SPI on the ESP8266 is fixed; these are deliberate.
 #   SPI CLK    GPIO14  D5
 #   SPI MOSI   GPIO13  D7
@@ -38,7 +42,6 @@ esphome:
 esp8266:
   board: d1_mini
 
-
 logger:
   # GPIO1 (UART TX) is in use by the logger; keep it off the pin budget.
   level: INFO
@@ -49,8 +52,8 @@ api:
 
   # The reader knows a tag was read. It does NOT know whether that tag is
   # assigned, whether the TV accepted the deep link, or whether Music Assistant
-  # found the album — only the add-on knows any of that. So the outcome colours
-  # are pushed in from there rather than guessed here.
+  # found the album — only the add-on knows any of that, so the outcome states
+  # are pushed in rather than guessed here.
   #
   # Needs ESPHome 2024.6 or newer for `actions:`. On older versions rename this
   # key to `services:` and `action:` to `service:`; nothing else changes.
@@ -62,6 +65,15 @@ api:
         - script.execute:
             id: show_status
             state: !lambda "return state;"
+
+    # Colours, chosen in the add-on. See `apply_palette` for the format.
+    - action: set_palette
+      variables:
+        palette: string
+      then:
+        - script.execute:
+            id: apply_palette
+            packed: !lambda "return palette;"
 
   on_client_connected:
     then:
@@ -98,58 +110,38 @@ captive_portal:
 # ---------------------------------------------------------------------------
 # Status light (§1.2)
 #
-# One SK6812 on D2 — the pin the buzzer used to have.
-#
-# POWER IT FROM 3V3, NOT 5V. At 5V the chip wants ~0.7 x VDD = 3.5V to read a
-# logic high, and the ESP8266 drives 3.3V. That margin is negative on paper and
-# works on the bench, which is the worst combination: it fails intermittently
-# later, in a case, and looks like a loose wire. At 3V3 the threshold drops to
-# ~2.3V and 3.3V logic has real headroom.
+# One SK6812 on D2. POWER IT FROM 3V3, NOT 5V. At 5V the chip wants ~0.7 x VDD
+# = 3.5V to read a logic high and the ESP8266 drives 3.3V. That margin is
+# negative on paper and works on the bench, which is the worst combination: it
+# fails intermittently later, in a case, and looks like a loose wire.
 #
 # `bit_bang` because the two hardware methods are pinned to GPIO1 (the logger's
 # UART TX) and GPIO2 (the onboard blue LED). Bit-banging blocks interrupts for
 # the length of the write, which for ONE led is 24 bits x 1.25us = 30us — far
 # too short to disturb wifi. That warning is about long strips.
 #
-# Built for the RGBW part: four dies, one of them a dedicated white.
+# Built for the RGBW part. For a three-die RGB one set `type: GRB`; greys are
+# then mixed from the colour dies instead of using the white one, which `paint`
+# handles on its own. If red and green come out swapped, the part wants
+# RGB/RGBW ordering instead.
 #
-# Every state below sets FOUR things, and has to. What reaches the LED is:
-#
-#     colour dies = brightness x color_brightness x rgb
-#     white die   = brightness x white
-#
-# so `color_brightness` is the switch for the colour dies and `white` is the
-# switch for the white one. Both persist until something sets them, which is why
-# each state states both rather than only the one it cares about — otherwise a
-# colour inherits the previous state's lit white die and arrives pastel, and a
-# white inherits a zeroed color_brightness and never comes back.
-#
-# Do NOT reach for set_rgb(0, 0, 0) to mean "no colour". A colour with no
-# channels is meaningless, so ESPHome normalises it to full white — the exact
-# opposite of the intent, and it lights all three colour dies at once. Turning
-# the colour dies off is color_brightness = 0, with the rgb values left alone.
-#
-# For a three-die RGB part: set `type: GRB`, drop the set_white calls, and make
-# white by mixing — set_rgb(1, 1, 1) with color_brightness back at 1.
-#
-# If red and green come out swapped, the part wants RGB/RGBW ordering instead.
+# No `effects:` here. Breathing is driven by the `breathe` script, because the
+# built-in pulse effect takes its brightness range at COMPILE time and these
+# brightnesses are chosen by the user at runtime. Doing it in a script also
+# retires the rule that a call may set an effect or a transition but not both.
 # ---------------------------------------------------------------------------
 
 light:
   - platform: neopixelbus
     id: status_led
+    name: "Status Light"
+    icon: mdi:led-on
     variant: SK6812
     type: GRBW
     pin: GPIO4
     num_leds: 1
     method:
       type: bit_bang
-    name: "Status Light"
-    icon: mdi:led-on
-    # Exposed so it can be driven by hand, but the scripts below own it by
-    # default. Without the "Status Light Automatic" switch to hand over
-    # control, anything set from Home Assistant would survive only until the
-    # next tag tap or wifi reconnect, then vanish for no visible reason.
     restore_mode: ALWAYS_OFF
     # Linear, against ESPHome's default of 2.8.
     #
@@ -157,29 +149,9 @@ light:
     # which is right for a lamp and wrong here. It collapses the bottom of the
     # range: at 2.8 a "6%" idle becomes 0.06^2.8 = 0.0004, which is 0.1 of 255
     # and rounds to OFF. The light was not dim, it was extinguished, and the
-    # config still read as though it should glow. At 1.0 every number below
-    # means what it says — 0.10 really is 26 of 255.
+    # config still read as though it should glow.
     gamma_correct: 1.0
-    # Every state change here is a status change, and status should snap rather
-    # than fade. Also sidesteps the rule that a call may set an effect or a
-    # transition but not both — see the scripts.
     default_transition_length: 0s
-    # The pulse effect drives brightness itself, between these two bounds, and
-    # ignores whatever brightness the caller set. So the range lives here rather
-    # than at the call site — setting it there looks right and does nothing.
-    effects:
-      - pulse:
-          name: "Breathe"
-          transition_length: 900ms
-          update_interval: 900ms
-          min_brightness: 4%
-          max_brightness: 45%
-      - pulse:
-          name: "Urgent"
-          transition_length: 250ms
-          update_interval: 250ms
-          min_brightness: 10%
-          max_brightness: 80%
 
 # ---------------------------------------------------------------------------
 # Reader
@@ -199,6 +171,7 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
+
   # Connection state, tracked here rather than read out of the wifi and api
   # components, so the light does not depend on their internals.
   - id: net_up
@@ -209,12 +182,72 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
-  # Set while the add-on is showing an outcome, so ambient does not overwrite
-  # "not set up yet" a second after it appears.
+
+  # The light is showing something that ambient must not overwrite.
   - id: holding
     type: bool
     restore_value: false
     initial_value: "false"
+  # A tag event has been fired and nothing has answered it yet.
+  - id: awaiting
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+  # ---- palette -----------------------------------------------------------
+  #
+  # Nine states, in this order. The add-on pushes colours for all of them; the
+  # values here are the fallback, and are what shows if the add-on has never
+  # connected since this board booted.
+  #
+  #   0 no wifi     1 no Home Assistant   2 ready
+  #   3 tag read    4 working             5 no answer
+  #   6 playing     7 not set up          8 error
+  #
+  # RAM, not flash. If the reader reboots with the add-on down it falls back to
+  # these — the right trade, because the states that matter when everything is
+  # broken are exactly the ones nobody customises. Writing to flash every time
+  # somebody dragged a colour picker would be worse.
+  - id: pal_r
+    type: float[9]
+    restore_value: false
+    initial_value: "{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.10f, 1.0f}"
+  - id: pal_g
+    type: float[9]
+    restore_value: false
+    initial_value: "{0.0f, 0.55f, 1.0f, 1.0f, 1.0f, 0.55f, 1.0f, 0.35f, 0.0f}"
+  - id: pal_b
+    type: float[9]
+    restore_value: false
+    initial_value: "{0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.15f, 1.0f, 0.0f}"
+  - id: pal_br
+    type: float[9]
+    restore_value: false
+    initial_value: "{0.45f, 0.45f, 0.10f, 1.0f, 0.40f, 0.80f, 0.70f, 0.60f, 0.80f}"
+
+  # How each state moves: 0 steady, 1 slow breathe, 2 fast pulse. NOT
+  # configurable — motion is what separates two states that share a colour.
+  # Red slow is "no wifi" and red fast is "something failed"; amber slow is "no
+  # Home Assistant" and amber fast is "Home Assistant is there, the add-on is
+  # not answering". Handing that to a colour picker would lose it.
+  - id: pal_motion
+    type: uint8_t[9]
+    restore_value: false
+    initial_value: "{1, 1, 0, 0, 1, 2, 0, 1, 2}"
+
+  # Working values for the breathe script, filled in by `paint`.
+  - id: breathe_hi
+    type: float
+    restore_value: false
+    initial_value: "0.4f"
+  - id: breathe_lo
+    type: float
+    restore_value: false
+    initial_value: "0.04f"
+  - id: breathe_ms
+    type: int
+    restore_value: false
+    initial_value: "900"
 
 rc522_spi:
   cs_pin: GPIO5
@@ -233,7 +266,7 @@ rc522_spi:
           then:
             # Flash locally, before anything touches the network. Confirmation
             # that the tag was READ must not depend on HA being up (§2.1). What
-            # happens next does, and that arrives later as a colour.
+            # happens next does, and arrives later as a colour.
             - script.execute: flash_read
 
             - lambda: |-
@@ -279,114 +312,291 @@ script:
             - text_sensor.template.publish:
                 id: cartridge_id
                 state: ""
-            # Lifting a cartridge ends whatever the last one was saying.
-            - lambda: "id(holding) = false;"
+            # Lifting a cartridge clears every held state — error, not-set-up,
+            # no-answer. It is the universal "reset the light" gesture, which
+            # beats hunting for a button.
+            - script.stop: answer_timeout
+            - script.stop: error_clear
+            - lambda: |-
+                id(holding) = false;
+                id(awaiting) = false;
             - script.execute: show_ambient
+
+  # ---- painting ----------------------------------------------------------
+
+  # Applies one palette entry. The single place the LED is ever written.
+  #
+  # Every state has to set all four of rgb, color_brightness, white and
+  # brightness. What reaches the LED is:
+  #
+  #     colour dies = brightness x color_brightness x rgb
+  #     white die   = brightness x white
+  #
+  # and both switches persist until written, so a state that sets only what it
+  # cares about inherits the rest from whatever ran before it.
+  #
+  # A grey — red, green and blue equal — is driven through the white die rather
+  # than by mixing the three colour dies. Mixed white on this part has a faint
+  # iridescence that shifts with viewing angle and never lands on neutral; the
+  # white die exists to avoid exactly that. It also means the settings screen
+  # never has to explain RGBW to anyone: pick white, get the white die.
+  #
+  # Note what is NOT here: set_rgb(0, 0, 0) to mean "no colour". A colour with
+  # no channels is meaningless, so ESPHome normalises it to full white and
+  # lights all three colour dies — the opposite of the intent, and it reads
+  # correctly right up until you look at the LED.
+  - id: paint
+    mode: restart
+    parameters:
+      idx: int
+    then:
+      - script.stop: breathe
+      - lambda: |-
+          if (!id(status_auto).state || idx < 0 || idx > 8) return;
+
+          const float r = id(pal_r)[idx];
+          const float g = id(pal_g)[idx];
+          const float b = id(pal_b)[idx];
+          const float level = id(pal_br)[idx];
+          const bool grey = (r == g && g == b);
+
+          auto call = id(status_led).turn_on();
+          call.set_rgb(grey ? 1.0f : r, grey ? 1.0f : g, grey ? 1.0f : b);
+          call.set_color_brightness(grey ? 0.0f : 1.0f);
+          call.set_white(grey ? 1.0f : 0.0f);
+          call.set_brightness(level);
+          call.perform();
+
+          // Breathing dips to a tenth of the state's own brightness, so a dim
+          // state breathes gently and a bright one breathes obviously.
+          id(breathe_hi) = level;
+          id(breathe_lo) = level * 0.1f;
+          id(breathe_ms) = (id(pal_motion)[idx] == 2) ? 250 : 900;
+      - if:
+          condition:
+            lambda: |-
+              return id(status_auto).state && idx >= 0 && idx <= 8 &&
+                     id(pal_motion)[idx] != 0;
+          then:
+            - script.execute: breathe
+
+  # Ramps between the two brightnesses `paint` worked out. The light component
+  # interpolates, so this is two calls per cycle rather than a busy loop.
+  - id: breathe
+    mode: restart
+    then:
+      - while:
+          condition:
+            lambda: "return true;"
+          then:
+            - light.turn_on:
+                id: status_led
+                brightness: !lambda "return id(breathe_lo);"
+                transition_length: !lambda "return id(breathe_ms);"
+            - delay: !lambda "return id(breathe_ms);"
+            - light.turn_on:
+                id: status_led
+                brightness: !lambda "return id(breathe_hi);"
+                transition_length: !lambda "return id(breathe_ms);"
+            - delay: !lambda "return id(breathe_ms);"
+
+  # ---- states ------------------------------------------------------------
 
   # What the reader shows when nothing is happening — which is almost always,
   # so it doubles as the "is this thing alive" indicator.
   - id: show_ambient
     mode: restart
     then:
-      - lambda: |-
-          if (!id(status_auto).state || id(holding)) return;
-
-          auto call = id(status_led).turn_on();
-          if (id(link_up)) {
-            // Ready. Dim on purpose: this sits in a living room, and a bright
-            // idle light is something people end up covering with tape.
-            call.set_rgb(1.0f, 1.0f, 1.0f);
-            call.set_color_brightness(0.0f);
-            call.set_white(1.0f);
-            call.set_brightness(0.10f);
-            call.set_effect("None");
-          } else if (id(net_up)) {
-            // On wifi but Home Assistant has not connected back yet. Tapping a
-            // cartridge now will read the tag and nothing else will happen.
-            call.set_rgb(1.0f, 0.55f, 0.0f);
-            call.set_color_brightness(1.0f);
-            call.set_white(0.0f);
-            call.set_effect("Breathe");
-          } else {
-            call.set_rgb(1.0f, 0.0f, 0.0f);
-            call.set_color_brightness(1.0f);
-            call.set_white(0.0f);
-            call.set_effect("Breathe");
-          }
-          call.perform();
+      - if:
+          condition:
+            lambda: "return !id(holding);"
+          then:
+            - script.execute:
+                id: paint
+                idx: !lambda |-
+                  if (id(link_up)) return 2;   // ready
+                  if (id(net_up)) return 1;    // no Home Assistant
+                  return 0;                    // no wifi
 
   # A tag came off the reader chip. Says nothing about what it will play.
   - id: flash_read
     mode: restart
     then:
-      - lambda: |-
-          if (!id(status_auto).state) return;
-
-          auto call = id(status_led).turn_on();
-          call.set_rgb(1.0f, 1.0f, 1.0f);
-          call.set_color_brightness(0.0f);
-          call.set_white(1.0f);
-          call.set_brightness(1.0f);
-          call.set_effect("None");
-          call.perform();
+      - script.execute:
+          id: paint
+          idx: 3
       - delay: 120ms
+      - script.execute: enter_working
+
+  # Fired the event, waiting for someone to answer it.
+  #
+  # This exists because the add-on cannot report its own absence. With it
+  # stopped, Home Assistant is still connected, so the reader would sit at
+  # "ready", you would tap a cartridge, get a flash, and then silence — for
+  # ever, with nothing anywhere saying why.
+  - id: enter_working
+    mode: restart
+    then:
+      - lambda: |-
+          id(holding) = true;
+          id(awaiting) = true;
+      - script.execute:
+          id: paint
+          idx: 4
+      # Short, because all it asks is "did anything hear me". The add-on
+      # answers `busy` within a few hundred milliseconds and that extends the
+      # wait — so this timer never has to outlast the TV launch delays, which
+      # are settings and could be raised past any fixed value chosen here.
+      - script.execute:
+          id: answer_timeout
+          ms: 3000
+
+  - id: answer_timeout
+    mode: restart
+    parameters:
+      ms: int
+    then:
+      - delay: !lambda "return ms;"
+      - if:
+          condition:
+            lambda: "return id(awaiting);"
+          then:
+            - lambda: "id(holding) = true;"
+            - script.execute:
+                id: paint
+                idx: 5
+
+  # Held states clear themselves after a while, so the reader cannot sit there
+  # reporting a fault that was fixed an hour ago.
+  - id: error_clear
+    mode: restart
+    then:
+      - delay: 30s
+      - lambda: "id(holding) = false;"
       - script.execute: show_ambient
 
-  # Called by the add-on through the `set_status` action once it knows what the
-  # tag actually did. Unknown names fall through to ambient rather than
-  # sticking, so a newer add-on can add states without bricking older firmware.
+  # Called by the add-on once it knows what the cartridge actually did.
+  #
+  # Unknown names fall through to ambient rather than sticking, so a newer
+  # add-on cannot strand older firmware showing a colour it cannot clear.
   - id: show_status
     mode: restart
     parameters:
       state: string
     then:
+      - script.stop: answer_timeout
+      - script.stop: error_clear
       - lambda: |-
           if (!id(status_auto).state) return;
-          id(holding) = false;
 
-          auto call = id(status_led).turn_on();
-          call.set_effect("None");
-
-          if (state == "playing") {
-            call.set_rgb(0.0f, 1.0f, 0.15f);
-            call.set_color_brightness(1.0f);
-            call.set_white(0.0f);
-            call.set_brightness(0.7f);
-          } else if (state == "new") {
-            // An unassigned cartridge: the app is waiting for someone to say
-            // what it plays. Held until it is set up or lifted off.
+          // "playing" clears itself after a moment; "playing_hold" stays lit
+          // for as long as the cartridge is on the reader. Which one arrives
+          // is the add-on's setting to make, not the firmware's to guess.
+          if (state == "busy") {
+            id(holding) = true;               // awaiting deliberately stays true
+          } else if (state == "playing") {
+            id(holding) = false;
+            id(awaiting) = false;
+          } else if (state == "playing_hold" || state == "new" || state == "error") {
             id(holding) = true;
-            call.set_rgb(0.1f, 0.35f, 1.0f);
-            call.set_color_brightness(1.0f);
-            call.set_white(0.0f);
-            call.set_effect("Breathe");
-          } else if (state == "error") {
-            id(holding) = true;
-            call.set_rgb(1.0f, 0.0f, 0.0f);
-            call.set_color_brightness(1.0f);
-            call.set_white(0.0f);
-            call.set_effect("Urgent");
-          } else if (state == "busy") {
-            call.set_rgb(0.6f, 0.3f, 1.0f);
-            call.set_color_brightness(1.0f);
-            call.set_white(0.0f);
-            call.set_effect("Breathe");
-          } else if (state == "off") {
-            id(status_led).turn_off().perform();
-            return;
+            id(awaiting) = false;
           } else {
-            // "ready", and anything this firmware does not recognise.
-            return;
+            id(holding) = false;
+            id(awaiting) = false;
           }
-          call.perform();
+      - script.execute:
+          id: paint
+          idx: !lambda |-
+            if (state == "busy") return 4;
+            if (state == "playing" || state == "playing_hold") return 6;
+            if (state == "new") return 7;
+            if (state == "error") return 8;
+            return -1;                        // ambient handles the rest
       - if:
           condition:
-            lambda: "return !id(holding);"
+            lambda: 'return state == "busy";'
           then:
-            # A confirmation, not a mode. Long enough to notice from across a
-            # room, short enough that the reader settles back to ambient.
+            # Something is on the other end, so stop asking whether anyone is
+            # listening and simply wait. The backstop only catches an add-on
+            # that answers and then dies mid-launch.
+            - script.execute:
+                id: answer_timeout
+                ms: 60000
+      - if:
+          condition:
+            lambda: 'return state == "error";'
+          then:
+            - script.execute: error_clear
+      - if:
+          condition:
+            lambda: 'return state == "playing";'
+          then:
             - delay: 2s
             - script.execute: show_ambient
+      - if:
+          condition:
+            lambda: |-
+              return state != "busy" && state != "playing" &&
+                     state != "playing_hold" && state != "new" && state != "error";
+          then:
+            - script.execute: show_ambient
+
+  # ---- palette ------------------------------------------------------------
+
+  # 72 hex characters: nine entries of RRGGBBLL, in the order documented on the
+  # palette globals. LL is brightness, 00 to FF.
+  #
+  # Fixed width and fixed order so the parse is a loop rather than a grammar,
+  # and validated by length alone: anything that is not exactly 72 characters is
+  # ignored and the current palette stands. A malformed push leaves a working
+  # light rather than a dark one.
+  - id: apply_palette
+    mode: restart
+    parameters:
+      packed: string
+    then:
+      - lambda: |-
+          if (packed.length() != 72) {
+            ESP_LOGW("palette", "ignored: expected 72 chars, got %u",
+                     (unsigned) packed.length());
+            return;
+          }
+
+          auto nibble = [](char c) -> int {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+            return -1;
+          };
+
+          float r[9], g[9], b[9], br[9];
+          for (int i = 0; i < 9; i++) {
+            int v[8];
+            for (int n = 0; n < 8; n++) {
+              v[n] = nibble(packed[i * 8 + n]);
+              if (v[n] < 0) {
+                ESP_LOGW("palette", "ignored: bad hex at %d", i * 8 + n);
+                return;
+              }
+            }
+            r[i] = (v[0] * 16 + v[1]) / 255.0f;
+            g[i] = (v[2] * 16 + v[3]) / 255.0f;
+            b[i] = (v[4] * 16 + v[5]) / 255.0f;
+            br[i] = (v[6] * 16 + v[7]) / 255.0f;
+          }
+
+          // Nothing is written until every entry has parsed, so a bad character
+          // half way through cannot leave a half-applied palette.
+          for (int i = 0; i < 9; i++) {
+            id(pal_r)[i] = r[i];
+            id(pal_g)[i] = g[i];
+            id(pal_b)[i] = b[i];
+            id(pal_br)[i] = br[i];
+          }
+          ESP_LOGI("palette", "applied");
+      # Show the new colours at once rather than at the next event, so dragging
+      # a colour picker in the add-on is visible on the reader immediately.
+      - script.execute: show_ambient
 
 # ---------------------------------------------------------------------------
 # Entities
@@ -406,6 +616,9 @@ switch:
     on_turn_on:
       # Take the light straight back rather than waiting for the next event.
       - script.execute: show_ambient
+    on_turn_off:
+      # Otherwise a breathing state keeps ramping underneath you.
+      - script.stop: breathe
 
 text_sensor:
   - platform: template

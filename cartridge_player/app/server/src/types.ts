@@ -97,6 +97,30 @@ export type RemovalAction = 'none' | 'pause' | 'back' | 'home' | 'off'
 /** A speaker has no Back, Home, or power. Lifting can only ever do these three. */
 export type MusicRemovalAction = 'none' | 'pause' | 'stop'
 
+/** The nine things the reader's light can be saying. */
+export type LedStateName =
+  | 'no_wifi'
+  | 'no_ha'
+  | 'ready'
+  | 'read'
+  | 'working'
+  | 'no_answer'
+  | 'playing'
+  | 'new'
+  | 'error'
+
+export interface LedStateStyle {
+  /** `#rrggbb`. A grey is driven through the LED's white die. */
+  color: string
+  /** 0-100. */
+  brightness: number
+}
+
+export type LedPalette = Record<LedStateName, LedStateStyle>
+
+/** What the light does while a cartridge sits on the reader playing. */
+export type LedPlayingMode = 'hold' | 'confirm' | 'off'
+
 /**
  * `unassigned` is a cartridge you still own that currently plays nothing —
  * distinct from deleting it, which is for a cartridge that is lost or broken.
@@ -147,6 +171,11 @@ export interface Settings {
   removal_action: RemovalAction
   music_player_entity: string | null
   music_removal_action: MusicRemovalAction
+  led_enabled: boolean
+  led_playing_mode: LedPlayingMode
+  led_palette: LedPalette
+  /** ESPHome device name. Blank means "whichever reader answers" (§1.2). */
+  reader_device: string | null
   pin_hash: string | null
   public_base_url: string | null
   setup_complete: boolean

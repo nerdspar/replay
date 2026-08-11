@@ -106,19 +106,41 @@ Once it is running you should see a `Cartridge ID` sensor, a `Cartridge Present`
 binary sensor, a `Status Light`, a `Status Light Automatic` switch, and a
 `Test Light` button in Home Assistant.
 
-The LED tells you where the reader is before you touch a cartridge:
+### What the light means
 
-| Colour | Meaning |
+Six states the reader works out by itself:
+
+| Look | Meaning |
 |---|---|
-| Red, breathing | No wifi |
-| Amber, breathing | On wifi, but Home Assistant has not connected back yet — tapping a cartridge will read the tag and nothing more |
+| Red, slow breathe | No wifi |
+| Amber, slow breathe | On wifi, but Home Assistant has not connected back |
 | Dim white | Ready |
-| White flash | Tag read |
+| White flash | A tag was read |
+| White, slow breathe | Read it, waiting to hear what happens next |
+| Amber, **fast** pulse | Nothing answered. Usually means the add-on is stopped |
 
-Those four are produced by the reader itself and do not depend on Home
-Assistant, which is the point: they are what tells you whether the problem is
-the reader or everything else. The colours for what a cartridge actually *did*
-are pushed in by the add-on, since only it knows.
+Three the add-on sends, because the reader cannot know them:
+
+| Look | Meaning |
+|---|---|
+| Green | The cartridge started something |
+| Blue, slow breathe | A cartridge with nothing on it yet. Holds until you set it up |
+| Red, **fast** pulse | Something failed. Clears itself after 30 seconds |
+
+Speed carries meaning: **slow means waiting, fast means wrong.** That is why red
+and amber each appear twice — a slow red is no wifi, a fast red is a failure.
+
+The first six work with the add-on stopped, uninstalled, or restarting, which is
+the whole point of them: they are what tells you whether a dead cartridge tap is
+the reader's fault or everything else's. In particular, the add-on cannot report
+its own absence — so if it is not running, the reader is the only thing that can
+say so.
+
+Lifting a cartridge off clears any held state.
+
+All nine colours and brightnesses are yours to change under **Settings → Reader
+light**, each with a reset button. The three speeds are fixed, because they are
+what keeps two states apart when they share a colour.
 
 To drive the light yourself, turn **Status Light Automatic** off. The firmware
 then stops touching it — including the read flash — and it behaves like any

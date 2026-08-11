@@ -25,6 +25,7 @@ export type IconName =
   | 'play'
   | 'close'
   | 'music'
+  | 'undo'
 
 interface IconProps {
   name: IconName
@@ -94,6 +95,13 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   play: <path d="M7.5 5.5v13l11-6.5-11-6.5Z" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
+  // Reset: an arrow curving back on itself.
+  undo: (
+    <>
+      <path d="M3.5 9h9a5.5 5.5 0 0 1 0 11H8" />
+      <path d="M7 4.5 3 9l4 4.5" />
+    </>
+  ),
   // A quaver: the one shape that reads as "music" at 17px.
   music: (
     <>
