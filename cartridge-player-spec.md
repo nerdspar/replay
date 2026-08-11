@@ -702,6 +702,21 @@ A feature request is outstanding with the developer. `SupportsRemoteControl` is 
 standard Jellyfin client capability, so the likely unblock is that flag flipping in
 a future Neptune release.
 
+The developer has since confirmed the app "does have deep links support, but
+currently does not cover an NFC remote-play workflow". That answers a question
+nobody asked — NFC is irrelevant, since anything that opens a URL is enough —
+and does not say whether a path can name an item. Two scripts exist to settle it
+without another round of correspondence:
+
+- `tools/neptune-session-check.sh` — whether `SupportsRemoteControl` has flipped.
+  Check this FIRST: it plays rather than merely opens, and Jellyfin tracks resume.
+- `tools/neptune-deeplink-probe.sh` — walks candidate `neptune://` shapes against
+  a live Apple TV, with a control probe first so a dead pipe cannot be mistaken
+  for a rejected format.
+
+Note also that `neptuneplayer.com` serves no `apple-app-site-association`, so the
+app declares no Universal Links either — the custom scheme is the only surface.
+
 ### 12.2 What would be added when unblocked
 
 - **`JellyfinProvider`** implementing `Provider` against the Jellyfin REST API:
