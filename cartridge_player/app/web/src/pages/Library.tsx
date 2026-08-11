@@ -40,7 +40,6 @@ export function Library({ stream }: LibraryProps) {
         .includes(needle),
     )
   }, [cards, query])
-  const [testing, setTesting] = useState<number | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [recentUnassigned, setRecentUnassigned] = useState<string[]>([])
 
@@ -74,23 +73,6 @@ export function Library({ stream }: LibraryProps) {
       })
       .catch(() => setRecentUnassigned([]))
   }, [cards, stream.lastScan])
-
-  const runTest = async (card: Card) => {
-    setTesting(card.id)
-    try {
-      const result = await api.testCard(card.id)
-      setToast(
-        result.ok
-          ? `Sent “${card.title}” to the TV.`
-          : `Failed: ${result.scan.error ?? 'unknown error'}`,
-      )
-    } catch (e) {
-      setToast((e as ApiError).message)
-    } finally {
-      setTesting(null)
-      setTimeout(() => setToast(null), 4000)
-    }
-  }
 
   const toggleOne = (id: number) =>
     setSelected((current) => {
@@ -321,15 +303,8 @@ export function Library({ stream }: LibraryProps) {
                       >
                         Fill it
                       </button>
-                    ) : (
-                      <button
-                        className="btn small"
-                        disabled={testing === card.id}
-                        onClick={() => void runTest(card)}
-                      >
-                        {testing === card.id ? '…' : 'Test'}
-                      </button>
-                    )}
+                    ) : null}
+                    {/* Playing it lives inside Edit — see CardSheet. */}
                     <button className="btn small" onClick={() => setEditing(card)}>
                       Edit
                     </button>

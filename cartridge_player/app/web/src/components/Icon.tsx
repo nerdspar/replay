@@ -22,6 +22,7 @@ export type IconName =
   | 'trash'
   | 'eject'
   | 'search'
+  | 'play'
 
 interface IconProps {
   name: IconName
@@ -89,6 +90,7 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="m16 16 4.5 4.5" />
     </>
   ),
+  play: <path d="M7.5 5.5v13l11-6.5-11-6.5Z" />,
 }
 
 export function Icon({ name, size = 20, className }: IconProps) {

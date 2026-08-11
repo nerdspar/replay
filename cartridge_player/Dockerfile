@@ -52,6 +52,6 @@ LABEL \
   io.hass.name="Cartridge Player" \
   io.hass.description="Tap NFC cartridges to launch shows on your TV" \
   io.hass.type="addon" \
-  io.hass.version="0.1.3"
+  io.hass.version="0.1.4"
 
 CMD ["/run.sh"]

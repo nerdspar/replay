@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.4
+
+**Play on the TV** has moved off the library tiles and into a cartridge's Edit
+screen, where it is a normal thing to do rather than a testing leftover: play
+something without getting up to find the cartridge, or check the TV is still
+responding. It does exactly what tapping the cartridge does.
+
+Tiles are now just artwork and Edit, which also makes them harder to fire by
+accident.
+
+Also fixes the development setup failing on a fresh clone — the database
+directory is created if it does not exist, rather than refusing to start.
+
 ## 0.1.3
 
 Fixes cartridges opening Stremio but going no further — and, sometimes, playing
@@ -61,7 +74,7 @@ First release.
 - Configurable fire sequence: wake the TV first, launch, then auto-select the
   first stream — each step individually skippable, each delay tunable
 - Configurable behaviour when a cartridge is lifted off the reader
-- Per-card Test button that re-runs the whole sequence
+- "Play on the TV" inside a cartridge's Edit screen, which runs the same thing a tap does — for playing something without fetching the cartridge
 - Troubleshooting view with connection state, recent scans, and the stable panel
   link for home-screen setup
 - Artwork picker: choose between the poster, a higher-resolution poster, the

@@ -28,6 +28,29 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
   const [changingMedia, setChangingMedia] = useState(false)
   const [confirming, setConfirming] = useState<'unassign' | 'delete' | null>(null)
   const [busy, setBusy] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const [playResult, setPlayResult] = useState<{ ok: boolean; message: string } | null>(null)
+
+  const playNow = async () => {
+    setPlaying(true)
+    setPlayResult(null)
+    try {
+      const result = await api.testCard(card.id)
+      setPlayResult(
+        result.ok
+          ? { ok: true, message: `Sent to the TV. It should be opening now.` }
+          : {
+              ok: false,
+              // The scan log records why, which is more use than "it failed".
+              message: result.scan.error ?? 'The TV did not accept it.',
+            },
+      )
+    } catch (e) {
+      setPlayResult({ ok: false, message: (e as ApiError).message })
+    } finally {
+      setPlaying(false)
+    }
+  }
 
   const dirty = poster !== card.poster_url || label !== (card.label ?? '')
 
@@ -119,7 +142,43 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
         </div>
       </div>
 
-      <h3 style={{ fontSize: 15, margin: '0 0 8px' }}>Artwork</h3>
+      {/*
+        The same thing tapping the cartridge does, for when the cartridge is not
+        to hand — checking a new assignment from the sofa, or confirming the TV
+        still answers. Not a debug tool: it is the normal way to play something
+        without getting up.
+      */}
+      {card.status === 'assigned' ? (
+        <>
+          <button
+            className="btn primary block"
+            disabled={playing}
+            onClick={() => void playNow()}
+          >
+            {playing ? (
+              <>
+                <div className="spinner" />
+                Sending to the TV…
+              </>
+            ) : (
+              <>
+                <Icon name="play" size={18} />
+                Play on the TV
+              </>
+            )}
+          </button>
+          {playResult ? (
+            <p className={`hint ${playResult.ok ? '' : 'warn'}`}>{playResult.message}</p>
+          ) : (
+            <p className="hint">
+              Runs exactly what a tap on the reader does, so it is also how you
+              check the TV is still responding.
+            </p>
+          )}
+        </>
+      ) : null}
+
+      <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Artwork</h3>
       <ArtworkPicker
         provider={card.provider}
         contentType={card.content_type}

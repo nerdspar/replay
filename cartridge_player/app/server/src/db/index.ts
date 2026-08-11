@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import Database from 'better-sqlite3'
 import type { Database as Db } from 'better-sqlite3'
 import { migrate } from './schema.js'
@@ -80,6 +82,13 @@ export class Store {
   readonly db: Db
 
   constructor(filename: string) {
+    // `/data` always exists under Supervisor, but the documented dev workflow
+    // points at ./dev-data, which does not exist in a fresh clone — and
+    // better-sqlite3 fails with "directory does not exist" rather than creating
+    // it. Cheap to make that just work.
+    if (filename !== ':memory:') {
+      fs.mkdirSync(path.dirname(path.resolve(filename)), { recursive: true })
+    }
     this.db = new Database(filename)
     this.db.pragma('journal_mode = WAL')
     this.db.pragma('foreign_keys = ON')

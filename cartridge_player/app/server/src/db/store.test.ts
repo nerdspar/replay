@@ -1,4 +1,8 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { Store } from './index.js'
 import { memoryStore } from '../test/helpers.js'
 import type { CardInput } from '../types.js'
 
@@ -166,5 +170,19 @@ describe('scan log', () => {
     })
     expect(store.listScans().map((s) => s.tag_uid)).toEqual(['b', 'a'])
     store.close()
+  })
+})
+
+describe('opening the database', () => {
+  it('creates a missing directory rather than refusing to start', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cartridge-db-'))
+    const nested = path.join(dir, 'does', 'not', 'exist', 'cartridge.db')
+
+    // better-sqlite3 throws "directory does not exist" on its own, which broke
+    // the documented dev workflow on a fresh clone.
+    const store = new Store(nested)
+    expect(fs.existsSync(nested)).toBe(true)
+    store.close()
+    fs.rmSync(dir, { recursive: true, force: true })
   })
 })
