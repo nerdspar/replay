@@ -1081,3 +1081,36 @@ a:focus-visible {
   border: 0;
   border-radius: 9px;
 }
+
+/*
+  `.grow` is scoped to `.list-row`, so it did nothing here and each row's inner
+  column was sized by its own description text — which made every brightness
+  slider a different length. Rows in a list have to line up regardless of what
+  they say.
+*/
+.led-row > .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+  A grid rather than flex: the track, the readout and the reset button then
+  occupy identical columns in every row, instead of each row negotiating its
+  own widths. The readout is sized in ch so it does not jump between "8%" and
+  "100%" and drag the slider with it.
+*/
+.led-controls {
+  display: grid;
+  grid-template-columns: 1fr 4ch auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.led-controls input[type='range'] {
+  width: 100%;
+  min-width: 0;
+}
+
+.led-controls .mono {
+  text-align: right;
+}

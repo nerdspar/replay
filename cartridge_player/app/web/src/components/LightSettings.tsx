@@ -126,7 +126,7 @@ export function LightSettings({
         <p className="hint" style={{ margin: '2px 0 6px' }}>
           {state.hint}
         </p>
-        <div className="row" style={{ gap: 10 }}>
+        <div className="led-controls">
           <input
             type="range"
             min={0}
@@ -134,11 +134,8 @@ export function LightSettings({
             aria-label={`${state.label} brightness`}
             value={palette[state.key]?.brightness ?? 0}
             onChange={(e) => set(state.key, { brightness: Number(e.target.value) })}
-            style={{ flex: 1 }}
           />
-          <span className="hint mono" style={{ width: 42, textAlign: 'right' }}>
-            {palette[state.key]?.brightness ?? 0}%
-          </span>
+          <span className="hint mono">{palette[state.key]?.brightness ?? 0}%</span>
           <button
             className="btn small"
             disabled={isDefault(state.key)}
