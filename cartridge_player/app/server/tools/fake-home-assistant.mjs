@@ -34,6 +34,15 @@ const sockets = new Set()
 // Deliberately reproduces the duplicate-name problem: a household running both
 // a native integration and Music Assistant ends up with two media players
 // carrying the SAME friendly name, which a name-only dropdown cannot tell apart.
+// Playback the fake reports for any single-entity lookup.
+export let playerState = 'idle'
+export let playerAttrs = {}
+export function setPlayer(state, attrs = {}) {
+  playerState = state
+  playerAttrs = attrs
+  console.log(`[ha] player -> ${state}`)
+}
+
 const STATES = [
   { entity_id: 'remote.living_room_tv', state: 'on', attributes: { friendly_name: 'Living Room TV' } },
   { entity_id: 'remote.bedroom_tv', state: 'off', attributes: { friendly_name: 'Bedroom TV' } },
@@ -161,6 +170,16 @@ const supervisor = http.createServer((req, res) => {
   if (url.pathname === '/addons/self/info') {
     return json({ data: { slug: 'a0d7b954_cartridge_player', version: '0.1.0' } })
   }
+  // One entity, so the add-on can follow what is actually playing. Drive it
+  // with:  curl 'http://127.0.0.1:9125/player?state=playing'
+  const one = url.pathname.match(/^\/core\/api\/states\/(.+)$/)
+  if (one) {
+    const found = STATES.find((s) => s.entity_id === one[1])
+    return found
+      ? json({ ...found, state: playerState, attributes: { ...found.attributes, ...playerAttrs } })
+      : json({ error: 'not found' }, 404)
+  }
+
   if (url.pathname === '/core/api/states') return json(STATES)
 
   // What an ESPHome device's user-defined actions look like to Home Assistant.
@@ -315,6 +334,10 @@ http
     else if (url.pathname === '/calls') {
       res.writeHead(200, { 'content-type': 'application/json' })
       return res.end(JSON.stringify(serviceCalls))
+    } else if (url.pathname === '/player') {
+      setPlayer(url.searchParams.get('state') ?? 'idle', {
+        media_title: url.searchParams.get('title') ?? undefined,
+      })
     } else if (url.pathname === '/reset') serviceCalls.length = 0
     res.writeHead(200, { 'content-type': 'application/json' })
     res.end(JSON.stringify({ ok: true }))

@@ -31,6 +31,7 @@ export type LedStateName =
   | 'playing'
   | 'new'
   | 'error'
+  | 'paused'
 
 export interface LedStateStyle {
   /** `#rrggbb`. A grey is driven through the LED's white die. */
@@ -123,6 +124,8 @@ export interface Settings {
   led_enabled: boolean
   led_playing_mode: LedPlayingMode
   led_playing_artwork: boolean
+  led_follow_player: boolean
+  led_match_cartridge: boolean
   led_palette: LedPalette
   reader_device: string | null
   public_base_url: string | null
@@ -151,6 +154,16 @@ export interface ScanEvent {
   created_at: number
 }
 
+/** How the linked player is behaving, as far as Home Assistant reports it. */
+export type PlaybackState = 'playing' | 'paused' | 'idle'
+
+/** The cartridge on the reader right now. */
+export interface SeatedCartridge {
+  card: Card
+  playback: PlaybackState
+  since: number
+}
+
 export interface PendingUid {
   uid: string
   seen_at: number
@@ -160,5 +173,6 @@ export type AppEvent =
   | { type: 'pending'; pending: PendingUid | null }
   | { type: 'scan'; scan: ScanEvent; card: Card | null }
   | { type: 'connection'; state: ConnectionState; detail?: string }
+  | { type: 'seated'; seated: SeatedCartridge | null }
   | { type: 'cards' }
   | { type: 'error'; message: string }

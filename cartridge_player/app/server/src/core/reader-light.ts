@@ -30,6 +30,9 @@ export const LED_STATES: LedStateName[] = [
   'playing',
   'new',
   'error',
+  // Appended, not inserted: the firmware unpacks by position, and older
+  // firmware simply keeps its default for a state it does not know about.
+  'paused',
 ]
 
 /** Matches the fallback palette compiled into the firmware. */
@@ -43,6 +46,10 @@ export const DEFAULT_PALETTE: LedPalette = {
   playing: { color: '#00ff26', brightness: 70 },
   new: { color: '#1a59ff', brightness: 60 },
   error: { color: '#ff0000', brightness: 80 },
+  // The playing colour, dimmed. Held rather than a new hue to learn: bright
+  // means running, dim means stopped, and it works with a borrowed artwork
+  // colour too.
+  paused: { color: '#00ff26', brightness: 18 },
 }
 
 /** How long a discovered service name is trusted before being looked up again. */
@@ -93,6 +100,7 @@ export type ReaderStatus =
   | 'busy'
   | 'playing'
   | 'playing_hold'
+  | 'paused'
   | 'new'
   | 'error'
   | 'ready'

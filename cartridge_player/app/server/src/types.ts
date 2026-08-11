@@ -108,6 +108,7 @@ export type LedStateName =
   | 'playing'
   | 'new'
   | 'error'
+  | 'paused'
 
 export interface LedStateStyle {
   /** `#rrggbb`. A grey is driven through the LED's white die. */
@@ -177,12 +178,31 @@ export interface Settings {
   led_playing_mode: LedPlayingMode
   /** Wear the cartridge's own artwork colour while it plays. */
   led_playing_artwork: boolean
+  /** Follow the linked player's real state rather than assuming a launch worked. */
+  led_follow_player: boolean
+  /** Only call it playing when what is playing looks like this cartridge. */
+  led_match_cartridge: boolean
   led_palette: LedPalette
   /** ESPHome device name. Blank means "whichever reader answers" (§1.2). */
   reader_device: string | null
   pin_hash: string | null
   public_base_url: string | null
   setup_complete: boolean
+}
+
+/** How the linked player is behaving, as far as Home Assistant reports it. */
+export type PlaybackState = 'playing' | 'paused' | 'idle'
+
+/**
+ * The cartridge currently on the reader.
+ *
+ * Tracked because the app should be able to say which one is in — and because
+ * "is a cartridge seated" is what decides whether the player is worth watching.
+ */
+export interface SeatedCartridge {
+  card: Card
+  playback: PlaybackState
+  since: number
 }
 
 export interface ScanEvent {

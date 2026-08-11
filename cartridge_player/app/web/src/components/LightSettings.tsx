@@ -22,6 +22,7 @@ export const DEFAULT_PALETTE: LedPalette = {
   playing: { color: '#00ff26', brightness: 70 },
   new: { color: '#1a59ff', brightness: 60 },
   error: { color: '#ff0000', brightness: 80 },
+  paused: { color: '#00ff26', brightness: 18 },
 }
 
 interface StateInfo {
@@ -69,6 +70,12 @@ const ADDON_STATES: StateInfo[] = [
     hint: 'A cartridge with nothing on it yet. Holds until you assign it.',
     motion: 'Slow',
   },
+  {
+    key: 'paused',
+    label: 'Paused',
+    hint: 'Playing, but held. The Playing colour dimmed, by default.',
+    motion: 'Steady',
+  },
   { key: 'error', label: 'Something failed', hint: 'Clears itself after 30 seconds.', motion: 'Fast' },
 ]
 
@@ -85,10 +92,14 @@ const PLAYING_MODES: { value: LedPlayingMode; label: string; hint: string }[] = 
 interface LightSettingsProps {
   enabled: boolean
   useArtwork: boolean
+  followPlayer: boolean
+  matchCartridge: boolean
   palette: LedPalette
   playingMode: LedPlayingMode
   onEnabledChange: (enabled: boolean) => void
   onUseArtworkChange: (use: boolean) => void
+  onFollowPlayerChange: (follow: boolean) => void
+  onMatchCartridgeChange: (match: boolean) => void
   onPaletteChange: (palette: LedPalette) => void
   onPlayingModeChange: (mode: LedPlayingMode) => void
 }
@@ -96,10 +107,14 @@ interface LightSettingsProps {
 export function LightSettings({
   enabled,
   useArtwork,
+  followPlayer,
+  matchCartridge,
   palette,
   playingMode,
   onEnabledChange,
   onUseArtworkChange,
+  onFollowPlayerChange,
+  onMatchCartridgeChange,
   onPaletteChange,
   onPlayingModeChange,
 }: LightSettingsProps) {
@@ -170,6 +185,40 @@ export function LightSettings({
 
       {enabled ? (
         <>
+          <div className="switch" style={{ marginTop: 20 }}>
+            <span>Follow what is actually playing</span>
+            <input
+              type="checkbox"
+              checked={followPlayer}
+              onChange={(e) => onFollowPlayerChange(e.target.checked)}
+            />
+          </div>
+          <p className="hint">
+            Reads the media player rather than assuming a launch worked. Without
+            this, the light turns green the moment a cartridge is sent to the TV
+            — even if it lands on a menu and you never press play. Needs a media
+            player chosen above.
+          </p>
+
+          {followPlayer ? (
+            <>
+              <div className="switch" style={{ marginTop: 14 }}>
+                <span>Only for this cartridge's own content</span>
+                <input
+                  type="checkbox"
+                  checked={matchCartridge}
+                  onChange={(e) => onMatchCartridgeChange(e.target.checked)}
+                />
+              </div>
+              <p className="hint">
+                Ignores anything playing that does not look like the cartridge on
+                the reader. Matching what a player reports against a cartridge is
+                approximate — leave this off unless a seated cartridge showing
+                green for unrelated viewing bothers you.
+              </p>
+            </>
+          ) : null}
+
           <h3 style={{ fontSize: 15, margin: '24px 0 4px' }}>While something is playing</h3>
           <div className="radio-list">
             {PLAYING_MODES.map((mode) => (

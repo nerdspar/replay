@@ -57,6 +57,8 @@ interface SettingsRow {
   led_enabled: number
   led_playing_mode: string
   led_playing_artwork: number
+  led_follow_player: number
+  led_match_cartridge: number
   led_palette: string | null
   reader_device: string | null
   pin_hash: string | null
@@ -93,6 +95,8 @@ function toSettings(row: SettingsRow): Settings {
     led_enabled: row.led_enabled !== 0,
     led_playing_mode: row.led_playing_mode as LedPlayingMode,
     led_playing_artwork: row.led_playing_artwork !== 0,
+    led_follow_player: row.led_follow_player !== 0,
+    led_match_cartridge: row.led_match_cartridge !== 0,
     // Normalised on the way out so every caller sees all nine states, whatever
     // an older release or a hand-edited row happens to hold.
     led_palette: normalizePalette(parsePalette(row.led_palette)),
@@ -130,6 +134,8 @@ const WRITABLE_SETTINGS = [
   'led_enabled',
   'led_playing_mode',
   'led_playing_artwork',
+  'led_follow_player',
+  'led_match_cartridge',
   'led_palette',
   'reader_device',
   'pin_hash',

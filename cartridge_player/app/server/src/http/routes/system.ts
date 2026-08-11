@@ -73,6 +73,9 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
   app.get('/api/pending', async () => ({
     pending: ctx.pending.get(),
     connection: ctx.connection,
+    // Rides along for the same reason as `pending`: a phone that was asleep
+    // has missed the event stream and needs the current picture in one request.
+    seated: ctx.seated,
   }))
 
   app.get('/api/scans', async (request) => {
@@ -112,6 +115,7 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
     // backgrounded is correct without waiting for the next scan.
     writeEvent(reply, { type: 'connection', ...ctx.connection })
     writeEvent(reply, { type: 'pending', pending: ctx.pending.get() })
+    writeEvent(reply, { type: 'seated', seated: ctx.seated })
 
     const unsubscribe = ctx.bus.subscribe((event) => writeEvent(reply, event))
     const keepalive = setInterval(() => reply.raw.write(': keepalive\n\n'), SSE_KEEPALIVE_MS)

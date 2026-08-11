@@ -1,9 +1,12 @@
+import type { SeatedCartridge } from '../types.js'
 import type { Card, ScanEvent } from '../types.js'
 import type { PendingUid } from './pending.js'
 
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export type AppEvent =
+  /** Which cartridge is on the reader, and what it is doing. Null when none. */
+  | { type: 'seated'; seated: SeatedCartridge | null }
   /** An unassigned cartridge is waiting to be named (§8.5). */
   | { type: 'pending'; pending: PendingUid | null }
   | { type: 'scan'; scan: ScanEvent; card: Card | null }

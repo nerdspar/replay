@@ -6,7 +6,8 @@ import { AppError } from '../errors.js'
 import { createLogger } from '../log.js'
 import type { EventBus } from './events.js'
 import type { PendingUidStore } from './pending.js'
-import { statusForPlayingMode, type ReaderLight, type ReaderStatus } from './reader-light.js'
+import { type ReaderLight, type ReaderStatus } from './reader-light.js'
+import type { PlaybackWatcher } from './playback.js'
 import {
   removalActionFor,
   runFireSequence,
@@ -24,6 +25,8 @@ export interface ScanHandlerDeps {
   bus: EventBus
   /** Optional: the reader's status light, when one is wired up. */
   light?: ReaderLight
+  /** Optional: follows what the linked player is actually doing. */
+  playback?: PlaybackWatcher
   sleep?: Sleep
   now?: () => number
 }
@@ -55,6 +58,7 @@ export class ScanHandler {
       bus.emit({ type: 'pending', pending: entry })
       const scan = this.record(uid, card?.id ?? null, 'unassigned', null)
       log.info(`unassigned cartridge ${uid}`)
+      this.deps.playback?.stop()
       this.light('new')
       return { card, scan }
     }
@@ -71,6 +75,9 @@ export class ScanHandler {
     const card = store.findCardByUid(uid)
     // Nothing was playing from an empty cartridge, so nothing to stop.
     if (!card || card.status === 'unassigned') return null
+
+    // Nothing is on the reader now, so there is nothing to follow.
+    this.deps.playback?.stop()
 
     const settings = store.getSettings()
     if (removalActionFor(card.kind, settings) === 'none') {
@@ -102,15 +109,13 @@ export class ScanHandler {
         ...(sleep ? { sleep } : {}),
       })
       log.info(`fired ${card.title} -> ${steps.join(',')}`)
-      // A cartridge can wear its own artwork colour while it plays. Null when
-      // it has no artwork, or when the browser has not sampled it yet — both
-      // fall back to the palette rather than to nothing.
-      this.light(
-        statusForPlayingMode(settings.led_playing_mode),
-        settings.led_playing_artwork ? card.accent_color : null,
-      )
+      // Handed to the watcher rather than declared here. Finishing the launch
+      // sequence says the deep link went out, which is not the same as anything
+      // playing — the watcher reads the player and reports what is true.
+      this.deps.playback?.start(card)
       return { card, scan: this.record(card.tag_uid, card.id, steps.join(','), null) }
     } catch (error) {
+      this.deps.playback?.stop()
       this.light('error')
       return { card, scan: this.recordFailure(card.tag_uid, card.id, 'fire', error) }
     }

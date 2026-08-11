@@ -231,6 +231,39 @@ export function Library({ stream }: LibraryProps) {
         </div>
       ) : null}
 
+      {/*
+        Which cartridge is physically on the reader.
+
+        Sits above the tabs because it is about the object in your hand, not
+        about the list — and because the cartridge may well be in the other tab
+        from the one you are looking at, where highlighting alone would be
+        invisible.
+      */}
+      {stream.seated ? (
+        <div className={`seated seated-${stream.seated.playback}`}>
+          <span className="seated-dot" />
+          <div className="grow">
+            <div className="seated-what">
+              {stream.seated.playback === 'playing'
+                ? 'Playing'
+                : stream.seated.playback === 'paused'
+                  ? 'Paused'
+                  : 'On the reader'}
+            </div>
+            <div className="seated-title">{stream.seated.card.title}</div>
+          </div>
+          <button
+            className="btn small"
+            onClick={() => {
+              setTab(stream.seated!.card.kind)
+              setEditing(stream.seated!.card)
+            }}
+          >
+            Open
+          </button>
+        </div>
+      ) : null}
+
       <div className="tabs" role="tablist" aria-label="Cartridge kinds">
         <button
           role="tab"
@@ -376,7 +409,9 @@ export function Library({ stream }: LibraryProps) {
             {visible.map((card) => (
               <div
                 key={card.id}
-                className={`tile ${selecting && selected.has(card.id) ? 'picked' : ''}`}
+                className={`tile ${selecting && selected.has(card.id) ? 'picked' : ''} ${
+                  stream.seated?.card.id === card.id ? 'seated-tile' : ''
+                }`}
                 style={{ cursor: selecting ? 'pointer' : 'default' }}
                 onClick={selecting ? () => toggleOne(card.id) : undefined}
               >

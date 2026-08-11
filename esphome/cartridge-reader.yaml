@@ -238,27 +238,28 @@ globals:
   #   0 no wifi     1 no Home Assistant   2 ready
   #   3 tag read    4 working             5 no answer
   #   6 playing     7 not set up          8 error
+  #   9 paused
   #
   # RAM, not flash. If the reader reboots with the add-on down it falls back to
   # these — the right trade, because the states that matter when everything is
   # broken are exactly the ones nobody customises. Writing to flash every time
   # somebody dragged a colour picker would be worse.
   - id: pal_r
-    type: float[9]
+    type: float[10]
     restore_value: false
-    initial_value: "{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.10f, 1.0f}"
+    initial_value: "{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.10f, 1.0f, 0.0f}"
   - id: pal_g
-    type: float[9]
+    type: float[10]
     restore_value: false
-    initial_value: "{0.0f, 0.55f, 1.0f, 1.0f, 1.0f, 0.55f, 1.0f, 0.35f, 0.0f}"
+    initial_value: "{0.0f, 0.55f, 1.0f, 1.0f, 1.0f, 0.55f, 1.0f, 0.35f, 0.0f, 1.0f}"
   - id: pal_b
-    type: float[9]
+    type: float[10]
     restore_value: false
-    initial_value: "{0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.15f, 1.0f, 0.0f}"
+    initial_value: "{0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.15f, 1.0f, 0.0f, 0.15f}"
   - id: pal_br
-    type: float[9]
+    type: float[10]
     restore_value: false
-    initial_value: "{0.45f, 0.45f, 0.10f, 1.0f, 0.40f, 0.80f, 0.70f, 0.60f, 0.80f}"
+    initial_value: "{0.45f, 0.45f, 0.10f, 1.0f, 0.40f, 0.80f, 0.70f, 0.60f, 0.80f, 0.18f}"
 
   # How each state moves: 0 steady, 1 slow breathe, 2 fast pulse. NOT
   # configurable — motion is what separates two states that share a colour.
@@ -266,9 +267,9 @@ globals:
   # Home Assistant" and amber fast is "Home Assistant is there, the add-on is
   # not answering". Handing that to a colour picker would lose it.
   - id: pal_motion
-    type: uint8_t[9]
+    type: uint8_t[10]
     restore_value: false
-    initial_value: "{1, 1, 0, 0, 1, 2, 0, 1, 2}"
+    initial_value: "{1, 1, 0, 0, 1, 2, 0, 1, 2, 0}"
 
   # A colour sampled from the playing cartridge's artwork, when the add-on sends
   # one. Overrides the palette for the playing state only — every other state
@@ -408,10 +409,12 @@ script:
     then:
       - script.stop: breathe
       - lambda: |-
-          if (!id(status_auto).state || idx < 0 || idx > 8) return;
+          if (!id(status_auto).state || idx < 0 || idx > 9) return;
 
-          // Index 6 is playing — the one state a cartridge may colour itself.
-          const bool accent = (idx == 6 && id(accent_on));
+          // Playing and paused are the two states a cartridge may colour
+          // itself: both are about that cartridge. Every other state means the
+          // same thing whatever is on the reader.
+          const bool accent = ((idx == 6 || idx == 9) && id(accent_on));
           const float r = accent ? id(accent_r) : id(pal_r)[idx];
           const float g = accent ? id(accent_g) : id(pal_g)[idx];
           const float b = accent ? id(accent_b) : id(pal_b)[idx];
@@ -435,7 +438,7 @@ script:
       - if:
           condition:
             lambda: |-
-              return id(status_auto).state && idx >= 0 && idx <= 8 &&
+              return id(status_auto).state && idx >= 0 && idx <= 9 &&
                      id(pal_motion)[idx] != 0;
           then:
             - script.execute: breathe
@@ -557,7 +560,8 @@ script:
           } else if (state == "playing") {
             id(holding) = false;
             id(awaiting) = false;
-          } else if (state == "playing_hold" || state == "new" || state == "error") {
+          } else if (state == "playing_hold" || state == "paused" ||
+                     state == "new" || state == "error") {
             id(holding) = true;
             id(awaiting) = false;
           } else {
@@ -571,6 +575,7 @@ script:
             if (state == "playing" || state == "playing_hold") return 6;
             if (state == "new") return 7;
             if (state == "error") return 8;
+            if (state == "paused") return 9;
             return -1;                        // ambient handles the rest
       - if:
           condition:
@@ -597,27 +602,31 @@ script:
           condition:
             lambda: |-
               return state != "busy" && state != "playing" &&
-                     state != "playing_hold" && state != "new" && state != "error";
+                     state != "playing_hold" && state != "paused" &&
+                     state != "new" && state != "error";
           then:
             - script.execute: show_ambient
 
   # ---- palette ------------------------------------------------------------
 
-  # 72 hex characters: nine entries of RRGGBBLL, in the order documented on the
+  # Eight hex characters per state — RRGGBBLL — in the order documented on the
   # palette globals. LL is brightness, 00 to FF.
   #
-  # Fixed width and fixed order so the parse is a loop rather than a grammar,
-  # and validated by length alone: anything that is not exactly 72 characters is
-  # ignored and the current palette stands. A malformed push leaves a working
-  # light rather than a dark one.
+  # Fixed width and fixed order so the parse is a loop rather than a grammar.
+  # A SHORT palette is accepted and applied as far as it goes: an add-on that
+  # predates the paused state sends nine entries, and the tenth should keep its
+  # default rather than the whole push being thrown away. Anything that is not a
+  # whole number of entries, or longer than this firmware knows about, is
+  # ignored entirely — a malformed push leaves a working light, not a dark one.
   - id: apply_palette
     mode: restart
     parameters:
       packed: string
     then:
       - lambda: |-
-          if (packed.length() != 72) {
-            ESP_LOGW("palette", "ignored: expected 72 chars, got %u",
+          const int entries = packed.length() / 8;
+          if (packed.length() % 8 != 0 || entries < 1 || entries > 10) {
+            ESP_LOGW("palette", "ignored: %u chars is not 1-10 entries of 8",
                      (unsigned) packed.length());
             return;
           }
@@ -629,8 +638,8 @@ script:
             return -1;
           };
 
-          float r[9], g[9], b[9], br[9];
-          for (int i = 0; i < 9; i++) {
+          float r[10], g[10], b[10], br[10];
+          for (int i = 0; i < entries; i++) {
             int v[8];
             for (int n = 0; n < 8; n++) {
               v[n] = nibble(packed[i * 8 + n]);
@@ -647,13 +656,13 @@ script:
 
           // Nothing is written until every entry has parsed, so a bad character
           // half way through cannot leave a half-applied palette.
-          for (int i = 0; i < 9; i++) {
+          for (int i = 0; i < entries; i++) {
             id(pal_r)[i] = r[i];
             id(pal_g)[i] = g[i];
             id(pal_b)[i] = b[i];
             id(pal_br)[i] = br[i];
           }
-          ESP_LOGI("palette", "applied");
+          ESP_LOGI("palette", "applied %d entries", entries);
       # Show the new colours at once rather than at the next event, so dragging
       # a colour picker in the add-on is visible on the reader immediately.
       - script.execute: show_ambient

@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -217,6 +217,19 @@ ALTER TABLE cards ADD COLUMN accent_color TEXT;
 ALTER TABLE settings ADD COLUMN led_playing_artwork INTEGER NOT NULL DEFAULT 0;
 `
 
+/**
+ * Reading playback from the player instead of assuming a launch worked.
+ *
+ * The add-on could only ever report what IT did — fire the sequence and get no
+ * error — which it called "playing". With autoplay off that is plainly untrue:
+ * the deep link lands on a detail page and nothing starts, and the reader sat
+ * there claiming playback that had never begun.
+ */
+const V7 = `
+ALTER TABLE settings ADD COLUMN led_follow_player INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE settings ADD COLUMN led_match_cartridge INTEGER NOT NULL DEFAULT 0;
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -237,6 +250,9 @@ export function migrate(db: Database): void {
   }
   if (current < 6) {
     db.exec(V6)
+  }
+  if (current < 7) {
+    db.exec(V7)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

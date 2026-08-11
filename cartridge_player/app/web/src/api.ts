@@ -8,6 +8,7 @@ import type {
   MetaPreview,
   PendingUid,
   ScanEvent,
+  SeatedCartridge,
   Settings,
 } from './types'
 
@@ -170,9 +171,12 @@ export const api = {
     }),
 
   pending: () =>
-    request<{ pending: PendingUid | null; connection: { state: string; detail?: string } }>(
-      'api/pending',
-    ),
+    request<{
+      pending: PendingUid | null
+      connection: { state: string; detail?: string }
+      /** Which cartridge is on the reader, for a client that missed the stream. */
+      seated: SeatedCartridge | null
+    }>('api/pending'),
 
   scans: (limit = 50) =>
     request<{

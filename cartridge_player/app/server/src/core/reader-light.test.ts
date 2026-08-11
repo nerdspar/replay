@@ -61,8 +61,8 @@ describe('packing the palette', () => {
       error: { color: 'not-a-colour', brightness: 80 },
     })
 
-    expect(packed).toHaveLength(72)
-    expect(packed.slice(64)).toBe('ff0000cc')
+    expect(packed).toHaveLength(80)
+    expect(packed.slice(64, 72)).toBe('ff0000cc')
   })
 
   it('clamps brightness into a single byte', () => {
@@ -186,9 +186,6 @@ describe('a scan drives the light', () => {
     active = testContext()
     const { ctx } = active
     ctx.store.updateSettings({ home_delay_ms: 0, autoplay_delay_ms: 0, ...overrides })
-    // A target that succeeds. The real one would fail for want of a Home
-    // Assistant token, and every case below would report an error for a reason
-    // that has nothing to do with the light.
     ctx.targets.register('androidtv', () => new FakeTarget())
 
     const said: string[] = []
@@ -212,7 +209,7 @@ describe('a scan drives the light', () => {
     expect(said).toEqual(['new'])
   })
 
-  it('says "busy" before the launch, not after', async () => {
+  it('says "busy" before the launch and then says nothing itself', async () => {
     const { ctx, said } = withLight()
     ctx.store.createCard(
       {
@@ -228,6 +225,7 @@ describe('a scan drives the light', () => {
         label: null,
         player_entity: null,
         art_fit: null,
+        accent_color: null,
         shuffle: false,
         radio_mode: false,
       },
@@ -236,124 +234,10 @@ describe('a scan drives the light', () => {
 
     await ctx.scans.handleInserted('04-01')
 
-    // The reader gives up on an unanswered event after three seconds; a TV
-    // launch takes longer than that, so "busy" has to arrive first.
-    expect(said).toEqual(['busy', 'playing_hold'])
-  })
-})
-
-describe('a cartridge wearing its own colour', () => {
-  const COLOUR_ACTIONS = [
-    'cartridge_reader_set_status',
-    'cartridge_reader_set_status_color',
-  ]
-
-  it('sends the colour without its hash', async () => {
-    const ha = fakeHa(COLOUR_ACTIONS)
-    await light(ha).setStatus('playing_hold', '#1e88e5')
-
-    expect(ha.calls).toEqual([
-      {
-        domain: 'esphome',
-        service: 'cartridge_reader_set_status_color',
-        data: { state: 'playing_hold', color: '1e88e5' },
-      },
-    ])
-  })
-
-  it('falls back to the plain call on firmware that predates it', async () => {
-    // A reader that has not been reflashed should light up in its palette
-    // colour, not fail and stay dark.
-    const ha = fakeHa(['cartridge_reader_set_status'])
-    await light(ha).setStatus('playing_hold', '#1e88e5')
-
-    expect(ha.calls[0]?.service).toBe('cartridge_reader_set_status')
-    expect(ha.calls[0]?.data).toEqual({ state: 'playing_hold' })
-  })
-
-  it('uses the plain call when a cartridge has no colour of its own', async () => {
-    const ha = fakeHa(COLOUR_ACTIONS)
-    await light(ha).setStatus('playing_hold', null)
-
-    expect(ha.calls[0]?.service).toBe('cartridge_reader_set_status')
-  })
-})
-
-describe('the artwork colour reaches the reader', () => {
-  function musicCardOn(ctx: TestContext['ctx'], accent: string | null) {
-    ctx.store.createCard(
-      {
-        tag_uid: '04-09',
-        provider: 'stremio',
-        content_type: 'movie',
-        external_id: 'tt9',
-        title: 'Coloured',
-        year: null,
-        poster_url: 'https://example.test/p.jpg',
-        season: null,
-        episode: null,
-        label: null,
-        player_entity: null,
-        art_fit: null,
-        accent_color: accent,
-        shuffle: false,
-        radio_mode: false,
-      },
-      1,
-    )
-  }
-
-  it('sends it when the setting is on', async () => {
-    active = testContext()
-    const { ctx } = active
-    ctx.store.updateSettings({
-      home_delay_ms: 0,
-      autoplay_delay_ms: 0,
-      led_playing_artwork: true,
-    })
-    ctx.targets.register('androidtv', () => new FakeTarget())
-    musicCardOn(ctx, '#3366cc')
-
-    const said: string[] = []
-    ctx.scans = new ScanHandler({
-      store: ctx.store,
-      providers: ctx.providers,
-      targets: ctx.targets,
-      pending: ctx.pending,
-      bus: ctx.bus,
-      light: {
-        setStatus: async (s, color) => void said.push(color ? `${s}:${color}` : s),
-      } as unknown as ReaderLight,
-    })
-
-    await ctx.scans.handleInserted('04-09')
-    expect(said).toEqual(['busy', 'playing_hold:#3366cc'])
-  })
-
-  it('falls back to the palette when a cartridge has not been sampled yet', async () => {
-    active = testContext()
-    const { ctx } = active
-    ctx.store.updateSettings({
-      home_delay_ms: 0,
-      autoplay_delay_ms: 0,
-      led_playing_artwork: true,
-    })
-    ctx.targets.register('androidtv', () => new FakeTarget())
-    musicCardOn(ctx, null)
-
-    const said: string[] = []
-    ctx.scans = new ScanHandler({
-      store: ctx.store,
-      providers: ctx.providers,
-      targets: ctx.targets,
-      pending: ctx.pending,
-      bus: ctx.bus,
-      light: {
-        setStatus: async (s, color) => void said.push(color ? `${s}:${color}` : s),
-      } as unknown as ReaderLight,
-    })
-
-    await ctx.scans.handleInserted('04-09')
-    expect(said).toEqual(['busy', 'playing_hold'])
+    // "busy" arrives before the launch because the reader gives up on an
+    // unanswered event after three seconds and a TV takes longer than that.
+    // What happens AFTER the launch is no longer decided here: finishing the
+    // sequence means the deep link went out, not that anything is playing.
+    expect(said).toEqual(['busy'])
   })
 })

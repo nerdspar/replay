@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api'
-import type { AppEvent, Card, ConnectionState, PendingUid, ScanEvent } from '../types'
+import type {
+  AppEvent,
+  Card,
+  ConnectionState,
+  PendingUid,
+  ScanEvent,
+  SeatedCartridge,
+} from '../types'
 
-const EVENT_TYPES = ['pending', 'scan', 'connection', 'cards', 'error'] as const
+const EVENT_TYPES = ['pending', 'scan', 'connection', 'cards', 'error', 'seated'] as const
 
 export interface AppStream {
   /** Home Assistant WebSocket state, as reported by the server. */
@@ -11,6 +18,8 @@ export interface AppStream {
   /** Whether OUR SSE connection to the add-on is alive. */
   streamAlive: boolean
   pending: PendingUid | null
+  /** The cartridge physically on the reader, and what it is doing. */
+  seated: SeatedCartridge | null
   lastScan: { scan: ScanEvent; card: Card | null } | null
   lastError: string | null
   /** Bumped whenever the library changes — components refetch off this. */
@@ -31,6 +40,7 @@ export function useAppStream(): AppStream {
   const [connectionDetail, setConnectionDetail] = useState<string | undefined>()
   const [streamAlive, setStreamAlive] = useState(false)
   const [pending, setPending] = useState<PendingUid | null>(null)
+  const [seated, setSeated] = useState<SeatedCartridge | null>(null)
   const [lastScan, setLastScan] = useState<{ scan: ScanEvent; card: Card | null } | null>(null)
   const [lastError, setLastError] = useState<string | null>(null)
   const [cardsVersion, setCardsVersion] = useState(0)
@@ -45,6 +55,10 @@ export function useAppStream(): AppStream {
   const handle = useCallback(
     (event: AppEvent) => {
       switch (event.type) {
+        case 'seated':
+          setSeated(event.seated)
+          break
+
         case 'pending':
           applyPending(event.pending)
           break
@@ -92,6 +106,7 @@ export function useAppStream(): AppStream {
       .pending()
       .then((result) => {
         applyPending(result.pending)
+        setSeated(result.seated)
         setConnection(result.connection.state as ConnectionState)
         setConnectionDetail(result.connection.detail)
       })
@@ -136,6 +151,7 @@ export function useAppStream(): AppStream {
     connectionDetail,
     streamAlive,
     pending,
+    seated,
     lastScan,
     lastError,
     cardsVersion,

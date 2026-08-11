@@ -85,6 +85,15 @@ export class HomeAssistantRest implements ServiceCaller {
     return Object.keys(entry?.services ?? {})
   }
 
+  /** One entity's current state, or null if Home Assistant does not have it. */
+  async getState(entityId: string): Promise<HassState | null> {
+    try {
+      return (await this.request(`/states/${entityId}`, { method: 'GET' })) as HassState
+    } catch {
+      return null
+    }
+  }
+
   async getStates(): Promise<HassState[]> {
     return (await this.request('/states', { method: 'GET' })) as HassState[]
   }

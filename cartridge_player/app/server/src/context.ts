@@ -5,6 +5,7 @@ import { EventBus, type ConnectionState } from './core/events.js'
 import { PendingUidStore } from './core/pending.js'
 import { ScanHandler } from './core/scan-handler.js'
 import { ReaderLight } from './core/reader-light.js'
+import { PlaybackWatcher } from './core/playback.js'
 import { ProviderRegistry } from './providers/registry.js'
 import { StremioProvider } from './providers/stremio.js'
 import { MusicAssistantProvider } from './providers/musicassistant.js'
@@ -13,6 +14,7 @@ import { AndroidTvTarget } from './targets/androidtv.js'
 import { MusicAssistantTarget } from './targets/musicassistant.js'
 import { HomeAssistantRest } from './ha/rest.js'
 import type { EntityOrigin } from './ha/entity-registry.js'
+import type { SeatedCartridge } from './types.js'
 import { loadOrCreateSessionSecret } from './http/pin.js'
 import { ArtworkStore } from './artwork/store.js'
 
@@ -26,6 +28,9 @@ export interface AppContext {
   bus: EventBus
   scans: ScanHandler
   light: ReaderLight
+  playback: PlaybackWatcher
+  /** The cartridge on the reader right now, for the library to point at. */
+  seated: SeatedCartridge | null
   ha: HomeAssistantRest
   sessionSecret: Buffer
   /** Live Home Assistant WebSocket state, surfaced in the UI (§8.6). */
@@ -111,6 +116,16 @@ export function createContext(config: RuntimeConfig): AppContext {
 
   const light = new ReaderLight({ ha, settings: () => store.getSettings() })
 
+  const playback = new PlaybackWatcher({
+    ha,
+    light,
+    settings: () => store.getSettings(),
+    onSeated: (seated) => {
+      context.seated = seated
+      bus.emit({ type: 'seated', seated })
+    },
+  })
+
   const context: AppContext = {
     config,
     store,
@@ -121,7 +136,9 @@ export function createContext(config: RuntimeConfig): AppContext {
     bus,
     ha,
     light,
-    scans: new ScanHandler({ store, providers, targets, pending, bus, light }),
+    playback,
+    seated: null,
+    scans: new ScanHandler({ store, providers, targets, pending, bus, light, playback }),
     sessionSecret: loadOrCreateSessionSecret(config.dataDir),
     connection: { state: 'disconnected' },
     lastError: null,
