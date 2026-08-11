@@ -90,11 +90,16 @@ export class ScanHandler {
     // Nothing was playing from an empty cartridge, so nothing to stop.
     if (!card || card.status === 'unassigned') return null
 
-    // Nothing is on the reader now, so there is nothing to follow. The light
-    // describes the READER, not the room: music told to keep playing after a
-    // lift-off carries on, and the reader still goes back to idle.
     this.seatedUid = null
-    this.deps.playback?.stop()
+
+    // Whether the light is about the reader or about what is playing is the
+    // user's call, and only differs here — when a cartridge comes off while its
+    // music keeps going.
+    if (store.getSettings().led_scope === 'playback') {
+      this.deps.playback?.detach()
+    } else {
+      this.deps.playback?.stop()
+    }
 
     const settings = store.getSettings()
     if (removalActionFor(card.kind, settings) === 'none') {
@@ -131,11 +136,12 @@ export class ScanHandler {
       // is easy — the launch can take seconds — and starting to follow it here
       // would relight the reader for a cartridge that had already been taken
       // off, leaving it stuck on the playing colour with nothing in the slot.
-      if (this.seatedUid === normalizeUid(card.tag_uid)) {
+      const stillSeated = this.seatedUid === normalizeUid(card.tag_uid)
+      if (stillSeated || settings.led_scope === 'playback') {
         // Handed to the watcher rather than declared here. Finishing the launch
         // sequence says the deep link went out, which is not the same as
         // anything playing — the watcher reads the player and reports what is.
-        this.deps.playback?.start(card)
+        this.deps.playback?.start(card, stillSeated)
       }
       return { card, scan: this.record(card.tag_uid, card.id, steps.join(','), null) }
     } catch (error) {

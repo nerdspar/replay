@@ -9,6 +9,7 @@ import type {
   ArtFit,
   LedPalette,
   LedPlayingMode,
+  LedScope,
   Card,
   CardInput,
   CardKind,
@@ -59,6 +60,7 @@ interface SettingsRow {
   led_playing_artwork: number
   led_follow_player: number
   led_match_cartridge: number
+  led_scope: string
   led_palette: string | null
   reader_device: string | null
   pin_hash: string | null
@@ -97,6 +99,7 @@ function toSettings(row: SettingsRow): Settings {
     led_playing_artwork: row.led_playing_artwork !== 0,
     led_follow_player: row.led_follow_player !== 0,
     led_match_cartridge: row.led_match_cartridge !== 0,
+    led_scope: row.led_scope as LedScope,
     // Normalised on the way out so every caller sees all nine states, whatever
     // an older release or a hand-edited row happens to hold.
     led_palette: normalizePalette(parsePalette(row.led_palette)),
@@ -136,6 +139,7 @@ const WRITABLE_SETTINGS = [
   'led_playing_artwork',
   'led_follow_player',
   'led_match_cartridge',
+  'led_scope',
   'led_palette',
   'reader_device',
   'pin_hash',

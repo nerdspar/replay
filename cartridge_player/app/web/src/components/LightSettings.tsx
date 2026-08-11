@@ -1,5 +1,11 @@
 import { Icon } from './Icon'
-import type { LedPalette, LedPlayingMode, LedStateName, LedStateStyle } from '../types'
+import type {
+  LedPalette,
+  LedPlayingMode,
+  LedScope,
+  LedStateName,
+  LedStateStyle,
+} from '../types'
 
 /**
  * Colours for the reader's status light.
@@ -79,6 +85,19 @@ const ADDON_STATES: StateInfo[] = [
   { key: 'error', label: 'Something failed', hint: 'Clears itself after 30 seconds.', motion: 'Fast' },
 ]
 
+const SCOPES: { value: LedScope; label: string; hint: string }[] = [
+  {
+    value: 'cartridge',
+    label: 'The cartridge',
+    hint: 'Lift one off and the light goes back to idle, whatever is still playing.',
+  },
+  {
+    value: 'playback',
+    label: 'What is playing',
+    hint: 'Lift one off and the light stays with it until the music stops. Pairs with a lift-off action that keeps playing.',
+  },
+]
+
 const PLAYING_MODES: { value: LedPlayingMode; label: string; hint: string }[] = [
   {
     value: 'hold',
@@ -94,12 +113,14 @@ interface LightSettingsProps {
   useArtwork: boolean
   followPlayer: boolean
   matchCartridge: boolean
+  scope: LedScope
   palette: LedPalette
   playingMode: LedPlayingMode
   onEnabledChange: (enabled: boolean) => void
   onUseArtworkChange: (use: boolean) => void
   onFollowPlayerChange: (follow: boolean) => void
   onMatchCartridgeChange: (match: boolean) => void
+  onScopeChange: (scope: LedScope) => void
   onPaletteChange: (palette: LedPalette) => void
   onPlayingModeChange: (mode: LedPlayingMode) => void
 }
@@ -109,12 +130,14 @@ export function LightSettings({
   useArtwork,
   followPlayer,
   matchCartridge,
+  scope,
   palette,
   playingMode,
   onEnabledChange,
   onUseArtworkChange,
   onFollowPlayerChange,
   onMatchCartridgeChange,
+  onScopeChange,
   onPaletteChange,
   onPlayingModeChange,
 }: LightSettingsProps) {
@@ -218,6 +241,31 @@ export function LightSettings({
               </p>
             </>
           ) : null}
+
+          <h3 style={{ fontSize: 15, margin: '24px 0 4px' }}>The light is about</h3>
+          <div className="radio-list">
+            {SCOPES.map((option) => (
+              <label key={option.value}>
+                <input
+                  type="radio"
+                  name="led-scope"
+                  checked={scope === option.value}
+                  onChange={() => onScopeChange(option.value)}
+                />
+                <span>
+                  {option.label}
+                  <span className="hint" style={{ display: 'block' }}>
+                    {option.hint}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="hint">
+            Only differs when you lift a cartridge off while its music is still
+            going. The bar at the top of the library always shows what is
+            actually in the reader, either way.
+          </p>
 
           <h3 style={{ fontSize: 15, margin: '24px 0 4px' }}>While something is playing</h3>
           <div className="radio-list">

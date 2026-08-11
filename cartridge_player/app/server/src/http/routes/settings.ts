@@ -23,6 +23,7 @@ const putBody = z.object({
   led_playing_artwork: z.boolean().optional(),
   led_follow_player: z.boolean().optional(),
   led_match_cartridge: z.boolean().optional(),
+  led_scope: z.enum(['cartridge', 'playback']).optional(),
   led_palette: z
     .record(
       z.string(),

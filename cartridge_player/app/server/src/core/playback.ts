@@ -104,6 +104,15 @@ export function looksLikeCard(
 export class PlaybackWatcher {
   private timer: NodeJS.Timeout | null = null
   private card: Card | null = null
+  /**
+   * Whether that cartridge is still physically on the reader.
+   *
+   * Separate from `card` because under the `playback` scope the two come apart:
+   * the cartridge is lifted, its music keeps going, and the light keeps
+   * following it. The library's banner always uses this, since it answers
+   * "what is in the reader" and nothing else.
+   */
+  private seated = false
   private last: ReaderStatus | null = null
   private playback: PlaybackState = 'idle'
 
@@ -124,9 +133,10 @@ export class PlaybackWatcher {
    * Reports once immediately: the reader is holding a "working" state waiting to
    * hear something, and would otherwise decide nobody had answered.
    */
-  start(card: Card): void {
+  start(card: Card, seated = true): void {
     this.stop()
     this.card = card
+    this.seated = seated
     this.announce()
 
     if (!this.deps.settings().led_follow_player) {
@@ -147,14 +157,28 @@ export class PlaybackWatcher {
 
     const had = this.card !== null
     this.card = null
+    this.seated = false
     this.last = null
     this.playback = 'idle'
     if (had) this.deps.onSeated(null)
   }
 
+  /**
+   * The cartridge came off, but keep following what it started.
+   *
+   * Only under the `playback` scope, and paired with a lift-off action that
+   * lets the music continue: the reader is empty, so the banner clears, while
+   * the light stays with what is actually playing until it stops.
+   */
+  detach(): void {
+    if (!this.card) return
+    this.seated = false
+    this.deps.onSeated(null)
+  }
+
   private announce(): void {
     this.deps.onSeated(
-      this.card
+      this.card && this.seated
         ? { card: this.card, playback: this.playback, since: (this.deps.now ?? Date.now)() }
         : null,
     )
@@ -199,6 +223,11 @@ export class PlaybackWatcher {
       this.push(statusForPlayingMode(settings.led_playing_mode))
     } else if (playback === 'paused') {
       this.push('paused')
+    } else if (!this.seated) {
+      // Followed past the cartridge being lifted, and now it has stopped. There
+      // is nothing left to be about, so hand the light back.
+      this.push('ready')
+      this.stop()
     } else {
       // Seated but nothing is playing — which is exactly the case that used to
       // show green for ever.

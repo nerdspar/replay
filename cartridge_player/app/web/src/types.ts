@@ -44,6 +44,9 @@ export type LedPalette = Record<LedStateName, LedStateStyle>
 
 /** What the light does while a cartridge sits on the reader playing. */
 export type LedPlayingMode = 'hold' | 'confirm' | 'off'
+
+/** Whether the light is about the reader, or about what is playing. */
+export type LedScope = 'cartridge' | 'playback'
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export interface MetaPreview {
@@ -126,6 +129,7 @@ export interface Settings {
   led_playing_artwork: boolean
   led_follow_player: boolean
   led_match_cartridge: boolean
+  led_scope: LedScope
   led_palette: LedPalette
   reader_device: string | null
   public_base_url: string | null

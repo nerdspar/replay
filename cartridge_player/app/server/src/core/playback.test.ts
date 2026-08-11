@@ -337,8 +337,10 @@ describe('a cartridge lifted mid-launch', () => {
       bus: ctx.bus,
       light: { setStatus: async (s) => void said.push(s) } as unknown as ReaderLight,
       playback: {
-        start: (c: { title: string }) => void watched.push(`start:${c.title}`),
+        start: (c: { title: string }, seated = true) =>
+          void watched.push(`start:${c.title}${seated ? '' : ':unseated'}`),
         stop: () => void watched.push('stop'),
+        detach: () => void watched.push('detach'),
       } as never,
     })
 
@@ -357,6 +359,21 @@ describe('a cartridge lifted mid-launch', () => {
     // Following it here would relight the reader for a cartridge that is no
     // longer in it, and leave it stuck on the playing colour.
     expect(watched).toEqual(['stop'])
+    cleanup()
+  })
+
+  it('does follow it when the light is about playback rather than the reader', async () => {
+    const { ctx, watched, release, cleanup } = slowLaunch()
+    ctx.store.updateSettings({ led_scope: 'playback' })
+
+    const firing = ctx.scans.handleInserted('04-77')
+    await ctx.scans.handleRemoved('04-77')
+    release()
+    await firing
+
+    // Started, but told it is not seated — so the banner stays empty while the
+    // light follows what the launch set going.
+    expect(watched).toEqual(['detach', 'start:Slow To Start:unseated'])
     cleanup()
   })
 
@@ -382,5 +399,54 @@ describe('a cartridge lifted mid-launch', () => {
 
     expect(watched).toEqual(['stop'])
     cleanup()
+  })
+})
+
+/**
+ * Whether the light is about the reader or about what is playing.
+ *
+ * They only differ in one moment: a cartridge lifted off while its music
+ * carries on, which is itself a setting — so the two belong together.
+ */
+describe('what the light is about', () => {
+  it('follows past the lift-off, then hands back when the music stops', async () => {
+    const store = { state: 'playing' }
+    const said: string[] = []
+    const seats: (SeatedCartridge | null)[] = []
+    const w = new PlaybackWatcher({
+      ha: { getState: async () => ({ state: store.state, attributes: {} }) },
+      light: { setStatus: async (s: string) => void said.push(s) } as unknown as ReaderLight,
+      settings: () => settings({ media_player_entity: 'media_player.tv' }),
+      onSeated: (s) => void seats.push(s),
+    })
+
+    w.start(card())
+    await settle()
+    w.detach()
+    // Still playing, so the light stays with it.
+    await w['tick']()
+    expect(said).toEqual(['playing_hold'])
+    // The reader is empty either way, so the banner has already cleared.
+    expect(seats[seats.length - 1]).toBeNull()
+
+    store.state = 'idle'
+    await w['tick']()
+    expect(said).toEqual(['playing_hold', 'ready'])
+    w.stop()
+  })
+
+  it('does not detach something it was never following', () => {
+    const { w, seats } = watcher('playing')
+    w.detach()
+    expect(seats).toEqual([])
+  })
+
+  it('keeps the banner honest while it is still seated', async () => {
+    const { w, seats } = watcher('playing')
+    w.start(card({ title: 'Rumours' }))
+    await settle()
+
+    expect(seats[seats.length - 1]?.card.title).toBe('Rumours')
+    w.stop()
   })
 })

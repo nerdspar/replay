@@ -123,6 +123,16 @@ export type LedPalette = Record<LedStateName, LedStateStyle>
 export type LedPlayingMode = 'hold' | 'confirm' | 'off'
 
 /**
+ * What the light is about.
+ *
+ * `cartridge` — the reader. Lift one off and the light goes idle, whatever the
+ * speaker is doing.
+ * `playback` — what is playing. Lift a cartridge off with the music set to keep
+ * going and the light keeps following it, until it stops.
+ */
+export type LedScope = 'cartridge' | 'playback'
+
+/**
  * `unassigned` is a cartridge you still own that currently plays nothing —
  * distinct from deleting it, which is for a cartridge that is lost or broken.
  */
@@ -182,6 +192,7 @@ export interface Settings {
   led_follow_player: boolean
   /** Only call it playing when what is playing looks like this cartridge. */
   led_match_cartridge: boolean
+  led_scope: LedScope
   led_palette: LedPalette
   /** ESPHome device name. Blank means "whichever reader answers" (§1.2). */
   reader_device: string | null

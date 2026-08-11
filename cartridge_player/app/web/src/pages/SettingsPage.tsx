@@ -106,6 +106,7 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         led_playing_artwork: draft.led_playing_artwork,
         led_follow_player: draft.led_follow_player,
         led_match_cartridge: draft.led_match_cartridge,
+        led_scope: draft.led_scope,
         led_palette: draft.led_palette,
         public_base_url: draft.public_base_url,
         ...(pin.trim() === '' ? {} : { pin: pin.trim() }),
@@ -286,12 +287,14 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         useArtwork={draft.led_playing_artwork}
         followPlayer={draft.led_follow_player}
         matchCartridge={draft.led_match_cartridge}
+        scope={draft.led_scope}
         palette={draft.led_palette}
         playingMode={draft.led_playing_mode}
         onEnabledChange={(v) => set('led_enabled', v)}
         onUseArtworkChange={(v) => set('led_playing_artwork', v)}
         onFollowPlayerChange={(v) => set('led_follow_player', v)}
         onMatchCartridgeChange={(v) => set('led_match_cartridge', v)}
+        onScopeChange={(v) => set('led_scope', v)}
         onPaletteChange={(v: LedPalette) => set('led_palette', v)}
         onPlayingModeChange={(v: LedPlayingMode) => set('led_playing_mode', v)}
       />

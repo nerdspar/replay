@@ -35,6 +35,7 @@ export function settings(overrides: Partial<Settings> = {}): Settings {
     led_playing_artwork: false,
     led_follow_player: true,
     led_match_cartridge: false,
+    led_scope: 'cartridge',
     led_palette: DEFAULT_PALETTE,
     reader_device: null,
     pin_hash: null,

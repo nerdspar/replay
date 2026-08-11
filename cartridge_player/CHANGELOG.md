@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.3
+
+**The light is about** is a new choice under Settings → Reader light.
+
+*The cartridge* — lifting one off returns the reader to idle, whatever is still
+playing. *What is playing* — the light stays with it until the music stops,
+which pairs with setting music lift-off to keep playing.
+
+It only makes a difference when you lift a cartridge off while its music
+continues. Either way, the bar at the top of the library shows what is actually
+in the reader.
+
 ## 0.5.2
 
 Lifting a cartridge off while it was still starting could leave the reader

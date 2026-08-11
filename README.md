@@ -138,6 +138,12 @@ say so.
 
 Lifting a cartridge off clears any held state.
 
+**The light is about** lets you choose what the light describes. *The cartridge*
+means lifting one off returns the reader to idle, whatever is still playing.
+*What is playing* means the light stays with it until the music stops — which
+pairs with setting music lift-off to keep playing. Either way, the bar at the top
+of the library shows what is actually in the reader.
+
 All nine colours and brightnesses are yours to change under **Settings → Reader
 light**, each with a reset button. The three speeds are fixed, because they are
 what keeps two states apart when they share a colour.

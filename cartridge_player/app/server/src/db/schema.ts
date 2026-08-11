@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 8
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -230,6 +230,18 @@ ALTER TABLE settings ADD COLUMN led_follow_player INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE settings ADD COLUMN led_match_cartridge INTEGER NOT NULL DEFAULT 0;
 `
 
+/**
+ * Whether the light is about the reader or about the playing.
+ *
+ * Both are defensible and the difference only shows when a cartridge is lifted
+ * while its music keeps going — which is a setting of its own, so the two
+ * belong together. Defaults to the reader, because that is the narrower claim:
+ * the light is on the reader, and can always be trusted to describe it.
+ */
+const V8 = `
+ALTER TABLE settings ADD COLUMN led_scope TEXT NOT NULL DEFAULT 'cartridge';
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -253,6 +265,9 @@ export function migrate(db: Database): void {
   }
   if (current < 7) {
     db.exec(V7)
+  }
+  if (current < 8) {
+    db.exec(V8)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)
