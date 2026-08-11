@@ -56,7 +56,7 @@ The test suite must prove that seam holds — see §11.
 |---|---|
 | ESP8266 board | D1 mini or NodeMCU v2 |
 | RC522 RFID module | SPI |
-| Active buzzer module (3-pin, onboard transistor) | See §1.2 |
+| SK6812 addressable LED | One. See §1.2 |
 | NTAG215 stickers, 25 mm | One per cartridge |
 | 470 µF electrolytic capacitor | Across 3V3/GND near the RC522 |
 | 3D-printed cartridge shells + reader enclosure | Derived from the TheStockPot model, resized |
@@ -71,7 +71,7 @@ Hardware SPI on the ESP8266 is fixed. Use these pins:
 | SPI MOSI | GPIO13 | D7 |
 | SPI MISO | GPIO12 | D6 |
 | RC522 CS | GPIO5 | D1 |
-| Buzzer signal | GPIO4 | D2 |
+| SK6812 data in | GPIO4 | D2 |
 
 **Do not use GPIO0, GPIO2, GPIO15, or GPIO16.** GPIO15 must be low at boot and
 RC522 modules often pull it high, producing a board that won't start with no
@@ -84,21 +84,31 @@ The RC522 reset pin is left unconnected; the module uses its own power-on reset.
 > RST, so the pin idles high. Boards that omit that resistor leave RST floating
 > low, and since it is active low the chip sits in power-down and cannot answer
 > the soft reset ESPHome sends. Symptom: `[E][rc522] Reset command failed` while
-> wifi, uptime and the buzzer all work. Fix: tie RST to 3V3. Hit on real
+> wifi, uptime and the status light all work. Fix: tie RST to 3V3. Hit on real
 > hardware during bring-up.
 
-### 1.2 Buzzer
+### 1.2 Status light
 
-Use a **3-pin active buzzer module with an onboard driver transistor** (VCC / GND /
-Signal). Confirm a three-legged SOT-23 component is visible on the board — some
-3-pin modules leave the middle pin unconnected and are just a bare buzzer, which
-would exceed the ESP8266's pin budget.
+One **SK6812** on GPIO4/D2. DIN to D2, VDD to 3V3, GND to G, DOUT unconnected.
+A 330–470 Ω resistor in series with DIN if the lead runs more than ~10 cm.
 
-With a module, the GPIO supplies only base current and the firmware treats it as a
-plain digital output.
+**Power it from 3V3, not 5V.** At 5 V the chip's logic-high threshold is roughly
+0.7 × VDD = 3.5 V, and the ESP8266 drives 3.3 V. The margin is negative on paper
+and works anyway on a bench with short leads — which is the dangerous case,
+because it degrades into intermittent failure once assembled and presents as a
+loose connection. At 3.3 V the threshold falls to about 2.3 V.
 
-If a bare active buzzer is used instead, it needs an NPN transistor (2N3904 or
-BC337), a 1 kΩ base resistor, and a 1N4148 flyback diode across the buzzer.
+Driver: `neopixelbus`, `variant: SK6812`, `method: bit_bang`. The two hardware
+methods on ESP8266 are pinned to GPIO1 (the logger's UART TX) and GPIO2 (the
+onboard LED), so neither is available. Bit-banging blocks interrupts for the
+duration of the write; for a single LED that is 24 bits × 1.25 µs = 30 µs, far
+too short to disturb wifi. The usual warning about this applies to long strips.
+
+For the RGBW variant of the part, `type: GRB` becomes `type: GRBW`.
+
+Earlier revisions used a piezo buzzer on this pin. The LED replaces it: it
+conveys more than one state, and a reader that lives in a living room should not
+have to make a noise to tell you it is working.
 
 ### 1.3 Power
 
@@ -116,14 +126,23 @@ in the original YAML is ESP8266-compatible; only the platform block and pins cha
 ### 2.1 Required behaviour
 
 - Read NTAG215 UIDs via `rc522_spi`, `update_interval: 250ms`
-- **Beep locally inside `on_tag`**, not via a Home Assistant round trip. Audible
-  confirmation must not depend on network latency or HA being responsive.
+- **Flash the LED locally inside `on_tag`**, not via a Home Assistant round trip.
+  Confirmation that the tag was READ must not depend on network latency or HA
+  being responsive. What the tag then *does* is a separate signal that legitimately
+  does depend on HA — see below.
 - Fire `esphome.nfc_card_inserted` with `uid` in the event data
 - Fire `esphome.nfc_card_removed` with the UID that was removed
 - Debounce removal by 500 ms — a card resting on the reader intermittently drops
   out of the field, and without debounce this produces event storms
 - Expose `text_sensor` "Cartridge ID" and `binary_sensor` "Cartridge Present"
-- Keep the template button that triggers a test beep
+- Keep the template button that triggers a test flash
+- Show connection state on the LED without being asked: red for no wifi, amber
+  for wifi-but-no-Home-Assistant, dim white for ready. This is the reader saying
+  whether *it* is the problem, so it cannot come from HA.
+- Accept a `set_status` action taking a state name, so the add-on can report what
+  a cartridge actually did — `playing`, `new`, `error`, `busy`, `ready`, `off`.
+  Unknown names must fall through to ambient rather than sticking, so a newer
+  add-on cannot strand older firmware showing a colour it does not understand.
 
 ### 2.2 Platform block
 

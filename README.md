@@ -45,9 +45,8 @@ Requirements:
 ## 2. Build the reader
 
 See [§1 of the spec](cartridge-player-spec.md#1-hardware) for the bill of
-materials. In short: a D1 mini, an RC522 module, a **3-pin active buzzer module
-with an onboard transistor**, a 470 µF capacitor across 3V3/GND next to the
-RC522, and NTAG215 stickers.
+materials. In short: a D1 mini, an RC522 module, one **SK6812** addressable LED,
+a 470 µF capacitor across 3V3/GND next to the RC522, and NTAG215 stickers.
 
 Pin map — these are deliberate, do not "simplify" them:
 
@@ -57,18 +56,26 @@ Pin map — these are deliberate, do not "simplify" them:
 | SPI MOSI | GPIO13 | D7 |
 | SPI MISO | GPIO12 | D6 |
 | RC522 CS | GPIO5 | D1 |
-| Buzzer | GPIO4 | D2 |
+| SK6812 DIN | GPIO4 | D2 |
 
 **Do not use GPIO0, GPIO2, GPIO15, or GPIO16.** GPIO15 must be low at boot and
 RC522 modules often pull it high — the board then simply won't start, with no
 obvious cause. GPIO1 is UART TX and collides with the serial logger.
+
+**Power the LED from 3V3, not 5V.** At 5 V an SK6812 needs about 3.5 V to read a
+logic high and the ESP8266 only drives 3.3 V. That margin is negative on paper
+and works fine on the bench, which is the worst combination — it starts failing
+intermittently once the thing is in a case, and looks exactly like a loose wire.
+At 3.3 V the threshold drops to about 2.3 V. Wire DIN to D2, VDD to 3V3, GND to
+G, and leave DOUT unconnected. Add a 330–470 Ω resistor in series with DIN if
+the lead is more than about 10 cm.
 
 **If the log shows `[E][rc522] Reset command failed`, connect RST to 3V3.**
 RST is active low. Boards that populate the pull-up on it idle high and run
 happily with RST unconnected — which is why the upstream project leaves it off
 and never hits this. Boards that omit the resistor leave it floating low, which
 holds the chip in power-down where it cannot answer the soft reset ESPHome
-sends. Wifi, uptime and the buzzer all keep working, so nothing points at the
+sends. Wifi, uptime and the status light all keep working, so nothing points at the
 reset line. One jumper to 3V3 fixes it; confirmed on a module that needed it.
 
 ## 3. Flash the firmware
@@ -81,7 +88,21 @@ ESPHome config directory, add the secrets from
 and ESP32-S3; those will not flash to an ESP8266.
 
 Once it is running you should see a `Cartridge ID` sensor, a `Cartridge Present`
-binary sensor, and a `Test Beep` button in Home Assistant.
+binary sensor, and a `Test Light` button in Home Assistant.
+
+The LED tells you where the reader is before you touch a cartridge:
+
+| Colour | Meaning |
+|---|---|
+| Red, breathing | No wifi |
+| Amber, breathing | On wifi, but Home Assistant has not connected back yet — tapping a cartridge will read the tag and nothing more |
+| Dim white | Ready |
+| White flash | Tag read |
+
+Those four are produced by the reader itself and do not depend on Home
+Assistant, which is the point: they are what tells you whether the problem is
+the reader or everything else. The colours for what a cartridge actually *did*
+are pushed in by the add-on, since only it knows.
 
 ## 4. Use it
 

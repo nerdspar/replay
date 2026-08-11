@@ -5,11 +5,11 @@
 # ESP8266 — compile this YAML.
 #
 # Pin map (§1.1). Hardware SPI on the ESP8266 is fixed; these are deliberate.
-#   SPI CLK   GPIO14  D5
-#   SPI MOSI  GPIO13  D7
-#   SPI MISO  GPIO12  D6
-#   RC522 CS  GPIO5   D1
-#   Buzzer    GPIO4   D2
+#   SPI CLK    GPIO14  D5
+#   SPI MOSI   GPIO13  D7
+#   SPI MISO   GPIO12  D6
+#   RC522 CS   GPIO5   D1
+#   SK6812 DIN GPIO4   D2
 #
 # Do NOT move anything to GPIO0/2/15/16. GPIO15 must be low at boot and RC522
 # modules often pull it high, giving a board that silently refuses to start.
@@ -19,8 +19,8 @@
 # does, which is why their YAML has no `reset_pin` either. If yours does not,
 # RST floats low, and since it is ACTIVE LOW the chip sits in power-down and
 # cannot answer the soft reset ESPHome sends when no `reset_pin` is configured.
-# Symptom: `[E][rc522] Reset command failed`, with wifi, uptime and the buzzer
-# all working normally. Fix: one jumper from RST to 3V3.
+# Symptom: `[E][rc522] Reset command failed`, with wifi, uptime and the status
+# light all working normally. Fix: one jumper from RST to 3V3.
 
 substitutions:
   device_name: cartridge-reader
@@ -30,9 +30,10 @@ esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
   on_boot:
+    # -100 runs after every component is set up, so the light is real by now.
     priority: -100
     then:
-      - script.execute: beep_ready
+      - script.execute: show_ambient
 
 esp8266:
   board: d1_mini
@@ -45,6 +46,31 @@ api:
   encryption:
     key: !secret cartridge_reader_api_key
 
+  # The reader knows a tag was read. It does NOT know whether that tag is
+  # assigned, whether the TV accepted the deep link, or whether Music Assistant
+  # found the album — only the add-on knows any of that. So the outcome colours
+  # are pushed in from there rather than guessed here.
+  #
+  # Needs ESPHome 2024.6 or newer for `actions:`. On older versions rename this
+  # key to `services:` and `action:` to `service:`; nothing else changes.
+  actions:
+    - action: set_status
+      variables:
+        state: string
+      then:
+        - script.execute:
+            id: show_status
+            state: !lambda "return state;"
+
+  on_client_connected:
+    then:
+      - lambda: "id(link_up) = true;"
+      - script.execute: show_ambient
+  on_client_disconnected:
+    then:
+      - lambda: "id(link_up) = false;"
+      - script.execute: show_ambient
+
 ota:
   - platform: esphome
     password: !secret cartridge_reader_ota_password
@@ -55,8 +81,67 @@ wifi:
   ap:
     ssid: "${friendly_name} Fallback"
     password: !secret fallback_ap_password
+  on_connect:
+    then:
+      - lambda: "id(net_up) = true;"
+      - script.execute: show_ambient
+  on_disconnect:
+    then:
+      - lambda: |-
+          id(net_up) = false;
+          id(link_up) = false;
+      - script.execute: show_ambient
 
 captive_portal:
+
+# ---------------------------------------------------------------------------
+# Status light (§1.2)
+#
+# One SK6812 on D2 — the pin the buzzer used to have.
+#
+# POWER IT FROM 3V3, NOT 5V. At 5V the chip wants ~0.7 x VDD = 3.5V to read a
+# logic high, and the ESP8266 drives 3.3V. That margin is negative on paper and
+# works on the bench, which is the worst combination: it fails intermittently
+# later, in a case, and looks like a loose wire. At 3V3 the threshold drops to
+# ~2.3V and 3.3V logic has real headroom.
+#
+# `bit_bang` because the two hardware methods are pinned to GPIO1 (the logger's
+# UART TX) and GPIO2 (the onboard blue LED). Bit-banging blocks interrupts for
+# the length of the write, which for ONE led is 24 bits x 1.25us = 30us — far
+# too short to disturb wifi. That warning is about long strips.
+#
+# RGBW variant: change `type: GRB` to `type: GRBW`. Nothing else moves.
+# ---------------------------------------------------------------------------
+
+light:
+  - platform: neopixelbus
+    id: status_led
+    variant: SK6812
+    type: GRB
+    pin: GPIO4
+    num_leds: 1
+    method:
+      type: bit_bang
+    # Driven entirely by the scripts below. Exposing it to Home Assistant as a
+    # light would let an automation fight them and win at random.
+    internal: true
+    restore_mode: ALWAYS_OFF
+    # The pulse effect drives brightness itself, between these two bounds, and
+    # ignores whatever brightness the caller set. So the range lives here rather
+    # than at the call site — setting it there looks right and does nothing.
+    effects:
+      - pulse:
+          name: "Breathe"
+          transition_length: 900ms
+          update_interval: 900ms
+          min_brightness: 4%
+          max_brightness: 45%
+      - pulse:
+          name: "Urgent"
+          transition_length: 250ms
+          update_interval: 250ms
+          min_brightness: 10%
+          max_brightness: 80%
 
 # ---------------------------------------------------------------------------
 # Reader
@@ -76,6 +161,22 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
+  # Connection state, tracked here rather than read out of the wifi and api
+  # components, so the light does not depend on their internals.
+  - id: net_up
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  - id: link_up
+    type: bool
+    restore_value: false
+    initial_value: "false"
+  # Set while the add-on is showing an outcome, so ambient does not overwrite
+  # "not set up yet" a second after it appears.
+  - id: holding
+    type: bool
+    restore_value: false
+    initial_value: "false"
 
 rc522_spi:
   cs_pin: GPIO5
@@ -90,18 +191,19 @@ rc522_spi:
 
       - if:
           condition:
-            lambda: 'return id(current_uid) != x || !id(card_present);'
+            lambda: "return id(current_uid) != x || !id(card_present);"
           then:
-            # Beep locally, before anything touches the network. Audible
-            # confirmation must not depend on HA being responsive (§2.1).
-            - script.execute: beep_insert
+            # Flash locally, before anything touches the network. Confirmation
+            # that the tag was READ must not depend on HA being up (§2.1). What
+            # happens next does, and that arrives later as a colour.
+            - script.execute: flash_read
 
             - lambda: |-
                 id(current_uid) = x;
                 id(card_present) = true;
             - text_sensor.template.publish:
                 id: cartridge_id
-                state: !lambda 'return x;'
+                state: !lambda "return x;"
             - binary_sensor.template.publish:
                 id: cartridge_present
                 state: true
@@ -109,7 +211,7 @@ rc522_spi:
             - homeassistant.event:
                 event: esphome.nfc_card_inserted
                 data:
-                  uid: !lambda 'return x;'
+                  uid: !lambda "return x;"
 
   on_tag_removed:
     then:
@@ -124,12 +226,12 @@ script:
       - delay: 500ms
       - if:
           condition:
-            lambda: 'return id(card_present);'
+            lambda: "return id(card_present);"
           then:
             - homeassistant.event:
                 event: esphome.nfc_card_removed
                 data:
-                  uid: !lambda 'return id(current_uid);'
+                  uid: !lambda "return id(current_uid);"
             - lambda: |-
                 id(card_present) = false;
                 id(current_uid) = "";
@@ -139,41 +241,98 @@ script:
             - text_sensor.template.publish:
                 id: cartridge_id
                 state: ""
+            # Lifting a cartridge ends whatever the last one was saying.
+            - lambda: "id(holding) = false;"
+            - script.execute: show_ambient
 
-  - id: beep_insert
+  # What the reader shows when nothing is happening — which is almost always,
+  # so it doubles as the "is this thing alive" indicator.
+  - id: show_ambient
     mode: restart
     then:
-      - switch.turn_on: buzzer
-      - delay: 60ms
-      - switch.turn_off: buzzer
-      - delay: 50ms
-      - switch.turn_on: buzzer
-      - delay: 60ms
-      - switch.turn_off: buzzer
+      - lambda: |-
+          if (id(holding)) return;
 
-  - id: beep_ready
+          auto call = id(status_led).turn_on();
+          if (id(link_up)) {
+            // Ready. Dim on purpose: this sits in a living room, and a bright
+            // idle light is something people end up covering with tape.
+            call.set_rgb(1.0f, 1.0f, 1.0f);
+            call.set_brightness(0.06f);
+            call.set_effect("None");
+          } else if (id(net_up)) {
+            // On wifi but Home Assistant has not connected back yet. Tapping a
+            // cartridge now will read the tag and nothing else will happen.
+            call.set_rgb(1.0f, 0.55f, 0.0f);
+            call.set_effect("Breathe");
+          } else {
+            call.set_rgb(1.0f, 0.0f, 0.0f);
+            call.set_effect("Breathe");
+          }
+          call.set_transition_length(400);
+          call.perform();
+
+  # A tag came off the reader chip. Says nothing about what it will play.
+  - id: flash_read
     mode: restart
     then:
-      - switch.turn_on: buzzer
+      - lambda: |-
+          auto call = id(status_led).turn_on();
+          call.set_rgb(1.0f, 1.0f, 1.0f);
+          call.set_brightness(1.0f);
+          call.set_effect("None");
+          call.set_transition_length(0);
+          call.perform();
       - delay: 120ms
-      - switch.turn_off: buzzer
+      - script.execute: show_ambient
 
-# ---------------------------------------------------------------------------
-# Buzzer (§1.2)
-#
-# 3-pin ACTIVE buzzer module with an onboard driver transistor: the GPIO only
-# supplies base current, so a plain digital output is correct and stays inside
-# the ESP8266's 12 mA per-pin budget. Confirm a three-legged SOT-23 part is
-# actually on the board — some "3-pin" modules leave the middle pin floating and
-# are a bare buzzer, which would exceed the budget.
-# ---------------------------------------------------------------------------
+  # Called by the add-on through the `set_status` action once it knows what the
+  # tag actually did. Unknown names fall through to ambient rather than
+  # sticking, so a newer add-on can add states without bricking older firmware.
+  - id: show_status
+    mode: restart
+    parameters:
+      state: string
+    then:
+      - lambda: |-
+          id(holding) = false;
 
-switch:
-  - platform: gpio
-    id: buzzer
-    pin: GPIO4
-    internal: true
-    restore_mode: ALWAYS_OFF
+          auto call = id(status_led).turn_on();
+          call.set_transition_length(150);
+          call.set_effect("None");
+
+          if (state == "playing") {
+            call.set_rgb(0.0f, 1.0f, 0.15f);
+            call.set_brightness(0.7f);
+          } else if (state == "new") {
+            // An unassigned cartridge: the app is waiting for someone to say
+            // what it plays. Held until it is set up or lifted off.
+            id(holding) = true;
+            call.set_rgb(0.1f, 0.35f, 1.0f);
+            call.set_effect("Breathe");
+          } else if (state == "error") {
+            id(holding) = true;
+            call.set_rgb(1.0f, 0.0f, 0.0f);
+            call.set_effect("Urgent");
+          } else if (state == "busy") {
+            call.set_rgb(0.6f, 0.3f, 1.0f);
+            call.set_effect("Breathe");
+          } else if (state == "off") {
+            id(status_led).turn_off().perform();
+            return;
+          } else {
+            // "ready", and anything this firmware does not recognise.
+            return;
+          }
+          call.perform();
+      - if:
+          condition:
+            lambda: "return !id(holding);"
+          then:
+            # A confirmation, not a mode. Long enough to notice from across a
+            # room, short enough that the reader settles back to ambient.
+            - delay: 2s
+            - script.execute: show_ambient
 
 # ---------------------------------------------------------------------------
 # Entities
@@ -193,10 +352,10 @@ binary_sensor:
 
 button:
   - platform: template
-    name: "Test Beep"
-    icon: mdi:volume-high
+    name: "Test Light"
+    icon: mdi:lightbulb-on-outline
     on_press:
-      - script.execute: beep_insert
+      - script.execute: flash_read
 
 sensor:
   - platform: wifi_signal

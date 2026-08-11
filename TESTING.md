@@ -182,7 +182,8 @@ sequence:
 ```
 
 This does **not** replace Phase 5. It exercises everything from Home Assistant
-inward, and nothing about the reader itself — the beep, the debounce, and the
+inward, and nothing about the reader itself — the status light, the debounce,
+and the
 brownout behaviour are only testable on real hardware.
 
 ## Phase 4c — Music cartridges (M)
@@ -239,14 +240,21 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 
 | # | Check | Pass condition |
 |---|---|---|
-| 5.1 | Confirm the buzzer module has a three-legged SOT-23 part on it | Visible before wiring. A bare buzzer here exceeds the ESP8266's pin budget |
+| 5.1 | Confirm the SK6812's VDD goes to **3V3**, not 5V | Checked before first power-on. At 5 V the data threshold is above what the ESP8266 can drive; it will work on the bench and fail later in the case |
 | 5.2 | Fit the 470 µF capacitor across 3V3/GND next to the RC522 | Fitted before first power-on |
 | 5.3 | Flash from YAML | Compiles and boots. Prebuilt upstream binaries are ESP32 and will not work |
-| 5.3a | Log shows `[I][rc522] Device online` after boot | If it shows `[E][rc522] Reset command failed` instead, RST is floating — tie it to 3V3. Everything else (wifi, uptime, buzzer) works normally in that state, so nothing points at the reset line |
+| 5.3a | Log shows `[I][rc522] Device online` after boot | If it shows `[E][rc522] Reset command failed` instead, RST is floating — tie it to 3V3. Everything else (wifi, uptime, the LED) works normally in that state, so nothing points at the reset line |
 | 5.4 | Board boots reliably 10 times from cold | No boot loops. Failures here usually mean something is pulling GPIO15 high |
-| 5.5 | Press the "Test Beep" button in Home Assistant | Audible |
-| 5.6 | Tap a tag | Beeps **immediately** — not after a network round trip |
-| 5.7 | Pull the network cable / block wifi, tap a tag | Still beeps. Confirmation must not depend on Home Assistant |
+| 5.5 | Press the "Test Light" button in Home Assistant | One white flash |
+| 5.5a | Colours are right, not swapped | If red and green are reversed, the LED wants `type: RGB` rather than `GRB`. If it lights but stays white, it is an RGBW part and wants `type: GRBW` |
+| 5.6 | Tap a tag | Flashes **immediately** — not after a network round trip |
+| 5.7 | Pull the network cable / block wifi, tap a tag | Still flashes. Confirmation the tag was read must not depend on Home Assistant |
+| 5.7a | Leave wifi blocked for 30 s | Settles to red, breathing |
+| 5.7b | Restore wifi, but stop Home Assistant | Amber, breathing — distinct from both red and ready |
+| 5.7c | Start Home Assistant again | Returns to dim white within a few seconds, without a reboot |
+| 5.7d | Call `esphome.cartridge_reader_set_status` with `state: playing` from Developer Tools → Actions | Green for about 2 s, then back to dim white |
+| 5.7e | Call it with `state: error` | Red, fast pulse, and **stays** — an error should not scroll past while you are in another room |
+| 5.7f | Call it with `state: nonsense` | Nothing sticks; the light stays as it was. Older firmware must not strand itself on a state a newer add-on invented |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |
 | 5.10 | Lift the tag | Exactly one `esphome.nfc_card_removed`, about 0.5 s later |
@@ -255,6 +263,10 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 
 5.9 and 5.11 are what the debounce exists for, and they are invisible in any
 software test.
+
+5.7a to 5.7c are the reason the LED exists at all: they are the reader telling
+you whether a dead cartridge tap is its fault or the add-on's, without opening a
+log. Check they are distinguishable from across the room, not just up close.
 
 ---
 
