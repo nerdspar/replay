@@ -74,6 +74,19 @@ export function Library({ stream }: LibraryProps) {
       .catch(() => setRecentUnassigned([]))
   }, [cards, stream.lastScan])
 
+  /** Clears a stray tag from the strip. Re-tapping it brings it back. */
+  const dismissTag = async (uid: string) => {
+    setRecentUnassigned((current) => current.filter((u) => u !== uid))
+    try {
+      await api.dismissScans(uid)
+      if (stream.pending?.uid === uid) stream.dismissPending()
+    } catch (e) {
+      setToast((e as ApiError).message)
+      setTimeout(() => setToast(null), 4000)
+      refresh()
+    }
+  }
+
   const toggleOne = (id: number) =>
     setSelected((current) => {
       const next = new Set(current)
@@ -160,12 +173,26 @@ export function Library({ stream }: LibraryProps) {
           </p>
           <div className="strip">
             {recentUnassigned.map((uid) => (
-              <button key={uid} className="chip" onClick={() => setAssigning({ uid })}>
-                <span aria-hidden="true">＋</span>
-                {uid}
-              </button>
+              <span key={uid} className="chip">
+                <button className="chip-main" onClick={() => setAssigning({ uid })}>
+                  <Icon name="plus" size={15} />
+                  {uid}
+                </button>
+                <button
+                  className="chip-dismiss"
+                  aria-label={`Forget ${uid}`}
+                  title="Forget this tag"
+                  onClick={() => void dismissTag(uid)}
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              </span>
             ))}
           </div>
+          <p className="hint" style={{ marginTop: -8, marginBottom: 14 }}>
+            Tags you have held on the reader but not set up yet. Forgetting one
+            just clears it from here — tap it on the reader again and it returns.
+          </p>
         </>
       ) : null}
 
@@ -176,7 +203,7 @@ export function Library({ stream }: LibraryProps) {
         </div>
       ) : cards.length === 0 ? (
         <div className="center-empty">
-          <p style={{ fontSize: 40, margin: 0 }}>🎞</p>
+          <Icon name="film" size={40} />
           <p>No cartridges yet.</p>
           <p className="hint">Tap one on the reader and it will show up here.</p>
         </div>

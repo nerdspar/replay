@@ -63,11 +63,13 @@ Pin map — these are deliberate, do not "simplify" them:
 RC522 modules often pull it high — the board then simply won't start, with no
 obvious cause. GPIO1 is UART TX and collides with the serial logger.
 
-**Connect the RC522's RST pin to 3V3.** It is active low, and many clone modules
-have no pull-up on it, so left floating it holds the chip in power-down. The
-reader then never answers and the log shows `[E][rc522] Reset command failed`
-while wifi, uptime and the buzzer all work perfectly — which points nowhere near
-the reset line.
+**If the log shows `[E][rc522] Reset command failed`, connect RST to 3V3.**
+RST is active low. Boards that populate the pull-up on it idle high and run
+happily with RST unconnected — which is why the upstream project leaves it off
+and never hits this. Boards that omit the resistor leave it floating low, which
+holds the chip in power-down where it cannot answer the soft reset ESPHome
+sends. Wifi, uptime and the buzzer all keep working, so nothing points at the
+reset line. One jumper to 3V3 fixes it; confirmed on a module that needed it.
 
 ## 3. Flash the firmware
 

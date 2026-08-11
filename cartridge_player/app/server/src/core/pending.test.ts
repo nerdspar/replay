@@ -147,3 +147,88 @@ describe('EventBus', () => {
     expect(seen).toHaveLength(1)
   })
 })
+
+/**
+ * "Seen but not assigned" is derived from the scan log, so forgetting a stray
+ * tag means forgetting its scans. Deliberately not a permanent block-list.
+ */
+describe('forgetting a stray tag', () => {
+  it('removes it from the strip and clears it if it was pending', async () => {
+    active = testContext()
+    const { ctx } = active
+    const app = buildServer(ctx, { requirePin: false })
+
+    await ctx.scans.handleInserted('1D-CF-2F-D0-08-10-80')
+    await ctx.scans.handleInserted('1D-D2-2F-D0-08-10-80')
+    expect(ctx.store.listScans().length).toBe(2)
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/api/scans/1D-D2-2F-D0-08-10-80',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ removed: 1 })
+    expect(ctx.store.listScans().map((s) => s.tag_uid)).toEqual(['1D-CF-2F-D0-08-10-80'])
+    // It was the most recent scan, so it was also the pending one.
+    expect(ctx.pending.get()).toBeNull()
+
+    await app.close()
+  })
+
+  it('matches however the UID is formatted', async () => {
+    active = testContext()
+    const { ctx } = active
+    const app = buildServer(ctx, { requirePin: false })
+
+    await ctx.scans.handleInserted('1D-CF-2F-D0-08-10-80')
+    const response = await app.inject({ method: 'DELETE', url: '/api/scans/1dcf2fd0081080' })
+
+    expect(response.json()).toMatchObject({ removed: 1 })
+    expect(ctx.store.listScans()).toEqual([])
+    await app.close()
+  })
+
+  it('brings it back when the tag is tapped again, rather than blocking it', async () => {
+    active = testContext()
+    const { ctx } = active
+    const app = buildServer(ctx, { requirePin: false })
+
+    await ctx.scans.handleInserted('1D-CF-2F-D0-08-10-80')
+    await app.inject({ method: 'DELETE', url: '/api/scans/1D-CF-2F-D0-08-10-80' })
+    expect(ctx.store.listScans()).toEqual([])
+
+    await ctx.scans.handleInserted('1D-CF-2F-D0-08-10-80')
+    expect(ctx.store.listScans().map((s) => s.tag_uid)).toEqual(['1D-CF-2F-D0-08-10-80'])
+    expect(ctx.pending.get()?.uid).toBe('1D-CF-2F-D0-08-10-80')
+
+    await app.close()
+  })
+
+  it('leaves an assigned cartridge alone', async () => {
+    active = testContext()
+    const { ctx } = active
+    ctx.store.createCard(
+      {
+        tag_uid: '1D-CF-2F-D0-08-10-80',
+        provider: 'stremio',
+        content_type: 'movie',
+        external_id: 'tt1',
+        title: 'Kept',
+        year: null,
+        poster_url: null,
+        season: null,
+        episode: null,
+        label: null,
+      },
+      Date.now(),
+    )
+    const app = buildServer(ctx, { requirePin: false })
+
+    await app.inject({ method: 'DELETE', url: '/api/scans/1D-CF-2F-D0-08-10-80' })
+
+    // Only scan history is forgotten; the cartridge itself is untouched.
+    expect(ctx.store.findCardByUid('1D-CF-2F-D0-08-10-80')?.title).toBe('Kept')
+    await app.close()
+  })
+})

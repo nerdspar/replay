@@ -79,11 +79,13 @@ obvious cause. GPIO1 is UART TX and conflicts with the serial logger.
 
 The RC522 reset pin is left unconnected; the module uses its own power-on reset.
 
-> **Corrected in testing: tie RST to 3V3.** That holds only for modules with a
-> pull-up on RST. RST is active low, and a floating-low pin holds the chip in
-> power-down, where it cannot answer the soft reset ESPHome sends when no
-> `reset_pin` is configured — `[E][rc522] Reset command failed`, with wifi,
-> uptime and the buzzer all working normally.
+> **True for some modules, not all.** Upstream's `rc522_spi` has no `reset_pin`
+> either, and their specified board works that way — it populates the pull-up on
+> RST, so the pin idles high. Boards that omit that resistor leave RST floating
+> low, and since it is active low the chip sits in power-down and cannot answer
+> the soft reset ESPHome sends. Symptom: `[E][rc522] Reset command failed` while
+> wifi, uptime and the buzzer all work. Fix: tie RST to 3V3. Hit on real
+> hardware during bring-up.
 
 ### 1.2 Buzzer
 

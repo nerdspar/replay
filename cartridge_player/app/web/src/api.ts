@@ -166,6 +166,15 @@ export const api = {
       last_error: { message: string; at: number } | null
     }>(`api/scans?limit=${limit}`),
 
+  /**
+   * Forgets a stray tag from "seen but not assigned". Tapping the tag again
+   * brings it straight back, so this is a tidy-up rather than a block-list.
+   */
+  dismissScans: (uid: string) =>
+    request<{ removed: number }>(`api/scans/${encodeURIComponent(uid)}`, {
+      method: 'DELETE',
+    }),
+
   authStatus: () =>
     request<{ required: boolean; pin_set: boolean; authenticated: boolean }>('api/auth/status'),
 

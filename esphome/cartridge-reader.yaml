@@ -15,13 +15,12 @@
 # modules often pull it high, giving a board that silently refuses to start.
 # GPIO1 is UART TX and collides with the serial logger.
 #
-# RC522 RST -> 3V3. The spec says to leave it unconnected on the basis that the
-# module self-resets at power-on, and that holds only for boards with a pull-up
-# on RST. Plenty of clones have none, and RST is ACTIVE LOW: floating low holds
-# the chip in power-down, where it cannot answer the soft reset ESPHome sends
-# when no `reset_pin` is configured. The symptom is
-# `[E][rc522] Reset command failed` with everything else working, which points
-# nowhere near the reset line. Tying it high costs one jumper.
+# RC522 RST: leave unconnected IF your module has the pull-up on it — upstream's
+# does, which is why their YAML has no `reset_pin` either. If yours does not,
+# RST floats low, and since it is ACTIVE LOW the chip sits in power-down and
+# cannot answer the soft reset ESPHome sends when no `reset_pin` is configured.
+# Symptom: `[E][rc522] Reset command failed`, with wifi, uptime and the buzzer
+# all working normally. Fix: one jumper from RST to 3V3.
 
 substitutions:
   device_name: cartridge-reader

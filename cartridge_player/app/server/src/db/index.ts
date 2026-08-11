@@ -260,6 +260,20 @@ export class Store {
       .get(Number(info.lastInsertRowid)) as ScanEvent
   }
 
+  /**
+   * Forgets every scan of one tag.
+   *
+   * The "seen but not assigned" strip is derived from this log, so this is what
+   * removes a stray tag from it. Deliberately not a permanent block-list:
+   * tapping the tag again logs a new scan and it reappears, which is what you
+   * want if you dismissed it by mistake.
+   */
+  deleteScansByUid(uid: string): number {
+    return this.db
+      .prepare(`DELETE FROM scan_events WHERE ${SQL_NORMALIZED_UID} = ?`)
+      .run(normalizeUid(uid)).changes
+  }
+
   listScans(limit = 50): ScanEvent[] {
     return this.db
       .prepare('SELECT * FROM scan_events ORDER BY id DESC LIMIT ?')

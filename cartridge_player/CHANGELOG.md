@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.12
+
+Adds an x to each tag under "Seen but not assigned", for when you have held more
+tags on the reader than you meant to. Forgetting one only clears it from that
+list — hold the tag on the reader again and it comes back.
+
+Also softens the wiring note about the reader's RST pin: most modules do not
+need it connected, but some need a jumper from RST to 3V3, which shows up as
+"Reset command failed" in the ESPHome log.
+
 ## 0.1.11
 
 No user-visible change. Fixes the release process, which had started failing to

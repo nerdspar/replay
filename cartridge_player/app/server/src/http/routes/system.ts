@@ -71,6 +71,19 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
     }
   })
 
+  /** Removes a stray tag from "seen but not assigned". */
+  app.delete<{ Params: { uid: string } }>('/api/scans/:uid', async (request) => {
+    const uid = request.params.uid
+    const removed = ctx.store.deleteScansByUid(uid)
+
+    // If it is the tag currently waiting to be assigned, stop offering it.
+    ctx.pending.clear(uid)
+    ctx.bus.emit({ type: 'pending', pending: ctx.pending.get() })
+    ctx.bus.emit({ type: 'cards' })
+
+    return { removed }
+  })
+
   app.get('/api/events', (request, reply) => {
     reply.raw.writeHead(200, {
       'content-type': 'text/event-stream',

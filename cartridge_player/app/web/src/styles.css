@@ -449,17 +449,45 @@ a:focus-visible {
 .strip .chip {
   flex: none;
   min-height: var(--tap);
-  padding: 0 14px;
   border-radius: 999px;
   border: 1px dashed color-mix(in srgb, var(--accent) 55%, var(--border));
   background: var(--bg-raised);
   color: var(--text);
-  font-size: 13px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.strip .chip-main {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 0 10px 0 14px;
+  min-height: var(--tap);
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   cursor: pointer;
+}
+
+/* Its own target so a mis-tap sets the tag up rather than discarding it. */
+.strip .chip-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-height: var(--tap);
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.strip .chip-dismiss:active {
+  color: var(--danger);
 }
 
 /* --------------------------------------------------------------- sheet */
