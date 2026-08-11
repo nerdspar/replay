@@ -15,7 +15,13 @@
 # modules often pull it high, giving a board that silently refuses to start.
 # GPIO1 is UART TX and collides with the serial logger.
 #
-# The RC522 reset pin stays unconnected — the module uses its own power-on reset.
+# RC522 RST -> 3V3. The spec says to leave it unconnected on the basis that the
+# module self-resets at power-on, and that holds only for boards with a pull-up
+# on RST. Plenty of clones have none, and RST is ACTIVE LOW: floating low holds
+# the chip in power-down, where it cannot answer the soft reset ESPHome sends
+# when no `reset_pin` is configured. The symptom is
+# `[E][rc522] Reset command failed` with everything else working, which points
+# nowhere near the reset line. Tying it high costs one jumper.
 
 substitutions:
   device_name: cartridge-reader

@@ -79,6 +79,12 @@ obvious cause. GPIO1 is UART TX and conflicts with the serial logger.
 
 The RC522 reset pin is left unconnected; the module uses its own power-on reset.
 
+> **Corrected in testing: tie RST to 3V3.** That holds only for modules with a
+> pull-up on RST. RST is active low, and a floating-low pin holds the chip in
+> power-down, where it cannot answer the soft reset ESPHome sends when no
+> `reset_pin` is configured — `[E][rc522] Reset command failed`, with wifi,
+> uptime and the buzzer all working normally.
+
 ### 1.2 Buzzer
 
 Use a **3-pin active buzzer module with an onboard driver transistor** (VCC / GND /

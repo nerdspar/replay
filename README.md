@@ -61,8 +61,13 @@ Pin map — these are deliberate, do not "simplify" them:
 
 **Do not use GPIO0, GPIO2, GPIO15, or GPIO16.** GPIO15 must be low at boot and
 RC522 modules often pull it high — the board then simply won't start, with no
-obvious cause. GPIO1 is UART TX and collides with the serial logger. The RC522
-reset pin stays unconnected; the module has its own power-on reset.
+obvious cause. GPIO1 is UART TX and collides with the serial logger.
+
+**Connect the RC522's RST pin to 3V3.** It is active low, and many clone modules
+have no pull-up on it, so left floating it holds the chip in power-down. The
+reader then never answers and the log shows `[E][rc522] Reset command failed`
+while wifi, uptime and the buzzer all work perfectly — which points nowhere near
+the reset line.
 
 ## 3. Flash the firmware
 

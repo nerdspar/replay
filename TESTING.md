@@ -194,6 +194,7 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.1 | Confirm the buzzer module has a three-legged SOT-23 part on it | Visible before wiring. A bare buzzer here exceeds the ESP8266's pin budget |
 | 5.2 | Fit the 470 µF capacitor across 3V3/GND next to the RC522 | Fitted before first power-on |
 | 5.3 | Flash from YAML | Compiles and boots. Prebuilt upstream binaries are ESP32 and will not work |
+| 5.3a | Log shows `[I][rc522] Device online` after boot | If it shows `[E][rc522] Reset command failed` instead, RST is floating — tie it to 3V3. Everything else (wifi, uptime, buzzer) works normally in that state, so nothing points at the reset line |
 | 5.4 | Board boots reliably 10 times from cold | No boot loops. Failures here usually mean something is pulling GPIO15 high |
 | 5.5 | Press the "Test Beep" button in Home Assistant | Audible |
 | 5.6 | Tap a tag | Beeps **immediately** — not after a network round trip |
