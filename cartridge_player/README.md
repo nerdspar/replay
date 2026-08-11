@@ -1,15 +1,26 @@
 # Cartridge Player
 
-Tap an NFC cartridge on a reader, and the show opens on your TV.
+Tap an NFC cartridge on a reader, and the show opens on your TV — or the album
+starts playing on your speaker.
 
 ## Before you start
 
 You need:
 
-- The **Android TV Remote** integration set up for your TV
-- **Stremio** installed on the TV
 - An NFC reader running the Cartridge Player firmware
   ([instructions](https://github.com/nerdspar/replay))
+
+For **video** cartridges:
+
+- The **Android TV Remote** integration set up for your TV
+- **Stremio** installed on the TV
+
+For **music** cartridges:
+
+- The **Music Assistant** integration set up in Home Assistant
+
+You do not need both. Set up whichever you want and the other tab simply stays
+empty.
 
 ## Setup
 
@@ -22,6 +33,20 @@ walks you through it:
 
 There is nothing to configure in the add-on's Configuration tab, and no
 automations to create. The add-on listens for the reader itself.
+
+## Video and music
+
+The library has two tabs. **Video** cartridges open a show on the TV; **music**
+cartridges play on a speaker through Music Assistant. Which one a cartridge is
+depends on what you put on it, and it decides everything downstream — which
+device it reaches, what lifting it off does, and which tab it appears under.
+
+One reader serves both. Two cartridges tapped a second apart can end up in
+different rooms.
+
+Before your first music cartridge, choose a **default speaker** under Settings.
+Any single cartridge can override it — an album that belongs in the kitchen
+regardless of what everything else does.
 
 ## Adding a cartridge to your library
 
@@ -105,6 +130,21 @@ up the sheet.
 The cartridge label is exactly 2:3 — the same shape as a movie poster — so
 posters print without being cropped.
 
+### Square album covers
+
+Album covers are square, so a third of the sticker's height has to come from
+somewhere. Each music cartridge picks its own answer under **Edit → On the
+sticker**:
+
+| Choice | What you get |
+|---|---|
+| **Fill** (default) | Zooms in and trims the top and bottom. Sharpest, but loses the edges — bad for a cover with its title along the bottom. |
+| **Blurred** | The whole cover, sharp and centred, over a blurred copy of itself. Nothing is cut off. |
+| **Colour** | The whole cover on a block of the cover's own dominant colour. |
+
+All three reach the edges of the sticker; they differ only in what fills the
+extra height.
+
 You can also set the size and corner radius by hand in millimetres, change the
 page to A4 or US Letter, adjust margins and spacing, and print several copies of
 each.
@@ -173,7 +213,22 @@ using the sidebar is **not** — it contains a session token that rotates.
 | **Wait after Home** | How long your TV needs to reach its home screen. Raise it if shows sometimes fail to open. |
 | **Start playing automatically** | Stremio opens on the detail page, because a stream still has to be chosen. This presses Select to take the first one. |
 | **Wait before Select** | How long Stremio needs to list streams. Too short and it presses Select on an empty page. |
-| **When a cartridge is lifted off** | Do nothing (default), pause, back, or home. |
+| **When a video cartridge is lifted off** | Do nothing (default), pause, back, home, or turn the TV off. |
+| **Default speaker** | Where music cartridges play, unless one names its own. |
+| **When a music cartridge is lifted off** | Pause (default), stop, or keep playing. A speaker has no Back or Home, which is why this is a separate setting. |
+
+### Music cartridge options
+
+Open **Edit** on a music cartridge for three things video cartridges do not have:
+
+| Option | What it does |
+|---|---|
+| **Speaker** | Overrides the default for this one cartridge. |
+| **Shuffle** | Plays in a random order. Set automatically on artist cartridges, since an artist in album order is rarely what anyone wants. |
+| **Keep going afterwards** | When the album ends, carries on with similar music instead of falling silent. |
+
+Music cartridges also choose how their cover meets the sticker — see
+[Printing stickers](#printing-stickers).
 
 ### If the same player appears twice
 

@@ -185,6 +185,54 @@ This does **not** replace Phase 5. It exercises everything from Home Assistant
 inward, and nothing about the reader itself — the beep, the debounce, and the
 brownout behaviour are only testable on real hardware.
 
+## Phase 4c — Music cartridges (M)
+
+Needs the **Music Assistant** integration set up, with at least one speaker.
+Skip this phase entirely if you are not using music cartridges.
+
+Set a **default speaker** under Settings first. Without one, music search
+refuses with "No Music Assistant speaker chosen yet" — check 4c.1 is that
+refusal, so do it before saving the setting if you want to see it.
+
+| # | Check | Pass condition |
+|---|---|---|
+| 4c.1 | With no default speaker set, open the Music tab and search | Refuses clearly, naming Settings as the fix — not an empty result list |
+| 4c.2 | Set a default speaker; the picker's contents | Only Music Assistant players, not every media player in the house |
+| 4c.3 | Search an album you own | Results appear with an **Album** pill and the artist beneath |
+| 4c.4 | Search a word matching several kinds | Albums first, then artists, playlists, radio — each labelled |
+| 4c.5 | Assign an album, then tap the cartridge | It plays on the default speaker, and **within about a second** — no Home key, no pause, no delay |
+| 4c.6 | Lift the cartridge off | Playback pauses and keeps its place |
+| 4c.7 | Put it back on | Resumes from where it stopped |
+| 4c.8 | Set lift-off to **Stop**, lift it, put it back | Starts the album over |
+| 4c.9 | Assign an **artist** cartridge, then open Edit | Shuffle is already on |
+| 4c.10 | Play it | Not in album order |
+| 4c.11 | Turn on **Keep going afterwards**, play a short album to the end | Carries on with similar music |
+| 4c.12 | Set a different speaker on one cartridge, tap it | Plays in that room; other music cartridges still use the default |
+| 4c.13 | Tap a video cartridge, then a music one | TV then speaker. Neither device reacts to the other's cartridge |
+| 4c.14 | Set the TV lift-off to **Turn the TV off** and music lift-off to **Pause**; lift each | TV powers down; the speaker only pauses |
+| 4c.15 | Open Edit on a music cartridge | No episode controls; **Play on the speaker**, not "on the TV" |
+| 4c.16 | Switch to the Video tab, select some cartridges, switch to Music | Selection clears — no hidden cartridge can be acted on |
+
+4c.5 is the one worth watching closely. Music deliberately does **not** run the
+TV's wake-up sequence, so if you see a pause of several seconds before the music
+starts, something is wrong — that delay belongs to video only.
+
+## Phase 4d — Music stickers (M)
+
+| # | Check | Pass condition |
+|---|---|---|
+| 4d.1 | Print-preview a music sticker set to **Fill** | Cover fills the whole sticker; top and bottom of the artwork are trimmed |
+| 4d.2 | Set the same cartridge to **Blurred**, preview again | Whole cover visible and sharp, over a blurred version of itself; no white gaps |
+| 4d.3 | Set it to **Colour** | Whole cover on a solid colour that plainly comes from the artwork |
+| 4d.4 | Download the Cricut PNG for each of the three | Each matches what the preview showed |
+| 4d.5 | Change the artwork, then download again | The new artwork appears — not the previous one from cache |
+| 4d.6 | Print one **Blurred** sticker on paper | The blurred area actually prints, rather than coming out white |
+| 4d.7 | Mixed sheet: select both video and music cartridges | All print at the same 60 × 90 size |
+
+4d.6 is worth doing on real paper rather than in preview. Browsers drop
+backgrounds when printing unless told otherwise, and preview does not always
+show it.
+
 ## Phase 5 — Firmware bring-up (H)
 
 Do this on the bench with the board on USB, before it goes in an enclosure.
@@ -292,8 +340,9 @@ documented default.
 
 1. Both automated suites (Phase 0)
 2. 1.1, 1.3, 1.5 — the core loop through ingress
-3. 3.1 and 3.3 if anything near printing changed
-4. 6.6 on real hardware before calling it done
+3. 4c.13 — that video and music still reach different devices
+4. 3.1 and 3.3 if anything near printing changed
+5. 6.6 on real hardware before calling it done
 
 ---
 
