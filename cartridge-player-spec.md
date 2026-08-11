@@ -112,9 +112,16 @@ must correspondingly extinguish that die — a colour set after a white state
 otherwise inherits it and arrives pastel, which reads as a hardware fault rather
 than as status.
 
-Set colours with `set_rgbw()` rather than `set_rgb()`, which is what makes that
-second rule structural instead of a thing to remember: `set_rgb()` leaves white
-untouched, `set_rgbw()` cannot be called without stating it.
+Every state must set all four of `rgb`, `color_brightness`, `white` and
+`brightness`. The output is `colour = brightness x color_brightness x rgb` and
+`white = brightness x white`, and both switches persist until written — so a
+state that sets only what it cares about inherits the rest from whatever ran
+before it.
+
+`set_rgb(0, 0, 0)` does **not** mean "no colour". ESPHome normalises a colour
+with no channels to full white, so it lights all three colour dies — the exact
+opposite of the intent, and it reads correctly right up until you look at the
+LED. Silencing the colour dies is `color_brightness = 0`.
 
 **The firmware must remain a single YAML file with no companion headers.** It is
 installed through the ESPHome Builder web editor, which manages only `.yaml` —

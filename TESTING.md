@@ -250,6 +250,8 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.5b | The white flash is a clean neutral white | An iridescent white that shifts as you move your head means an RGBW part is running as `type: GRB` and mixing its three colour dies. Set `GRBW` |
 | 5.5c | Home Assistant's `Status Light` card offers a white slider as well as a colour wheel | Confirms the RGBW output class. On `GRB` you get colour only |
 | 5.5d | Set the light red by hand, then trigger the white flash, then an error colour | Red is red, not pink. Every state must clear the white die, or colours inherit it |
+| 5.5e | Standby white, viewed closely | The white die alone. If the three colour dies are lit too, a state is using `set_rgb(0, 0, 0)` to mean "no colour" — ESPHome normalises that to full white and lights all three |
+| 5.5f | After standby, trigger a colour | The colour appears at full strength. If it stays dark, a state set `color_brightness` to 0 and never restored it |
 | 5.6 | Tap a tag | Flashes **immediately** — not after a network round trip |
 | 5.7 | Pull the network cable / block wifi, tap a tag | Still flashes. Confirmation the tag was read must not depend on Home Assistant |
 | 5.7a | Leave wifi blocked for 30 s | Settles to red, breathing |

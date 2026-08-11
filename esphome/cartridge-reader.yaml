@@ -113,16 +113,24 @@ captive_portal:
 #
 # Built for the RGBW part: four dies, one of them a dedicated white.
 #
-# Every colour below is set with set_rgbw(), which takes all four channels at
-# once. That is deliberate. set_rgb() leaves the white channel untouched, so a
-# colour set after a white state inherits the lit white die and arrives pastel —
-# an error that should be red shows up pink, which reads as a broken LED rather
-# than as status. set_rgbw() cannot be called without saying what white is, so
-# the whole class of mistake is gone.
+# Every state below sets FOUR things, and has to. What reaches the LED is:
 #
-# For a three-die RGB part: set `type: GRB` below, and change each
-# `set_rgbw(r, g, b, w)` to `set_rgb(r, g, b)` — there is no white die for that
-# last argument to drive, and white has to be mixed as set_rgb(1, 1, 1).
+#     colour dies = brightness x color_brightness x rgb
+#     white die   = brightness x white
+#
+# so `color_brightness` is the switch for the colour dies and `white` is the
+# switch for the white one. Both persist until something sets them, which is why
+# each state states both rather than only the one it cares about — otherwise a
+# colour inherits the previous state's lit white die and arrives pastel, and a
+# white inherits a zeroed color_brightness and never comes back.
+#
+# Do NOT reach for set_rgb(0, 0, 0) to mean "no colour". A colour with no
+# channels is meaningless, so ESPHome normalises it to full white — the exact
+# opposite of the intent, and it lights all three colour dies at once. Turning
+# the colour dies off is color_brightness = 0, with the rgb values left alone.
+#
+# For a three-die RGB part: set `type: GRB`, drop the set_white calls, and make
+# white by mixing — set_rgb(1, 1, 1) with color_brightness back at 1.
 #
 # If red and green come out swapped, the part wants RGB/RGBW ordering instead.
 # ---------------------------------------------------------------------------
@@ -287,16 +295,22 @@ script:
           if (id(link_up)) {
             // Ready. Dim on purpose: this sits in a living room, and a bright
             // idle light is something people end up covering with tape.
-            call.set_rgbw(0.0f, 0.0f, 0.0f, 1.0f);
+            call.set_rgb(1.0f, 1.0f, 1.0f);
+            call.set_color_brightness(0.0f);
+            call.set_white(1.0f);
             call.set_brightness(0.10f);
             call.set_effect("None");
           } else if (id(net_up)) {
             // On wifi but Home Assistant has not connected back yet. Tapping a
             // cartridge now will read the tag and nothing else will happen.
-            call.set_rgbw(1.0f, 0.55f, 0.0f, 0.0f);
+            call.set_rgb(1.0f, 0.55f, 0.0f);
+            call.set_color_brightness(1.0f);
+            call.set_white(0.0f);
             call.set_effect("Breathe");
           } else {
-            call.set_rgbw(1.0f, 0.0f, 0.0f, 0.0f);
+            call.set_rgb(1.0f, 0.0f, 0.0f);
+            call.set_color_brightness(1.0f);
+            call.set_white(0.0f);
             call.set_effect("Breathe");
           }
           call.perform();
@@ -309,7 +323,9 @@ script:
           if (!id(status_auto).state) return;
 
           auto call = id(status_led).turn_on();
-          call.set_rgbw(0.0f, 0.0f, 0.0f, 1.0f);
+          call.set_rgb(1.0f, 1.0f, 1.0f);
+          call.set_color_brightness(0.0f);
+          call.set_white(1.0f);
           call.set_brightness(1.0f);
           call.set_effect("None");
           call.perform();
@@ -332,20 +348,28 @@ script:
           call.set_effect("None");
 
           if (state == "playing") {
-            call.set_rgbw(0.0f, 1.0f, 0.15f, 0.0f);
+            call.set_rgb(0.0f, 1.0f, 0.15f);
+            call.set_color_brightness(1.0f);
+            call.set_white(0.0f);
             call.set_brightness(0.7f);
           } else if (state == "new") {
             // An unassigned cartridge: the app is waiting for someone to say
             // what it plays. Held until it is set up or lifted off.
             id(holding) = true;
-            call.set_rgbw(0.1f, 0.35f, 1.0f, 0.0f);
+            call.set_rgb(0.1f, 0.35f, 1.0f);
+            call.set_color_brightness(1.0f);
+            call.set_white(0.0f);
             call.set_effect("Breathe");
           } else if (state == "error") {
             id(holding) = true;
-            call.set_rgbw(1.0f, 0.0f, 0.0f, 0.0f);
+            call.set_rgb(1.0f, 0.0f, 0.0f);
+            call.set_color_brightness(1.0f);
+            call.set_white(0.0f);
             call.set_effect("Urgent");
           } else if (state == "busy") {
-            call.set_rgbw(0.6f, 0.3f, 1.0f, 0.0f);
+            call.set_rgb(0.6f, 0.3f, 1.0f);
+            call.set_color_brightness(1.0f);
+            call.set_white(0.0f);
             call.set_effect("Breathe");
           } else if (state == "off") {
             id(status_led).turn_off().perform();
