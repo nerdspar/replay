@@ -62,6 +62,17 @@ Pin map — these are deliberate, do not "simplify" them:
 RC522 modules often pull it high — the board then simply won't start, with no
 obvious cause. GPIO1 is UART TX and collides with the serial logger.
 
+**Set `type:` to match your LED.** The firmware ships configured for the
+**RGBW** part — four dies, one of them a dedicated white — as `type: GRBW` in
+[the YAML](esphome/cartridge-reader.yaml). For a three-die RGB part change that
+one line to `GRB`. Nothing else moves: the scripts ask the light at runtime
+whether it has a white die, so the two settings cannot fall out of step. If red
+and green come out swapped, the part wants `RGB`/`RGBW` ordering instead.
+
+On an RGBW part white comes from the white die alone rather than by mixing
+R+G+B. Mixed white on those has a faint iridescence that shifts with viewing
+angle and never quite reaches neutral — the white die exists to avoid it.
+
 **Power the LED from 3V3, not 5V.** At 5 V an SK6812 needs about 3.5 V to read a
 logic high and the ESP8266 only drives 3.3 V. That margin is negative on paper
 and works fine on the bench, which is the worst combination — it starts failing

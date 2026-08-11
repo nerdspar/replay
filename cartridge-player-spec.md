@@ -104,7 +104,15 @@ onboard LED), so neither is available. Bit-banging blocks interrupts for the
 duration of the write; for a single LED that is 24 bits × 1.25 µs = 30 µs, far
 too short to disturb wifi. The usual warning about this applies to long strips.
 
-For the RGBW variant of the part, `type: GRB` becomes `type: GRBW`.
+`type` is the only knob for RGB versus RGBW — `GRBW` for a four-die part (what
+this build uses), `GRB` for three. The scripts ask the light at runtime whether
+it has a white die, so a second setting cannot disagree with the first.
+
+White must come from the white die where there is one. Mixing R+G+B on an RGBW
+part gives a white that shifts with viewing angle and never reaches neutral.
+Correspondingly, every colour state must explicitly extinguish the white die:
+a colour set after a white state otherwise inherits it and arrives pastel, which
+reads as a hardware fault rather than as status.
 
 Earlier revisions used a piezo buzzer on this pin. The LED replaces it: it
 conveys more than one state, and a reader that lives in a living room should not

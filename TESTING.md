@@ -246,7 +246,10 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.3a | Log shows `[I][rc522] Device online` after boot | If it shows `[E][rc522] Reset command failed` instead, RST is floating — tie it to 3V3. Everything else (wifi, uptime, the LED) works normally in that state, so nothing points at the reset line |
 | 5.4 | Board boots reliably 10 times from cold | No boot loops. Failures here usually mean something is pulling GPIO15 high |
 | 5.5 | Press the "Test Light" button in Home Assistant | One white flash |
-| 5.5a | Colours are right, not swapped | If red and green are reversed, the LED wants `type: RGB` rather than `GRB`. If it lights but stays white, it is an RGBW part and wants `type: GRBW` |
+| 5.5a | Colours are right, not swapped | If red and green are reversed, the LED wants `type: RGB`/`RGBW` rather than `GRB`/`GRBW` |
+| 5.5b | The white flash is a clean neutral white | An iridescent white that shifts as you move your head means an RGBW part is running as `type: GRB` and mixing its three colour dies. Set `GRBW` |
+| 5.5c | Home Assistant's `Status Light` card offers a white slider as well as a colour wheel | Confirms the RGBW output class. On `GRB` you get colour only |
+| 5.5d | Set the light red by hand, then trigger the white flash, then an error colour | Red is red, not pink. Every state must clear the white die, or colours inherit it |
 | 5.6 | Tap a tag | Flashes **immediately** — not after a network round trip |
 | 5.7 | Pull the network cable / block wifi, tap a tag | Still flashes. Confirmation the tag was read must not depend on Home Assistant |
 | 5.7a | Leave wifi blocked for 30 s | Settles to red, breathing |
