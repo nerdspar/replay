@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0
+
+Putting a paused cartridge back on now carries on from where it stopped,
+instead of starting the album again from the first track. That is what the
+**Pause** lift-off option always said it did.
+
+It resumes only when the player is genuinely still paused on that cartridge's
+own content. If something else is paused, or the player will not say what it
+is holding, the cartridge starts properly — losing your place is a much
+smaller mistake than playing the wrong thing.
+
+**Stop** is unchanged and still starts over, which is the difference between
+the two options.
+
+Video cartridges behave the same way if you have lift-off set to Pause.
+
 ## 0.5.3
 
 **The light is about** is a new choice under Settings → Reader light.

@@ -291,6 +291,10 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.8j | Set **The light is about** to *what is playing*, tap an album, lift the cartridge | Light stays with the music. The library bar clears — that always means the reader itself |
 | 5.8k | Pause it | Reader shows the Paused colour, with no cartridge in it |
 | 5.8l | Stop it | Reader hands back to Ready on its own |
+| 5.8m | With music lift-off set to **Pause**: play an album, lift the cartridge a minute in, put it back | Carries on from where it stopped. It must NOT restart from track one |
+| 5.8n | Same, but pause and play something else on that speaker first | Cartridge starts its own album properly rather than resuming the other thing |
+| 5.8o | With music lift-off set to **Stop**: lift and put back | Starts the album again. Stop clears the queue, so there is nothing to resume |
+| 5.8p | Check Status after 5.8m | The scan reads `resume`, not `launch` |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |

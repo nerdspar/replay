@@ -60,6 +60,12 @@ export class AndroidTvTarget implements Target {
     })
   }
 
+  async resume(): Promise<void> {
+    await this.options.ha.callService('media_player', 'media_play', {
+      entity_id: this.requireMediaPlayer('resume'),
+    })
+  }
+
   async pause(): Promise<void> {
     await this.options.ha.callService('media_player', 'media_pause', {
       entity_id: this.requireMediaPlayer('pause'),

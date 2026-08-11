@@ -7,7 +7,7 @@ import {
 } from './playback.js'
 import type { ReaderLight } from './reader-light.js'
 import { ScanHandler } from './scan-handler.js'
-import { card, settings } from '../test/helpers.js'
+import { FakeProvider, FakeTarget, card, settings } from '../test/helpers.js'
 import { testContext } from '../test/context.js'
 import type { SeatedCartridge, Settings } from '../types.js'
 
@@ -448,5 +448,111 @@ describe('what the light is about', () => {
 
     expect(seats[seats.length - 1]?.card.title).toBe('Rumours')
     w.stop()
+  })
+})
+
+/**
+ * Putting a cartridge back after a pause.
+ *
+ * "Pause" as a lift-off action promises that putting the cartridge back carries
+ * on where it stopped. It did not: every insert ran a full launch, and Music
+ * Assistant's play_media takes `enqueue: replace`, which rebuilds the queue
+ * from track one.
+ */
+describe('putting a paused cartridge back on', () => {
+  function reader(playerState: string, attributes: Record<string, unknown> = {}) {
+    const active = testContext()
+    const { ctx } = active
+    ctx.store.updateSettings({
+      home_delay_ms: 0,
+      autoplay_delay_ms: 0,
+      music_player_entity: 'media_player.kitchen',
+    })
+
+    const target = new FakeTarget()
+    ctx.targets.register('music_assistant', () => target)
+    ctx.providers.register(new FakeProvider('music_assistant'))
+    ctx.store.createCard(
+      {
+        tag_uid: '04-88',
+        provider: 'music_assistant',
+        content_type: 'album',
+        external_id: 'library://album/12',
+        title: 'Rumours',
+        year: null,
+        poster_url: null,
+        season: null,
+        episode: null,
+        label: null,
+        player_entity: null,
+        art_fit: null,
+        accent_color: null,
+        shuffle: false,
+        radio_mode: false,
+      },
+      1,
+    )
+
+    ctx.scans = new ScanHandler({
+      store: ctx.store,
+      providers: ctx.providers,
+      targets: ctx.targets,
+      pending: ctx.pending,
+      bus: ctx.bus,
+      ha: { getState: async () => ({ state: playerState, attributes }) },
+    })
+
+    return { ctx, target, cleanup: active.cleanup }
+  }
+
+  it('resumes rather than starting the album again', async () => {
+    const { ctx, target, cleanup } = reader('paused', { media_title: 'Rumours' })
+    const { scan } = await ctx.scans.handleInserted('04-88')
+
+    expect(target.calls).toEqual(['resume'])
+    expect(scan.action_taken).toBe('resume')
+    cleanup()
+  })
+
+  it('starts it properly when the speaker is idle', async () => {
+    const { ctx, target, cleanup } = reader('idle')
+    await ctx.scans.handleInserted('04-88')
+
+    expect(target.calls).toContain('launch')
+    expect(target.calls).not.toContain('resume')
+    cleanup()
+  })
+
+  it('starts it properly when something else is paused', async () => {
+    // Resuming here would play the wrong thing entirely, which is a far worse
+    // mistake than losing your place.
+    const { ctx, target, cleanup } = reader('paused', { media_title: 'Kind of Blue' })
+    await ctx.scans.handleInserted('04-88')
+
+    expect(target.calls).toContain('launch')
+    expect(target.calls).not.toContain('resume')
+    cleanup()
+  })
+
+  it('starts it properly when the player says nothing about what it holds', async () => {
+    // Silence is a NO here, where for the light it is a yes: the two questions
+    // have different costs when answered wrongly.
+    const { ctx, target, cleanup } = reader('paused', {})
+    await ctx.scans.handleInserted('04-88')
+
+    expect(target.calls).toContain('launch')
+    expect(target.calls).not.toContain('resume')
+    cleanup()
+  })
+
+  it('matches on the id, so a retitling does not restart the album', async () => {
+    const { ctx, target, cleanup } = reader('paused', {
+      media_content_id: 'library://album/12',
+      media_title: 'Rumours (2004 Remaster)',
+    })
+    await ctx.scans.handleInserted('04-88')
+
+    expect(target.calls).toEqual(['resume'])
+    cleanup()
   })
 })

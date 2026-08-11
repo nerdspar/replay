@@ -8,7 +8,13 @@ import { createLogger } from '../log.js'
 import type { EventBus } from './events.js'
 import type { PendingUidStore } from './pending.js'
 import { type ReaderLight, type ReaderStatus } from './reader-light.js'
-import type { PlaybackWatcher } from './playback.js'
+import {
+  isSameContent,
+  playbackFromState,
+  playerFor,
+  type PlaybackWatcher,
+  type StateReader,
+} from './playback.js'
 import {
   removalActionFor,
   runFireSequence,
@@ -28,6 +34,8 @@ export interface ScanHandlerDeps {
   light?: ReaderLight
   /** Optional: follows what the linked player is actually doing. */
   playback?: PlaybackWatcher
+  /** Optional: lets a cartridge put back on resume rather than start again. */
+  ha?: StateReader
   sleep?: Sleep
   now?: () => number
 }
@@ -81,6 +89,10 @@ export class ScanHandler {
     // waiting to hear that anything at all received its event; without this it
     // would decide nobody had, seconds before the TV finished starting.
     this.light('busy')
+
+    if (await this.pausedOnThisCartridge(card)) {
+      return this.resume(card)
+    }
     return this.fire(card)
   }
 
@@ -112,6 +124,51 @@ export class ScanHandler {
       return { card, scan: this.record(uid, card.id, `removed:${action}`, null) }
     } catch (error) {
       return { card, scan: this.recordFailure(uid, card.id, 'removed', error) }
+    }
+  }
+
+  /**
+   * Whether the player is sitting paused on exactly what this cartridge plays.
+   *
+   * Which is the difference between putting a cartridge back and starting it
+   * again. Lifting one off with the action set to Pause promises that putting
+   * it back carries on — and it did not, because a launch is a launch: Music
+   * Assistant's play_media takes `enqueue: replace`, which rebuilds the queue
+   * from track one.
+   *
+   * Read from the player rather than remembered. What the reader last did says
+   * nothing about what happened afterwards — somebody may have stopped it, or
+   * played something else entirely, from any other remote in the house.
+   */
+  private async pausedOnThisCartridge(card: Card): Promise<boolean> {
+    const { ha, store } = this.deps
+    if (!ha) return false
+
+    const entity = playerFor(card, store.getSettings())
+    if (!entity) return false
+
+    try {
+      const state = await ha.getState(entity)
+      if (!state || playbackFromState(state.state) !== 'paused') return false
+      return isSameContent(state.attributes, card)
+    } catch {
+      // Unreadable player. Starting it again is the safe way to be wrong.
+      return false
+    }
+  }
+
+  /** Carries on from a pause, skipping the launch entirely. */
+  private async resume(card: Card): Promise<ScanOutcome> {
+    const settings = this.deps.store.getSettings()
+    try {
+      await this.deps.targets.createFor(card.kind, settings, card).resume()
+      log.info(`resumed ${card.title}`)
+      this.deps.playback?.start(card)
+      return { card, scan: this.record(card.tag_uid, card.id, 'resume', null) }
+    } catch (error) {
+      this.deps.playback?.stop()
+      this.light('error')
+      return { card, scan: this.recordFailure(card.tag_uid, card.id, 'resume', error) }
     }
   }
 

@@ -224,6 +224,18 @@ using the sidebar is **not** — it contains a session token that rotates.
 | **Default speaker** | Where music cartridges play, unless one names its own. |
 | **When a music cartridge is lifted off** | Pause (default), stop, or keep playing. A speaker has no Back or Home, which is why this is a separate setting. |
 
+**Pause and Stop are the difference between carrying on and starting over.**
+Lift a cartridge off with Pause and put it back, and it picks up where it
+stopped — the add-on checks whether the player is still paused on that
+cartridge's own content, and resumes rather than relaunching. With Stop the
+queue is cleared, so putting it back starts it again. Nothing to configure: the
+two options already mean this.
+
+It only resumes when the player plainly says it is holding that cartridge's
+content. If it says nothing, or something else is paused, the cartridge starts
+properly — losing your place is a much smaller mistake than playing the wrong
+thing.
+
 ### Music cartridge options
 
 Open **Edit** on a music cartridge for three things video cartridges do not have:

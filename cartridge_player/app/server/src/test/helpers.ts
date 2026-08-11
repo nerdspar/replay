@@ -99,6 +99,10 @@ export class FakeTarget implements Target {
     this.calls.push('pause')
   }
 
+  async resume(): Promise<void> {
+    this.calls.push('resume')
+  }
+
   async turnOff(): Promise<void> {
     this.calls.push('off')
   }

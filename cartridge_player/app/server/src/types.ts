@@ -260,5 +260,7 @@ export interface Target {
   sendKey(key: TargetKey): Promise<void>
   stop(): Promise<void>
   pause(): Promise<void>
+  /** Carries on from where a pause left off, without rebuilding the queue. */
+  resume(): Promise<void>
   turnOff(): Promise<void>
 }

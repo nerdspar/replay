@@ -67,20 +67,9 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value.toLowerCase() : ''
 }
 
-/**
- * Whether what the player reports plausibly belongs to this cartridge.
- *
- * Deliberately generous. Matching a deep link against whatever a media player
- * chooses to report is unreliable in both directions — a film's `media_title`
- * often differs from its catalogue title, and some integrations report almost
- * nothing. A strict test would quietly stop the light working; a loose one
- * occasionally lets an unrelated title through, which is the cheaper mistake.
- */
-export function looksLikeCard(
-  attributes: Record<string, unknown>,
-  card: Card,
-): boolean {
-  const haystack = [
+/** Everything the player says about what it is holding. */
+function contentOf(attributes: Record<string, unknown>): string[] {
+  return [
     attributes.media_content_id,
     attributes.media_title,
     attributes.media_album_name,
@@ -89,16 +78,47 @@ export function looksLikeCard(
   ]
     .map(text)
     .filter(Boolean)
+}
 
-  if (haystack.length === 0) {
-    // The player says nothing about what it holds. Refusing here would mean
-    // the setting silently disables the light on those integrations.
-    return true
-  }
-
+function mentions(haystack: string[], card: Card): boolean {
   const title = card.title.toLowerCase().trim()
   const id = card.external_id.toLowerCase()
   return haystack.some((value) => value.includes(title) || value.includes(id))
+}
+
+/**
+ * Whether what the player reports plausibly belongs to this cartridge.
+ *
+ * Deliberately generous, and paired with the strict version below because the
+ * two are asked for different reasons. This one decides whether to LIGHT UP,
+ * where a false positive costs a wrong colour; a player that reports nothing is
+ * given the benefit of the doubt, since refusing would quietly disable the
+ * light on those integrations entirely.
+ */
+export function looksLikeCard(
+  attributes: Record<string, unknown>,
+  card: Card,
+): boolean {
+  const haystack = contentOf(attributes)
+  if (haystack.length === 0) return true
+  return mentions(haystack, card)
+}
+
+/**
+ * Whether the player is holding THIS cartridge's content, strictly.
+ *
+ * Used to decide whether to resume rather than start again, where the two
+ * mistakes are not equal. Guessing wrong and resuming means the cartridge plays
+ * something else entirely; guessing wrong and relaunching only costs you your
+ * place. So silence is a no here, where for the light it is a yes.
+ */
+export function isSameContent(
+  attributes: Record<string, unknown>,
+  card: Card,
+): boolean {
+  const haystack = contentOf(attributes)
+  if (haystack.length === 0) return false
+  return mentions(haystack, card)
 }
 
 export class PlaybackWatcher {

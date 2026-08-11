@@ -61,6 +61,17 @@ export class MusicAssistantTarget implements Target {
     })
   }
 
+  /**
+   * Deliberately not play_media. That takes `enqueue: replace`, which rebuilds
+   * the queue and starts the album again from track one — the very thing a
+   * pause was meant to avoid.
+   */
+  async resume(): Promise<void> {
+    await this.options.ha.callService('media_player', 'media_play', {
+      entity_id: this.requirePlayer('resume'),
+    })
+  }
+
   async pause(): Promise<void> {
     await this.options.ha.callService('media_player', 'media_pause', {
       entity_id: this.requirePlayer('pause'),
