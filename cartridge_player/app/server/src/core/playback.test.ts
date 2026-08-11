@@ -6,7 +6,9 @@ import {
   playerFor,
 } from './playback.js'
 import type { ReaderLight } from './reader-light.js'
+import { ScanHandler } from './scan-handler.js'
 import { card, settings } from '../test/helpers.js'
+import { testContext } from '../test/context.js'
 import type { SeatedCartridge, Settings } from '../types.js'
 
 function watcher(state: string | null, overrides: Partial<Settings> = {}) {
@@ -276,5 +278,109 @@ describe('artwork colour', () => {
     // "ready" is about the reader, not the cartridge, so it keeps its own colour.
     expect(said).toEqual(['playing_hold:#3366cc', 'paused:#3366cc', 'ready'])
     w.stop()
+  })
+})
+
+/**
+ * Lifting a cartridge while its launch is still running.
+ *
+ * Easy to do: a Music Assistant play_media can take seconds to resolve a URI
+ * against a streaming provider, and a tap-and-lift is quicker than that.
+ */
+describe('a cartridge lifted mid-launch', () => {
+  function slowLaunch() {
+    const active = testContext()
+    const { ctx } = active
+    ctx.store.updateSettings({ home_delay_ms: 0, autoplay_delay_ms: 0 })
+
+    const said: string[] = []
+    let release: () => void = () => undefined
+    const launched = new Promise<void>((r) => (release = r))
+
+    // A target that does not finish until we say so.
+    ctx.targets.register('androidtv', () => ({
+      id: 'slow',
+      launch: async () => launched,
+      sendKey: async () => undefined,
+      stop: async () => undefined,
+      pause: async () => undefined,
+      turnOff: async () => undefined,
+    }))
+
+    ctx.store.createCard(
+      {
+        tag_uid: '04-77',
+        provider: 'stremio',
+        content_type: 'movie',
+        external_id: 'tt7',
+        title: 'Slow To Start',
+        year: null,
+        poster_url: null,
+        season: null,
+        episode: null,
+        label: null,
+        player_entity: null,
+        art_fit: null,
+        accent_color: null,
+        shuffle: false,
+        radio_mode: false,
+      },
+      1,
+    )
+
+    const watched: string[] = []
+    ctx.scans = new ScanHandler({
+      store: ctx.store,
+      providers: ctx.providers,
+      targets: ctx.targets,
+      pending: ctx.pending,
+      bus: ctx.bus,
+      light: { setStatus: async (s) => void said.push(s) } as unknown as ReaderLight,
+      playback: {
+        start: (c: { title: string }) => void watched.push(`start:${c.title}`),
+        stop: () => void watched.push('stop'),
+      } as never,
+    })
+
+    return { ctx, said, watched, release, cleanup: active.cleanup }
+  }
+
+  it('does not start following one that has already been taken off', async () => {
+    const { ctx, watched, release, cleanup } = slowLaunch()
+
+    const firing = ctx.scans.handleInserted('04-77')
+    // Lifted before the launch finishes.
+    await ctx.scans.handleRemoved('04-77')
+    release()
+    await firing
+
+    // Following it here would relight the reader for a cartridge that is no
+    // longer in it, and leave it stuck on the playing colour.
+    expect(watched).toEqual(['stop'])
+    cleanup()
+  })
+
+  it('still follows one that stayed put', async () => {
+    const { ctx, watched, release, cleanup } = slowLaunch()
+
+    const firing = ctx.scans.handleInserted('04-77')
+    release()
+    await firing
+
+    expect(watched).toEqual(['start:Slow To Start'])
+    cleanup()
+  })
+
+  it('is not fooled by the uid being written differently', async () => {
+    const { ctx, watched, release, cleanup } = slowLaunch()
+
+    const firing = ctx.scans.handleInserted('04-77')
+    // The reader reports removal in whatever format it likes.
+    await ctx.scans.handleRemoved('0477')
+    release()
+    await firing
+
+    expect(watched).toEqual(['stop'])
+    cleanup()
   })
 })

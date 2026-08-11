@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.2
+
+Lifting a cartridge off while it was still starting could leave the reader
+stuck on the playing colour with nothing in the slot. A launch is not instant —
+a Music Assistant album can take seconds to resolve — and finishing one for a
+cartridge you have already taken off no longer lights the reader for it.
+
+The light describes the reader, not the room: if you have music set to keep
+playing after a lift-off, it still carries on, and the reader still goes back
+to idle.
+
+Also needs the 0.5.1 firmware, which stops the amber flash partway through
+starting an album. If you have not reflashed since, do that too.
+
 ## 0.5.1
 
 Firmware fix. Scanning a cartridge that is not set up yet showed white

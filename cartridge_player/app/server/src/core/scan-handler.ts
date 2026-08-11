@@ -3,6 +3,7 @@ import type { ProviderRegistry } from '../providers/registry.js'
 import type { TargetRegistry } from '../targets/registry.js'
 import type { Card, ScanEvent } from '../types.js'
 import { AppError } from '../errors.js'
+import { normalizeUid } from './uid.js'
 import { createLogger } from '../log.js'
 import type { EventBus } from './events.js'
 import type { PendingUidStore } from './pending.js'
@@ -41,6 +42,16 @@ export interface ScanOutcome {
  * fallback, and the per-card Test button all land here.
  */
 export class ScanHandler {
+  /**
+   * The cartridge physically on the reader, normalised.
+   *
+   * A launch is not instant — a Music Assistant `play_media` can take seconds
+   * to resolve a URI with a streaming provider — and a cartridge can be lifted
+   * off while it is still running. Without this, the launch would finish
+   * afterwards and light the reader for a cartridge that is no longer there.
+   */
+  private seatedUid: string | null = null
+
   constructor(private readonly deps: ScanHandlerDeps) {}
 
   private get now(): number {
@@ -58,10 +69,13 @@ export class ScanHandler {
       bus.emit({ type: 'pending', pending: entry })
       const scan = this.record(uid, card?.id ?? null, 'unassigned', null)
       log.info(`unassigned cartridge ${uid}`)
+      this.seatedUid = null
       this.deps.playback?.stop()
       this.light('new')
       return { card, scan }
     }
+
+    this.seatedUid = normalizeUid(uid)
 
     // Before the launch, not after. The reader is holding a "working" state and
     // waiting to hear that anything at all received its event; without this it
@@ -76,7 +90,10 @@ export class ScanHandler {
     // Nothing was playing from an empty cartridge, so nothing to stop.
     if (!card || card.status === 'unassigned') return null
 
-    // Nothing is on the reader now, so there is nothing to follow.
+    // Nothing is on the reader now, so there is nothing to follow. The light
+    // describes the READER, not the room: music told to keep playing after a
+    // lift-off carries on, and the reader still goes back to idle.
+    this.seatedUid = null
     this.deps.playback?.stop()
 
     const settings = store.getSettings()
@@ -109,10 +126,17 @@ export class ScanHandler {
         ...(sleep ? { sleep } : {}),
       })
       log.info(`fired ${card.title} -> ${steps.join(',')}`)
-      // Handed to the watcher rather than declared here. Finishing the launch
-      // sequence says the deep link went out, which is not the same as anything
-      // playing — the watcher reads the player and reports what is true.
-      this.deps.playback?.start(card)
+
+      // Only if that cartridge is still on the reader. Lifting one mid-launch
+      // is easy — the launch can take seconds — and starting to follow it here
+      // would relight the reader for a cartridge that had already been taken
+      // off, leaving it stuck on the playing colour with nothing in the slot.
+      if (this.seatedUid === normalizeUid(card.tag_uid)) {
+        // Handed to the watcher rather than declared here. Finishing the launch
+        // sequence says the deep link went out, which is not the same as
+        // anything playing — the watcher reads the player and reports what is.
+        this.deps.playback?.start(card)
+      }
       return { card, scan: this.record(card.tag_uid, card.id, steps.join(','), null) }
     } catch (error) {
       this.deps.playback?.stop()

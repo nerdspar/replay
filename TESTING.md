@@ -285,6 +285,9 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.8d | Lift the cartridge | Bar disappears and the ring clears |
 | 5.8e | Tap a cartridge that is NOT set up | White flash, then **blue** and stays blue. It must not go white-breathing and then amber — the answer arrives in about 50 ms, well inside the flash, and the reader must not start waiting for something it already has |
 | 5.8f | Press **Test Light** and watch for five seconds | One flash, back to Ready. No amber: nothing was asked, so nothing is owed an answer |
+| 5.8g | Tap an album and watch the whole sequence | Flash, white breathe, then the playing colour. **No amber anywhere.** A Music Assistant launch can take seconds, and the reader must wait rather than give up |
+| 5.8h | Tap a cartridge and lift it again immediately, before the colours settle | Reader returns to Ready. It must not land on the playing colour with nothing in the slot |
+| 5.8i | Same, with lift-off set to keep playing | Music carries on, reader still returns to Ready. The light describes the reader, not the room |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |
