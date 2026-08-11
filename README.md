@@ -88,7 +88,8 @@ ESPHome config directory, add the secrets from
 and ESP32-S3; those will not flash to an ESP8266.
 
 Once it is running you should see a `Cartridge ID` sensor, a `Cartridge Present`
-binary sensor, and a `Test Light` button in Home Assistant.
+binary sensor, a `Status Light`, a `Status Light Automatic` switch, and a
+`Test Light` button in Home Assistant.
 
 The LED tells you where the reader is before you touch a cartridge:
 
@@ -103,6 +104,12 @@ Those four are produced by the reader itself and do not depend on Home
 Assistant, which is the point: they are what tells you whether the problem is
 the reader or everything else. The colours for what a cartridge actually *did*
 are pushed in by the add-on, since only it knows.
+
+To drive the light yourself, turn **Status Light Automatic** off. The firmware
+then stops touching it — including the read flash — and it behaves like any
+other light. Turn the switch back on and the reader takes it straight back. The
+switch exists because without it anything you set by hand would survive only
+until the next tag tap or wifi reconnect and then revert for no visible reason.
 
 ## 4. Use it
 

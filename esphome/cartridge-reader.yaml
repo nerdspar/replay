@@ -122,10 +122,26 @@ light:
     num_leds: 1
     method:
       type: bit_bang
-    # Driven entirely by the scripts below. Exposing it to Home Assistant as a
-    # light would let an automation fight them and win at random.
-    internal: true
+    name: "Status Light"
+    icon: mdi:led-on
+    # Exposed so it can be driven by hand, but the scripts below own it by
+    # default. Without the "Status Light Automatic" switch to hand over
+    # control, anything set from Home Assistant would survive only until the
+    # next tag tap or wifi reconnect, then vanish for no visible reason.
     restore_mode: ALWAYS_OFF
+    # Linear, against ESPHome's default of 2.8.
+    #
+    # Gamma correction makes a dimmer track how the eye perceives brightness,
+    # which is right for a lamp and wrong here. It collapses the bottom of the
+    # range: at 2.8 a "6%" idle becomes 0.06^2.8 = 0.0004, which is 0.1 of 255
+    # and rounds to OFF. The light was not dim, it was extinguished, and the
+    # config still read as though it should glow. At 1.0 every number below
+    # means what it says — 0.10 really is 26 of 255.
+    gamma_correct: 1.0
+    # Every state change here is a status change, and status should snap rather
+    # than fade. Also sidesteps the rule that a call may set an effect or a
+    # transition but not both — see the scripts.
+    default_transition_length: 0s
     # The pulse effect drives brightness itself, between these two bounds, and
     # ignores whatever brightness the caller set. So the range lives here rather
     # than at the call site — setting it there looks right and does nothing.
@@ -251,14 +267,14 @@ script:
     mode: restart
     then:
       - lambda: |-
-          if (id(holding)) return;
+          if (!id(status_auto).state || id(holding)) return;
 
           auto call = id(status_led).turn_on();
           if (id(link_up)) {
             // Ready. Dim on purpose: this sits in a living room, and a bright
             // idle light is something people end up covering with tape.
             call.set_rgb(1.0f, 1.0f, 1.0f);
-            call.set_brightness(0.06f);
+            call.set_brightness(0.10f);
             call.set_effect("None");
           } else if (id(net_up)) {
             // On wifi but Home Assistant has not connected back yet. Tapping a
@@ -269,7 +285,6 @@ script:
             call.set_rgb(1.0f, 0.0f, 0.0f);
             call.set_effect("Breathe");
           }
-          call.set_transition_length(400);
           call.perform();
 
   # A tag came off the reader chip. Says nothing about what it will play.
@@ -277,11 +292,12 @@ script:
     mode: restart
     then:
       - lambda: |-
+          if (!id(status_auto).state) return;
+
           auto call = id(status_led).turn_on();
           call.set_rgb(1.0f, 1.0f, 1.0f);
           call.set_brightness(1.0f);
           call.set_effect("None");
-          call.set_transition_length(0);
           call.perform();
       - delay: 120ms
       - script.execute: show_ambient
@@ -295,10 +311,10 @@ script:
       state: string
     then:
       - lambda: |-
+          if (!id(status_auto).state) return;
           id(holding) = false;
 
           auto call = id(status_led).turn_on();
-          call.set_transition_length(150);
           call.set_effect("None");
 
           if (state == "playing") {
@@ -337,6 +353,21 @@ script:
 # ---------------------------------------------------------------------------
 # Entities
 # ---------------------------------------------------------------------------
+
+switch:
+  # The hand-over. On, the reader owns the light and shows what it is doing.
+  # Off, the firmware stops touching it entirely and it is yours to drive from
+  # Home Assistant — including the read flash and the add-on's colours, which
+  # would otherwise stamp on whatever you set a second later.
+  - platform: template
+    id: status_auto
+    name: "Status Light Automatic"
+    icon: mdi:auto-fix
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      # Take the light straight back rather than waiting for the next event.
+      - script.execute: show_ambient
 
 text_sensor:
   - platform: template

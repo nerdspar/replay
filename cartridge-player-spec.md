@@ -143,6 +143,13 @@ in the original YAML is ESP8266-compatible; only the platform block and pins cha
   a cartridge actually did — `playing`, `new`, `error`, `busy`, `ready`, `off`.
   Unknown names must fall through to ambient rather than sticking, so a newer
   add-on cannot strand older firmware showing a colour it does not understand.
+- Expose the LED as a light, plus a switch that hands control over. With the
+  switch off the firmware must not touch the LED at all — a half-measure where
+  automatic updates still fire would revert anything set by hand at the next tag
+  tap, with nothing on screen to explain why.
+- `gamma_correct: 1.0`. ESPHome's default of 2.8 is perceptual dimming for
+  lamps, and it collapses the bottom of the range: a 6% idle becomes 0.1 of 255
+  and rounds to off, while the config still reads as though it should glow.
 
 ### 2.2 Platform block
 
