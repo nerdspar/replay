@@ -27,8 +27,23 @@
 # light all working normally. Fix: one jumper from RST to 3V3.
 
 substitutions:
-  device_name: cartridge-reader
-  friendly_name: Cartridge Reader
+  device_name: replay-cartridge-reader
+  friendly_name: Replay Cartridge Reader
+
+# RENAMING AN ALREADY-FLASHED READER. The device advertises itself by its old
+# name until the moment the new firmware lands, so the install that performs a
+# rename is the one that cannot find it — ESPHome looks for the NEW name and
+# nothing answers. Uncomment this for that one install, pointing at the old name
+# or the reader's IP, then comment it out again:
+#
+#   use_address: cartridge-reader.local
+#
+# Home Assistant will also keep the old device alongside the new one, its
+# entities greyed out. Delete it from Settings > Devices once the rename lands.
+#
+# The `!secret` names below are deliberately NOT renamed: they are keys in your
+# secrets.yaml, not properties of the device, and changing them here would mean
+# editing that file for no gain.
 
 esphome:
   name: ${device_name}

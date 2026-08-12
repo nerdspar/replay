@@ -295,3 +295,24 @@ describe('reporting whether the reader is connected', () => {
     expect((await light(ha).describe()).connected).toBe(false)
   })
 })
+
+describe('a reader that has been renamed', () => {
+  it('follows the new name without being told', async () => {
+    // The device name is a substitution in the firmware, and Home Assistant
+    // derives its action names from it. Discovery matches on the action's
+    // suffix precisely so that renaming the reader needs no setting changed.
+    const ha = fakeHa([
+      'replay_cartridge_reader_set_status',
+      'replay_cartridge_reader_set_palette',
+      'replay_cartridge_reader_set_status_color',
+    ])
+
+    await light(ha).setStatus('playing_hold', '#3366cc')
+
+    expect(ha.calls[0]?.service).toBe('replay_cartridge_reader_set_status_color')
+    expect(await light(ha).describe()).toMatchObject({
+      connected: true,
+      device: 'replay-cartridge-reader',
+    })
+  })
+})

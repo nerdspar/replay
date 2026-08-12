@@ -257,7 +257,7 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.7a | Leave wifi blocked for 30 s | Settles to red, breathing |
 | 5.7b | Restore wifi, but stop Home Assistant | Amber, breathing — distinct from both red and ready |
 | 5.7c | Start Home Assistant again | Returns to dim white within a few seconds, without a reboot |
-| 5.7d | Call `esphome.cartridge_reader_set_status` with `state: playing` from Developer Tools → Actions | Green for about 2 s, then back to dim white |
+| 5.7d | Call `esphome.replay_cartridge_reader_set_status` with `state: playing` from Developer Tools → Actions | Green for about 2 s, then back to dim white |
 | 5.7e | Call it with `state: error` | Red, fast pulse, and **stays** — an error should not scroll past while you are in another room |
 | 5.7f | Call it with `state: nonsense` | Nothing sticks; the light stays as it was. Older firmware must not strand itself on a state a newer add-on invented |
 | 5.7g | Turn **Status Light Automatic** off, set the light to any colour from Home Assistant, then tap a tag | Colour holds. The tag still fires its event; only the light is hands-off |

@@ -120,7 +120,7 @@ export interface ServiceCaller {
 }
 
 export interface ServiceLister {
-  /** Service names in one domain, e.g. `cartridge_reader_set_status`. */
+  /** Service names in one domain, e.g. `replay_cartridge_reader_set_status`. */
   listServices(domain: string): Promise<string[]>
 }
 
