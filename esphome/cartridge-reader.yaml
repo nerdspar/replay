@@ -370,6 +370,9 @@ rc522_spi:
             # No flash either. There is nobody standing over it to see one, and
             # it turned a power cut into a light show ending in amber. Lift it
             # and put it back to play it, which is the same gesture as always.
+            - lambda: |-
+                ESP_LOGI("reader", "cartridge on: %s%s", x.c_str(),
+                         id(ever_connected) ? "" : " (left from before, ignoring)");
             - if:
                 condition:
                   lambda: "return id(ever_connected);"
@@ -390,12 +393,23 @@ rc522_spi:
       - script.execute: removal_debounce
 
 script:
-  # 500 ms debounce (§2.1). Restarted rather than queued so repeated drop-outs
+  # Removal debounce (§2.1). Restarted rather than queued, so repeated drop-outs
   # collapse into one pending removal.
+  #
+  # 1500ms, not the original 500. The reader misses polls — the log says so
+  # outright, "rc522: Communication takes longer than update interval" — and at
+  # a 250ms interval two missed polls in a row is 500ms of silence from a
+  # cartridge that never moved. The removal was then declared while it sat
+  # there, and the next good read looked like a fresh tap: a cartridge lifted
+  # off a quiet reader started playing on the way out.
+  #
+  # Six missed polls is a far higher bar than two, and the cost is that lifting
+  # a cartridge takes a second longer to register. Coupling is worst exactly
+  # while a cartridge is being lifted, which is why this surfaced there.
   - id: removal_debounce
     mode: restart
     then:
-      - delay: 500ms
+      - delay: 1500ms
       - if:
           condition:
             lambda: "return id(card_present);"
@@ -410,6 +424,7 @@ script:
                       data:
                         uid: !lambda "return id(current_uid);"
             - lambda: |-
+                ESP_LOGI("reader", "cartridge lifted: %s", id(current_uid).c_str());
                 id(card_present) = false;
                 id(current_uid) = "";
                 id(announced_insert) = false;

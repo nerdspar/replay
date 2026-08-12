@@ -305,6 +305,8 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.8x | Boot with an empty reader, side by side with 5.8w | The same sequence, and the same length. A seated cartridge must not make a boot slower or noisier |
 | 5.8y | After 5.8w, lift the cartridge off | Nothing happens — no pause, no TV power-off. Its arrival was never announced, so its departure is not either |
 | 5.8z | Put it back on | Plays normally. That is the gesture that starts it |
+| 5.9a | Lift a cartridge off a reader that is playing NOTHING | Nothing starts. A reader that misses two polls in a row used to declare a removal while the cartridge sat there, and the next good read looked like a fresh tap |
+| 5.9b | Watch the log while doing 5.9a | One `cartridge lifted`, and no `cartridge on` after it |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |
