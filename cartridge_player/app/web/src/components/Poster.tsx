@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
-import type { CardKind } from '../types'
+import { fitBackdrop, objectFitFor, type FitBackdrop } from '../lib/artFit'
+import type { ArtFit, CardKind } from '../types'
 
 interface PosterProps {
   /**
@@ -12,13 +14,53 @@ interface PosterProps {
   badge?: string | null
   /** Decides the placeholder when there is no artwork. */
   kind?: CardKind
+  /**
+   * Show it the way its sticker will look.
+   *
+   * A tile is the same shape as a sticker, so there is no reason for the two to
+   * disagree — and every reason for the grid to be the place you can see what
+   * you are about to print. Needs the card, since the blurred and colour
+   * treatments are derived from the artwork itself.
+   */
+  fit?: ArtFit | null
+  card?: { id: number; updated_at: number; poster_url: string | null } | null
 }
 
-export function Poster({ src, alt, badge, kind = 'video' }: PosterProps) {
+export function Poster({ src, alt, badge, kind = 'video', fit, card }: PosterProps) {
+  const [backdrop, setBackdrop] = useState<FitBackdrop | null>(null)
+  const active = fit && fit !== 'crop' ? fit : null
+
+  useEffect(() => {
+    if (!active || !card) {
+      setBackdrop(null)
+      return
+    }
+
+    let cancelled = false
+    // Cached per card, per artwork, per fit — so a grid of forty cartridges
+    // reads each cover once, not once per render.
+    void fitBackdrop(card as never, active).then((result) => {
+      if (!cancelled) setBackdrop(result)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [active, card])
+
   return (
-    <div className="poster">
+    <div className="poster" style={backdrop ? { background: backdrop.color } : undefined}>
+      {backdrop?.blurUrl ? (
+        <img className="poster-backdrop" src={backdrop.blurUrl} alt="" aria-hidden="true" />
+      ) : null}
       {src ? (
-        <img src={src} alt={alt} loading="lazy" decoding="async" />
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          style={active ? { objectFit: objectFitFor(active) } : undefined}
+        />
       ) : (
         <div className="fallback">
           <Icon name={kind === 'music' ? 'music' : 'film'} size={30} />

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.4
+
+**Blurred** now shows the whole cover over a blurred copy of itself, rather than
+looking like Fill with a blur on it. The blurred layer was painting over the
+sharp cover instead of behind it, so the only thing visible was the crop.
+
+Cartridge tiles in the library now follow the same choice as their sticker. A
+tile is the same shape as a sticker, so the grid doubles as a look at what you
+are about to print.
+
 ## 0.7.3
 
 The sticker options — Fill, Blurred and Colour — now show a live preview beside

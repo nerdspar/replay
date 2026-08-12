@@ -194,6 +194,8 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
             src={poster}
             alt={card.title}
             kind={card.kind}
+            fit={card.art_fit}
+            card={card}
             badge={episodeBadge(card.season, card.episode)}
           />
         </div>

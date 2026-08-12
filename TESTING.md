@@ -313,6 +313,9 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.9f | Check a music cartridge lights the reader in its own colour, with artwork colours on | Works now for the same reason: the colour is sampled through that proxy |
 | 5.9g | Open Edit on a music cartridge and switch between Fill, Blurred and Colour | The preview beside them changes each time. This is where the choice is made, so it is where the result has to be visible |
 | 5.9h | If the preview says it could not read the artwork | That is the real fault, not the setting. The sticker would print plain white; try different artwork, and check Status shows the add-on can reach it |
+| 5.9i | Set a square cover to **Blurred** and look closely | The whole cover, sharp, over a blurred copy of itself. NOT a cropped blur: if it looks like Fill with a blur applied, the backdrop is painting over the cover |
+| 5.9j | Compare Blurred against Fill | Plainly different. Fill crops the top and bottom; Blurred shows the whole square |
+| 5.9k | Look at that cartridge's tile in the library | Matches its sticker. The tile is the same shape, so the two should never disagree |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |

@@ -888,6 +888,17 @@ a:focus-visible {
   display: block;
 }
 
+/*
+  The cover, lifted above the blurred layer behind it.
+  Spelled out with :not() rather than left to specificity, which is what
+  decides between two rules both matching the backdrop — and is far too easy
+  to get backwards while reading.
+*/
+.sticker-art img:not(.sticker-backdrop) {
+  position: relative;
+  z-index: 1;
+}
+
 .sticker-fallback {
   position: absolute;
   inset: 0;
@@ -1036,12 +1047,20 @@ a:focus-visible {
   The blurred layer behind a cover that does not fill its sticker. Sits under
   the cover and fills the sticker completely, so no edge of it is ever visible.
 */
+/*
+  The blurred layer sits BEHIND the cover, which needs saying explicitly.
+  Positioned elements paint above non-positioned ones, so an absolutely
+  positioned backdrop covers a normal in-flow image no matter what order they
+  appear in the markup — which made "blurred" look like "fill, but blurry",
+  because the only thing visible was the cropped blur.
+*/
 .sticker-art .sticker-backdrop {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: 0;
 }
 
 /*
@@ -1211,10 +1230,16 @@ a:focus-visible {
   display: block;
 }
 
+.sticker-preview-face > img:not(.sticker-preview-backdrop) {
+  position: relative;
+  z-index: 1;
+}
+
 .sticker-preview-backdrop {
   position: absolute;
   inset: 0;
   object-fit: cover;
+  z-index: 0;
 }
 
 .sticker-preview-empty {
@@ -1234,4 +1259,23 @@ a:focus-visible {
   margin: 6px 0 0;
   font-size: 11px;
   text-align: center;
+}
+
+/*
+  A tile showing what its sticker will look like. Same two-layer arrangement,
+  and the same reason for the z-indexes: an absolutely positioned backdrop
+  paints above a normal in-flow image otherwise, and you see only the blur.
+*/
+.poster .poster-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.poster img:not(.poster-backdrop) {
+  position: relative;
+  z-index: 1;
 }

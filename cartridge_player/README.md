@@ -162,7 +162,9 @@ sticker**:
 
 The edit sheet shows a live preview of the sticker beside those three, at the
 real 60 × 90 proportions, so you can see the difference where you choose it
-rather than in the print preview two screens away. If the artwork cannot be
+rather than in the print preview two screens away. The cartridge's tile in the
+library follows the same choice — a tile is the same shape as a sticker, so the
+grid doubles as a look at what you are about to print. If the artwork cannot be
 read, the preview says so instead of quietly printing a plain white border.
 
 All three reach the edges of the sticker; they differ only in what fills the

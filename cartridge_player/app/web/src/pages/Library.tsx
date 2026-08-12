@@ -430,6 +430,8 @@ export function Library({ stream }: LibraryProps) {
                     src={card.poster_url}
                     alt={card.title}
                     kind={card.kind}
+                    fit={card.art_fit}
+                    card={card}
                     badge={episodeBadge(card.season, card.episode)}
                   />
                 )}
