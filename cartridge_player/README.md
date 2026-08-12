@@ -160,6 +160,11 @@ sticker**:
 | **Blurred** | The whole cover, sharp and centred, over a blurred copy of itself. Nothing is cut off. |
 | **Colour** | The whole cover on a block of the cover's own dominant colour. |
 
+The edit sheet shows a live preview of the sticker beside those three, at the
+real 60 × 90 proportions, so you can see the difference where you choose it
+rather than in the print preview two screens away. If the artwork cannot be
+read, the preview says so instead of quietly printing a plain white border.
+
 All three reach the edges of the sticker; they differ only in what fills the
 extra height.
 

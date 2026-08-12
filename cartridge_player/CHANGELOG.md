@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.3
+
+The sticker options — Fill, Blurred and Colour — now show a live preview beside
+them, at the real 60 × 90 proportions. They were only ever visible in the print
+preview two screens away, which made a working setting feel like a broken one.
+
+If the artwork cannot be read, the preview says so. That failure used to be
+swallowed on purpose, because a sticker with a plain border is not worth taking
+a whole print sheet down for — but swallowing it also meant no way to tell a
+setting that did nothing from artwork that could not be fetched.
+
 ## 0.7.2
 
 Editing a playlist cartridge no longer fails with Forbidden. A Music Assistant

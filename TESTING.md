@@ -311,6 +311,8 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.9d | Set a music cartridge to **Blurred**, print-preview it | The blur appears. Music Assistant covers come over plain http from your network, which the artwork proxy used to refuse — leaving a white background and no explanation |
 | 5.9e | Same with **Colour** | A colour plainly taken from the cover |
 | 5.9f | Check a music cartridge lights the reader in its own colour, with artwork colours on | Works now for the same reason: the colour is sampled through that proxy |
+| 5.9g | Open Edit on a music cartridge and switch between Fill, Blurred and Colour | The preview beside them changes each time. This is where the choice is made, so it is where the result has to be visible |
+| 5.9h | If the preview says it could not read the artwork | That is the real fault, not the setting. The sticker would print plain white; try different artwork, and check Status shows the add-on can reach it |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |

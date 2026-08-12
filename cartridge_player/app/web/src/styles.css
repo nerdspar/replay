@@ -1171,3 +1171,67 @@ a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/*
+  The sticker choice: a live preview beside the three options.
+
+  It sits next to them because the choice was previously invisible where it was
+  made — the only place it showed was a print preview two screens away, which
+  makes a working setting feel like a broken one.
+*/
+.sticker-choice {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.sticker-choice > .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.sticker-preview {
+  flex: none;
+  width: 96px;
+}
+
+.sticker-preview-face {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  /* The printed sticker has no drop shadow; neither should its portrait. */
+  background: #fff;
+}
+
+.sticker-preview-face > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sticker-preview-backdrop {
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+}
+
+.sticker-preview-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #111;
+}
+
+.sticker-preview .hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  text-align: center;
+}

@@ -6,6 +6,7 @@ import { Confirm } from './Confirm'
 import { Icon } from './Icon'
 import { Poster, episodeBadge } from './Poster'
 import { Sheet } from './Sheet'
+import { StickerPreview } from './StickerPreview'
 import type { ArtFit, Card, EntityOption } from '../types'
 
 /** What each music content type is called in the open. */
@@ -309,7 +310,9 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
           </p>
 
           <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>On the sticker</h3>
-          <div className="radio-list">
+          <div className="sticker-choice">
+            <StickerPreview card={card} fit={artFit} poster={poster} />
+            <div className="radio-list grow">
             {ART_FITS.map((option) => (
               <label key={option.value}>
                 <input
@@ -324,8 +327,9 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
                     {option.hint}
                   </span>
                 </span>
-              </label>
-            ))}
+                </label>
+              ))}
+            </div>
           </div>
           <p className="hint">
             Cover art is square and the cartridge sticker is taller than it is
