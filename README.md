@@ -138,6 +138,13 @@ say so.
 
 Lifting a cartridge off clears any held state.
 
+**A cartridge left on the reader through a power cut is not played.** The reader
+comes up exactly as it would with nothing on it — briefly red while it finds
+wifi, then Ready — and the cartridge sits there ignored. Lift it and put it back
+to play it, which is the same gesture as any other time. Home Assistant is told
+nothing about it either way, so lifting it does not trigger your lift-off action
+for something that was never started.
+
 **The light is about** lets you choose what the light describes. *The cartridge*
 means lifting one off returns the reader to idle, whatever is still playing.
 *What is playing* means the light stays with it until the music stops — which

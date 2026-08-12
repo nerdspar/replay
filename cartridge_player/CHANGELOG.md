@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.1
+
+Firmware fix. A cartridge left on the reader through a power cut is no longer
+played when the power comes back, and the reader now boots exactly as it does
+with nothing on it — brief red while it finds wifi, then Ready.
+
+Previous releases tried to tell Home Assistant about that cartridge and made a
+meal of it: a flash, a long amber, and eventually playback nobody had asked
+for. Lift the cartridge and put it back to play it, the same as any other time.
+
+Lifting a cartridge that was never announced no longer triggers your lift-off
+action either, so it cannot pause or switch off something unrelated.
+
+The add-on is unchanged; this release carries the firmware.
+
 ## 0.7.0
 
 **Status** now shows whether the reader itself is connected, next to the Home

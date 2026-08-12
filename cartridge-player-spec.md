@@ -161,6 +161,14 @@ in the original YAML is ESP8266-compatible; only the platform block and pins cha
 - Show connection state on the LED without being asked: red for no wifi, amber
   for wifi-but-no-Home-Assistant, dim white for ready. This is the reader saying
   whether *it* is the problem, so it cannot come from HA.
+- **A cartridge already on the reader at power-on must not be played, and must
+  not be announced.** The RC522 reads it within a second of power returning,
+  long before wifi, so acting on it turns a power cut into a room that starts
+  playing something by itself. Record it as present and nothing more; a boot
+  with a cartridge seated should be indistinguishable from one without.
+- Insert and remove must stay symmetrical. A cartridge whose arrival was not
+  announced must not announce its departure either, or lifting it runs the
+  lift-off action against whatever happens to be playing.
 - Never start waiting for an answer that has already arrived. The add-on replies
   in roughly 50ms, well inside the read flash, so the flash must check before
   entering its waiting state — otherwise it overwrites a status already received

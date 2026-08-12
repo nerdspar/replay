@@ -301,7 +301,10 @@ Do this on the bench with the board on USB, before it goes in an enclosure.
 | 5.8t | Open Status | A **Reader** pill beside Home Assistant, showing connected and the device name |
 | 5.8u | Unplug the reader, wait ~30 s, reload Status | Reader reads *not found*, with a pointer to its own light. Home Assistant stays connected — the two are separate questions |
 | 5.8v | Plug it back in and reload | Connected again |
-| 5.8w | Power the reader up with a cartridge already on it | Brief red while it finds wifi, then Ready — and the cartridge is announced. **No amber.** The first announce is dropped because connecting is not the same as listening, so it retries |
+| 5.8w | Power the reader up with a cartridge already on it | Red, then Ready. Nothing else: no flash, no amber, and **nothing starts playing**. Should be indistinguishable from booting with an empty reader |
+| 5.8x | Boot with an empty reader, side by side with 5.8w | The same sequence, and the same length. A seated cartridge must not make a boot slower or noisier |
+| 5.8y | After 5.8w, lift the cartridge off | Nothing happens — no pause, no TV power-off. Its arrival was never announced, so its departure is not either |
+| 5.8z | Put it back on | Plays normally. That is the gesture that starts it |
 | 5.7h | Turn the switch back on | Reader reclaims the light immediately, without waiting for the next tap |
 | 5.8 | Watch Developer Tools → Events for `esphome.nfc_card_inserted` | Fires once per tap, with a `uid` |
 | 5.9 | Rest a tag on the reader and leave it for 60 s | **No event storm.** At most one insert event |
