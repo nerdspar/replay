@@ -30,8 +30,21 @@ set -euo pipefail
 
 base="${HA_URL%/}"
 
+# Status and body, not curl's exit code. A bare "curl: (56) ... error: 401"
+# says nothing about which of several quite different things went wrong.
+BODY="$(mktemp)"
+trap 'rm -f "$BODY"' EXIT
+
+call() {
+  # curl already writes 000 to -w when it cannot connect, so no fallback echo
+  # here — one would concatenate with it and produce "000000".
+  : > "$BODY"
+  curl -sS -o "$BODY" -w '%{http_code}' "$@" 2>/dev/null || true
+}
+
 open_url() {
-  curl -fsS -X POST \
+  local code
+  code="$(call -X POST \
     -H "Authorization: Bearer ${HA_TOKEN}" \
     -H 'Content-Type: application/json' \
     -d "$(python3 -c '
@@ -41,13 +54,76 @@ print(json.dumps({
   "media_content_type": "url",
   "media_content_id": sys.argv[2],
 }))' "$ATV_ENTITY" "$1")" \
-    "${base}/api/services/media_player/play_media" > /dev/null
+    "${base}/api/services/media_player/play_media")"
+
+  if [ "$code" != "200" ]; then
+    echo "  HTTP ${code}: $(head -c 300 "$BODY")"
+    return 1
+  fi
+}
+
+# Everything that can be wrong before Neptune is even involved, checked in the
+# order it fails, so the message names the actual problem rather than the last
+# thing to notice it.
+preflight() {
+  local code
+  code="$(call -H "Authorization: Bearer ${HA_TOKEN}" "${base}/api/")"
+
+  case "$code" in
+    200) ;;
+    401)
+      cat <<MSG
+  Home Assistant rejected the token (401). Three things do this:
+
+  1. The token is wrong, expired, or was truncated when pasted. They are
+     roughly 180 characters — check yours is not cut short:
+       echo -n "\$HA_TOKEN" | wc -c
+     Make a fresh one at Profile > Security > Long-lived access tokens.
+
+  2. Something in front of Home Assistant is answering instead of it —
+     Cloudflare Access, Authelia, an nginx basic-auth. Those reject an API
+     call carrying a Home Assistant token because they never see it as valid.
+     Try the local address, which bypasses all of that:
+       HA_URL=http://homeassistant.local:8123
+
+  3. The token belongs to a different Home Assistant than ${base}.
+MSG
+      return 1
+      ;;
+    000)
+      echo "  Could not reach ${base} at all. Wrong address, or nothing listening."
+      return 1
+      ;;
+    *)
+      echo "  ${base}/api/ answered ${code}, which is not Home Assistant's API."
+      echo "  Body: $(head -c 200 "$BODY")"
+      echo "  The REST API lives at the root of your HA URL — no /lovelace or trailing path."
+      return 1
+      ;;
+  esac
+
+  code="$(call -H "Authorization: Bearer ${HA_TOKEN}" "${base}/api/states/${ATV_ENTITY}")"
+  if [ "$code" != "200" ]; then
+    echo "  No entity called ${ATV_ENTITY} (HTTP ${code})."
+    echo "  Check the exact id in Developer Tools > States."
+    return 1
+  fi
+
+  local state
+  state="$(python3 -c 'import json,sys; print(json.load(open("'"$BODY"'"))["state"])' 2>/dev/null || echo '?')"
+  echo "  Home Assistant answers, and ${ATV_ENTITY} is ${state}."
+  # Not fatal: an Apple TV asleep still wakes for a URL. Worth saying, though,
+  # since "nothing happened" would otherwise be ambiguous.
+  if [ "$state" = "unavailable" ] || [ "$state" = "unknown" ]; then
+    echo "  That is not a good sign — an unavailable player may ignore everything below."
+  fi
 }
 
 # One-off mode, for following a hunch.
 if [ $# -ge 1 ]; then
   echo "Sending $1"
-  open_url "$1"
+  preflight || exit 1
+  open_url "$1" || exit 1
   exit 0
 fi
 
@@ -56,9 +132,13 @@ fi
 # The control comes first on purpose. If the app does not even come forward,
 # every "nothing happened" after it is meaningless — the fault would be the
 # pipe, not the URL.
-echo "CONTROL: does anything reach the Apple TV at all?"
+echo "Checking Home Assistant before blaming Neptune for anything."
+preflight || exit 1
+
+echo "
+CONTROL: does anything reach the Apple TV at all?"
 echo "  Sending neptune:// — Neptune should come to the foreground."
-open_url 'neptune://'
+open_url 'neptune://' || exit 1
 read -r -p "  Did Neptune open? [y/N] " ok
 case "$ok" in
   [yY]*) ;;
