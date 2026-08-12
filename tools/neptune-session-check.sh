@@ -123,6 +123,45 @@ else:
   exists and works, which is the hard part.""")
 PY
 
+python3 - "$sessions" "$plugins" <<'PY'
+import json, sys
+
+# Compare the app against its own server plugin.
+#
+# Easy to read past in two separate lists, and it changes what every other
+# result here means: a conclusion about the app is a conclusion about the
+# version installed, not about Neptune.
+try:
+    sessions_for_version = json.loads(sys.argv[1])
+    plugins_for_version = json.loads(sys.argv[2])
+except Exception:
+    sessions_for_version, plugins_for_version = [], []
+
+def major(version):
+    try:
+        return int(str(version).split(".")[0])
+    except Exception:
+        return None
+
+app = next((s.get("ApplicationVersion") for s in sessions_for_version
+            if "neptune" in str(s.get("Client", "")).lower()), None)
+plugin = next((p.get("Version") for p in plugins_for_version
+               if "neptune" in str(p.get("Name", "")).lower()), None)
+
+if app and plugin and major(app) is not None and major(plugin) is not None:
+    if major(plugin) > major(app):
+        print()
+        print("  THE APP IS BEHIND ITS OWN PLUGIN.")
+        print()
+        print(f"    Apple TV app   {app}")
+        print(f"    server plugin  {plugin}")
+        print()
+        print("  Everything else here describes the version installed on that Apple")
+        print("  TV, not Neptune as it now is. Update the app from the App Store and")
+        print("  run this again, along with the deep-link probe — a capability the")
+        print("  app has gained since would look exactly like one it does not have.")
+PY
+
 python3 - "$sessions" <<'PY'
 import json, sys
 
@@ -166,7 +205,6 @@ for s in neptune:
 """.format(s.get('Id')))
     else:
         print("""
-  Still false, so POST /Sessions/{id}/Playing cannot target it — same as when
-  this was last tested. The deep-link probe is the remaining avenue.
+  Still false, so POST /Sessions/{id}/Playing cannot target it.
 """)
 PY

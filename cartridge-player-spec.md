@@ -744,7 +744,23 @@ either, among several hundred settings.
 
 The server carries **two** Neptune plugins, both 1.3.1.0: `Neptune MDM` and
 `Neptune Indexers`. Their routes need not be named after them, so the checker
-matches on OpenAPI tags and operation ids as well as the path.
+matches on OpenAPI tags and operation ids as well as the path. Between them they
+publish 33 endpoints — announcements, child accounts, backups, per-user device
+lists, a library index, a search dump, a settings schema, and `GET
+/Neptune/Events`, which is almost certainly the stream carrying those live
+settings pushes.
+
+**None of them plays anything**, and that is the finding: the plugin's whole
+vocabulary is configuration and indexing. There is no session, command, or
+playback endpoint to reach for.
+
+**The app is still 0.1.6 while its plugins are 1.3.1.0.** That is the same app
+version this section was written against, so nothing above has actually been
+re-tested — the deep-link probe and the session check both describe a build that
+has not moved, next to a server component that has moved three major versions.
+Any conclusion here is about that installed version and not about Neptune, and
+the checker now says so rather than leaving it to be noticed in two separate
+lists.
 
 **The live channel is the lead worth following.** Neptune ships a Jellyfin
 server plugin, and its own description of it is the important part: *"Changes
