@@ -736,6 +736,20 @@ without another round of correspondence:
 Note also that `neptuneplayer.com` serves no `apple-app-site-association`, so the
 app declares no Universal Links either — the custom scheme is the only surface.
 
+**Deep links are now ruled out by testing, not inference.** All thirteen
+candidate `neptune://` shapes were sent to a live Apple TV, after a control probe
+confirmed the bare scheme foregrounds the app. None navigated to an item. The
+MDM settings screen the app's own plugin provides lists no URL scheme option
+either, among several hundred settings.
+
+**The live channel is the lead worth following.** Neptune ships a Jellyfin
+server plugin, and its own description of it is the important part: *"Changes
+pushed to live clients take effect immediately, while offline users see the
+changes on their next sign-in."* A server-to-client channel therefore exists and
+works. That is the hard half of remote play; what remains is whether anything on
+it carries a play command, which `tools/neptune-session-check.sh` now enumerates
+from the server's OpenAPI document.
+
 ### 12.2 What would be added when unblocked
 
 - **`JellyfinProvider`** implementing `Provider` against the Jellyfin REST API:

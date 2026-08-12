@@ -26,6 +26,70 @@ base="${JELLYFIN_URL%/}"
 echo "Asking ${base} which clients are connected..."
 sessions="$(curl -fsS -H "X-Emby-Token: ${JELLYFIN_TOKEN}" "${base}/Sessions")"
 
+# What the server itself offers. Neptune ships a Jellyfin plugin — the one
+# carrying the MDM settings screen — and a plugin can contribute its own API
+# endpoints, which Jellyfin publishes in its OpenAPI document alongside the
+# built-in ones. Anything Neptune exposes for talking to a live client is
+# listed there, and nowhere else.
+echo
+echo "Plugins installed on this server:"
+plugins="$(curl -fsS -H "X-Emby-Token: ${JELLYFIN_TOKEN}" "${base}/Plugins" 2>/dev/null || echo '[]')"
+
+# Passed as an argument rather than piped, so the Python below can be a quoted
+# heredoc and use whatever quotes it likes. Nesting quotes inside `python3 -c`
+# inside a shell script is how the first version of this got mangled.
+python3 - "$plugins" <<'PY'
+import json, sys
+
+try:
+    plugins = json.loads(sys.argv[1])
+except Exception:
+    plugins = []
+
+if not plugins:
+    print("  (could not read the plugin list — this needs an admin API key)")
+else:
+    for p in plugins:
+        name = str(p.get("Name", "?"))
+        mark = "   <-- this one" if "neptune" in name.lower() else ""
+        print(f"  {name:<34} {p.get('Version', '?'):<12}{mark}")
+PY
+
+echo
+echo "Endpoints the Neptune plugin adds:"
+spec=""
+for doc in "${base}/openapi.json" "${base}/api-docs/openapi.json"; do
+  spec="$(curl -fsS -H "X-Emby-Token: ${JELLYFIN_TOKEN}" "$doc" 2>/dev/null || true)"
+  [ -n "$spec" ] && break
+done
+
+python3 - "${spec:-}" "$base" <<'PY'
+import json, sys
+
+try:
+    paths = json.loads(sys.argv[1]).get("paths", {})
+except Exception:
+    paths = {}
+
+hits = sorted(p for p in paths if "neptune" in p.lower())
+if not hits:
+    print("  None found, or the OpenAPI document is not readable with this key.")
+    print("  Worth a look in a browser while signed in as an admin:")
+    print(f"    {sys.argv[2]}/api-docs/swagger")
+else:
+    for path in hits:
+        for method, op in paths[path].items():
+            if method.lower() in ("get", "post", "put", "delete", "patch"):
+                print(f"  {method.upper():<6} {path}")
+                text = op.get("summary") or op.get("description") or ""
+                if text:
+                    print(f"         {text.strip().splitlines()[0][:96]}")
+    print("""
+  Read these closely. Anything that reaches a LIVE client is a route to remote
+  play that needs no URL scheme at all — the settings push proves that channel
+  exists and works, which is the hard part.""")
+PY
+
 python3 - "$sessions" <<'PY'
 import json, sys
 
