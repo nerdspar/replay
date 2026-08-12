@@ -8,13 +8,14 @@ import {
   MAX_UPLOAD_BYTES,
   artworkNameFromUrl,
   detectImageExtension,
-  isPrivateHost,
+  isBlockedHost,
   resolveImportUrl,
 } from '../../artwork/store.js'
 
 const UPLOAD_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 
 const artworkQuery = z.object({
+  id: z.string().min(1),
   season: z.coerce.number().int().optional(),
   episode: z.coerce.number().int().optional(),
 })
@@ -49,12 +50,20 @@ export function registerArtworkRoutes(app: FastifyInstance, ctx: AppContext): vo
     (_request, body, done) => done(null, body),
   )
 
-  /** Artwork the provider can offer for a title. */
-  app.get<{ Params: { provider: string; type: string; id: string } }>(
-    '/api/artwork/:provider/:type/:id',
+  /**
+   * Artwork the provider can offer for a title.
+   *
+   * The item's id is a QUERY parameter, not a path segment. Provider ids are
+   * opaque strings and Music Assistant's are URIs — `library://playlist/7` —
+   * whose encoded slashes several proxies rewrite or reject outright, Home
+   * Assistant's ingress among them. A path segment cannot safely hold something
+   * a provider is entitled to put anything in.
+   */
+  app.get<{ Params: { provider: string; type: string } }>(
+    '/api/artwork/:provider/:type',
     async (request) => {
-      const { provider: providerId, type, id } = request.params
-      const { season, episode } = artworkQuery.parse(request.query)
+      const { provider: providerId, type } = request.params
+      const { id, season, episode } = artworkQuery.parse(request.query)
       const provider = ctx.providers.get(providerId)
 
       const options = await provider.getArtwork(type, id, {
@@ -164,7 +173,9 @@ export function registerArtworkRoutes(app: FastifyInstance, ctx: AppContext): vo
     } catch {
       throw new AppError('not_found', 'That artwork is not a fetchable image', 404)
     }
-    if (target.protocol !== 'https:' || isPrivateHost(target.hostname)) {
+    // http as well as https: Music Assistant serves its covers over plain http
+    // on the local network, and refusing that refused every album cover.
+    if (!/^https?:$/.test(target.protocol) || isBlockedHost(target.hostname)) {
       throw new AppError('not_found', 'That artwork is not a fetchable image', 404)
     }
 
@@ -183,6 +194,12 @@ export function registerArtworkRoutes(app: FastifyInstance, ctx: AppContext): vo
     }
 
     const body = Buffer.from(await upstream.arrayBuffer())
+    // Capped and sniffed, in that order. Both matter more now that this will
+    // fetch from the local network: together they keep it a reader of images
+    // rather than a general-purpose window onto whatever answers on port 80.
+    if (body.length > MAX_IMPORT_BYTES) {
+      throw new AppError('too_large', 'That artwork is too large', 413)
+    }
     const ext = detectImageExtension(body)
     if (!ext) throw new AppError('unsupported_image', 'That artwork is not an image', 415)
 

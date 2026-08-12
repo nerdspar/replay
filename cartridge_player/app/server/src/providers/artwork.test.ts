@@ -93,7 +93,7 @@ describe('artwork over HTTP', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/artwork/fake/movie/fake-1',
+      url: '/api/artwork/fake/movie?id=fake-1',
     })
 
     expect(response.statusCode).toBe(200)
@@ -119,7 +119,7 @@ describe('artwork over HTTP', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/artwork/jellyfin/movie/x',
+      url: '/api/artwork/jellyfin/movie?id=x',
     })
 
     expect(response.statusCode).toBe(400)

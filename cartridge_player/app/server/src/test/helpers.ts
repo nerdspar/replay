@@ -117,6 +117,8 @@ export class FakeTarget implements Target {
 export class FakeProvider implements Provider {
   readonly id: string
   readonly searches: { query: string; type: ContentType }[] = []
+  /** So a test can prove an id survived the round trip unmangled. */
+  readonly metaCalls: { type: string; id: string }[] = []
 
   constructor(id = 'fake') {
     this.id = id
@@ -130,6 +132,7 @@ export class FakeProvider implements Provider {
   }
 
   async getMeta(type: string, id: string): Promise<Meta> {
+    this.metaCalls.push({ type, id })
     return {
       id,
       type: type === 'series' ? 'series' : 'movie',

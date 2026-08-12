@@ -102,9 +102,14 @@ export const api = {
       `api/search?q=${encodeURIComponent(q)}&type=${type}&provider=${provider}`,
     ).then((r) => r.results),
 
+  /**
+   * `id` goes in the query string, never the path. A Music Assistant id is a
+   * URI — `library://playlist/7` — and its encoded slashes are rewritten or
+   * rejected by several proxies, Home Assistant's ingress among them.
+   */
   meta: (provider: string, type: ContentType, id: string) =>
     request<{ meta: Meta }>(
-      `api/meta/${provider}/${type}/${encodeURIComponent(id)}`,
+      `api/meta/${provider}/${type}?id=${encodeURIComponent(id)}`,
     ).then((r) => r.meta),
 
   artwork: (
@@ -113,12 +118,12 @@ export const api = {
     id: string,
     pinned?: { season: number | null; episode: number | null },
   ) => {
-    const query =
+    const pin =
       pinned?.season !== null && pinned?.season !== undefined && pinned.episode !== null
-        ? `?season=${pinned.season}&episode=${pinned.episode}`
+        ? `&season=${pinned.season}&episode=${pinned.episode}`
         : ''
     return request<{ provider: string; options: ArtworkOption[] }>(
-      `api/artwork/${provider}/${type}/${encodeURIComponent(id)}${query}`,
+      `api/artwork/${provider}/${type}?id=${encodeURIComponent(id)}${pin}`,
     ).then((r) => r.options)
   },
 

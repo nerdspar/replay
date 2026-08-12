@@ -161,6 +161,17 @@ in the original YAML is ESP8266-compatible; only the platform block and pins cha
 - Show connection state on the LED without being asked: red for no wifi, amber
   for wifi-but-no-Home-Assistant, dim white for ready. This is the reader saying
   whether *it* is the problem, so it cannot come from HA.
+- **Provider ids belong in the query string, never a path segment.** A provider
+  may put anything in one, and Music Assistant's are URIs — `library://playlist/7`
+  — whose encoded slashes proxies rewrite or reject, Home Assistant's ingress
+  among them. Nothing in the round trip may mangle an id: it is the only handle
+  on the item.
+- **The artwork proxy must reach the local network.** Music Assistant serves
+  covers over plain http from the LAN, so refusing private hosts refused every
+  album cover in the house — and the sticker backdrops and light colours that
+  read them fell back silently. Loopback and link-local stay blocked, since
+  neither could be artwork, and everything fetched still has to survive a
+  magic-byte sniff and a size cap.
 - **A cartridge already on the reader at power-on must not be played, and must
   not be announced.** The RC522 reads it within a second of power returning,
   long before wifi, so acting on it turns a power cut into a room that starts

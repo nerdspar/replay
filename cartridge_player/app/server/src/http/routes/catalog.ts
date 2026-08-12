@@ -43,10 +43,12 @@ export function registerCatalogRoutes(app: FastifyInstance, ctx: AppContext): vo
     return { provider: provider.id, results }
   })
 
-  app.get<{ Params: { provider: string; type: string; id: string } }>(
-    '/api/meta/:provider/:type/:id',
+  /** `id` is a query parameter for the reason given on the artwork route. */
+  app.get<{ Params: { provider: string; type: string } }>(
+    '/api/meta/:provider/:type',
     async (request) => {
-      const { provider: providerId, type, id } = request.params
+      const { provider: providerId, type } = request.params
+      const { id } = z.object({ id: z.string().min(1) }).parse(request.query)
       const provider = ctx.providers.get(providerId)
       const meta = await provider.getMeta(type, id)
       return { provider: provider.id, meta }

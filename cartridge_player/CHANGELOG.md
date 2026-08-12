@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.2
+
+Editing a playlist cartridge no longer fails with Forbidden. A Music Assistant
+id is a URI, and its slashes were being sent through the URL path where Home
+Assistant's proxy could reject them. Ids now travel in the query string.
+
+The **Blurred** and **Colour** sticker options now work for music. Music
+Assistant serves its covers over plain http from your own network, which the
+artwork proxy refused — so both fell back to a white background without saying
+why. The same fix restores artwork colours on the reader light for music
+cartridges.
+
+Firmware: lifting a cartridge off a reader that is playing nothing no longer
+starts it playing. Reflash for that one.
+
 ## 0.7.1
 
 Firmware fix. A cartridge left on the reader through a power cut is no longer

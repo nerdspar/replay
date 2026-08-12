@@ -84,7 +84,7 @@ describe('a second Provider slots in with no call-site changes', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/meta/fake/series/fake-1',
+      url: '/api/meta/fake/series?id=fake-1',
     })
 
     expect(response.statusCode).toBe(200)

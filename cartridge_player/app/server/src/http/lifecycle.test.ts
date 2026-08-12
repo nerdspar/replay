@@ -555,3 +555,52 @@ describe('the artwork a card was created with', () => {
     db.close()
   })
 })
+
+/**
+ * A provider id can be anything the provider likes, and Music Assistant's are
+ * URIs. Encoded slashes in a path segment are rewritten or rejected by several
+ * proxies — Home Assistant's ingress among them — so they belong in the query.
+ */
+describe('asking about an item whose id is a URI', () => {
+  it('takes the id from the query string', async () => {
+    active = testContext()
+    const { ctx } = active
+    ctx.providers.register(new FakeProvider('music_assistant'))
+    const app = buildServer(ctx, { requirePin: false })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/artwork/music_assistant/playlist?id=${encodeURIComponent('library://playlist/7')}`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    await app.close()
+  })
+
+  it('refuses one with no id rather than guessing', async () => {
+    active = testContext()
+    const app = buildServer(active.ctx, { requirePin: false })
+
+    const response = await app.inject({ method: 'GET', url: '/api/artwork/stremio/movie' })
+
+    expect(response.statusCode).toBe(400)
+    await app.close()
+  })
+
+  it('hands the provider the id intact, slashes and all', async () => {
+    active = testContext()
+    const { ctx } = active
+    const provider = new FakeProvider('music_assistant')
+    ctx.providers.register(provider)
+    const app = buildServer(ctx, { requirePin: false })
+
+    await app.inject({
+      method: 'GET',
+      url: `/api/meta/music_assistant/playlist?id=${encodeURIComponent('library://playlist/7')}`,
+    })
+
+    // Nothing in the round trip may mangle it: it is the only handle on the item.
+    expect(provider.metaCalls.at(-1)?.id).toBe('library://playlist/7')
+    await app.close()
+  })
+})

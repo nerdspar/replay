@@ -7,6 +7,7 @@ import {
   artworkNameFromUrl,
   artworkUrl,
   detectImageExtension,
+  isBlockedHost,
   resolveImportUrl,
 } from './store.js'
 import { testContext, type TestContext } from '../test/context.js'
@@ -438,7 +439,7 @@ describe('serving a card\'s artwork from our own origin', () => {
     await app.close()
   })
 
-  it('refuses to reach anything inside the install, even via a card', async () => {
+  it('refuses to reach the install itself, even via a card', async () => {
     const ctx = setup()
     const app = buildServer(ctx, { requirePin: false })
     const calls: string[] = []
@@ -448,14 +449,21 @@ describe('serving a card\'s artwork from our own origin', () => {
       return new Response(JPEG)
     }) as typeof fetch
 
+    // Narrowed on purpose. This used to refuse the whole local network, which
+    // meant refusing every Music Assistant cover in the house — those are
+    // served over plain http from the LAN, and the sticker backdrops and light
+    // colours that read them silently fell back to white.
+    //
+    // What is left is what could never be artwork: the add-on's own container,
+    // and the link-local address cloud metadata answers on. Anything that does
+    // come back still has to survive an image sniff and a size cap.
     for (const [i, hostile] of [
       'http://supervisor/core/api/states',
       'https://supervisor/addons/self/info',
       'https://127.0.0.1:8099/api/settings',
-      'https://192.168.1.10/secret.png',
-      'https://10.0.0.5/secret.png',
+      'http://localhost:8099/api/settings',
       'https://169.254.169.254/latest/meta-data/',
-      'https://homeassistant.local/x.png',
+      'https://[::1]/x.png',
     ].entries()) {
       ctx.store.createCard(remoteCard(hostile), i + 1)
       const response = await app.inject({ method: 'GET', url: `/api/artwork/card/${i + 1}` })
@@ -469,11 +477,86 @@ describe('serving a card\'s artwork from our own origin', () => {
     await app.close()
   })
 
+  it('fetches a cover from Music Assistant over plain http', async () => {
+    const ctx = setup()
+    const app = buildServer(ctx, { requirePin: false })
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response(JPEG)) as typeof fetch
+
+    // What a Music Assistant cover URL actually looks like.
+    ctx.store.createCard(remoteCard('http://192.168.1.50:8095/imageproxy?path=abc'), 1)
+    const response = await app.inject({ method: 'GET', url: '/api/artwork/card/1' })
+
+    globalThis.fetch = realFetch
+    expect(response.statusCode).toBe(200)
+    expect(response.headers['content-type']).toBe('image/jpeg')
+    await app.close()
+  })
+
+  it('still refuses whatever comes back if it is not an image', async () => {
+    const ctx = setup()
+    const app = buildServer(ctx, { requirePin: false })
+    const realFetch = globalThis.fetch
+    globalThis.fetch = (async () => new Response('{"token":"secret"}')) as typeof fetch
+
+    ctx.store.createCard(remoteCard('http://192.168.1.50/whatever'), 1)
+    const response = await app.inject({ method: 'GET', url: '/api/artwork/card/1' })
+
+    globalThis.fetch = realFetch
+    // The sniff is what keeps a wider reach from becoming a window onto
+    // anything on the network that answers.
+    expect(response.statusCode).toBe(415)
+    await app.close()
+  })
+
+
   it('404s a card with no artwork', async () => {
     const ctx = setup()
     const app = buildServer(ctx, { requirePin: false })
     const response = await app.inject({ method: 'GET', url: '/api/artwork/card/999' })
     expect(response.statusCode).toBe(404)
     await app.close()
+  })
+})
+
+/**
+ * What the artwork proxy will and will not fetch.
+ *
+ * Narrowed deliberately from "no private hosts" to "no loopback or link-local".
+ * The broad rule refused every Music Assistant cover in the house, because
+ * those are served over plain http from the local network — and the sticker
+ * backdrops and light colours that read them fell back to white without saying
+ * why.
+ */
+describe('which hosts artwork may come from', () => {
+  it('allows the local network, which is where music covers live', () => {
+    for (const host of [
+      '192.168.1.50',
+      '10.0.0.4',
+      '172.17.0.2',
+      'homeassistant.local',
+      'music-assistant.local',
+      'nas.internal',
+    ]) {
+      expect(isBlockedHost(host)).toBe(false)
+    }
+  })
+
+  it('still refuses what could never be artwork', () => {
+    // Loopback reaches services inside the add-on's own container; link-local
+    // is where cloud metadata endpoints answer.
+    for (const host of ['localhost', '127.0.0.1', '127.1.2.3', '::1', 'supervisor', '169.254.169.254', '0.0.0.0']) {
+      expect(isBlockedHost(host)).toBe(true)
+    }
+  })
+
+  it('allows the public internet, which is where film posters live', () => {
+    for (const host of ['images.metahub.space', 'theposterdb.com']) {
+      expect(isBlockedHost(host)).toBe(false)
+    }
+  })
+
+  it('is not fooled by a bracketed ipv6 loopback', () => {
+    expect(isBlockedHost('[::1]')).toBe(true)
   })
 })
