@@ -112,20 +112,10 @@ api:
 
   on_client_connected:
     then:
-      - lambda: "id(link_up) = true;"
+      - lambda: |-
+          id(link_up) = true;
+          id(ever_connected) = true;
       - script.execute: show_ambient
-      # Tell it about a cartridge it never heard about.
-      #
-      # Only one that went undelivered, which in practice means the reader
-      # booted with a cartridge already sitting on it. A cartridge whose event
-      # DID arrive is deliberately not repeated: Home Assistant restarts on its
-      # own schedule, and having that relaunch whatever was left on the reader
-      # would be a genuine surprise rather than a recovery.
-      - if:
-          condition:
-            lambda: "return id(undelivered) && id(card_present);"
-          then:
-            - script.execute: announce_seated
   on_client_disconnected:
     then:
       - lambda: "id(link_up) = false;"
@@ -247,10 +237,23 @@ globals:
     type: bool
     restore_value: false
     initial_value: "false"
-  # A tag was read while nothing was connected, so the event went nowhere.
-  # Booting with a cartridge already on the reader does this every time: the
-  # RC522 is alive long before wifi is.
-  - id: undelivered
+  # Whether the cartridge currently on the reader was ever announced.
+  #
+  # Keeps insert and remove symmetrical. One left on the reader through a power
+  # cut is deliberately not announced, so lifting it must not send a removal
+  # either — that would run the lift-off action against whatever happened to be
+  # playing, for a cartridge the add-on never knew was there.
+  - id: announced_insert
+    type: bool
+    restore_value: false
+    initial_value: "false"
+
+  # Whether Home Assistant has connected at any point since this boot.
+  #
+  # What separates "a cartridge was left on the reader" from "somebody just put
+  # one on". The RC522 is alive long before wifi, so the first read after a
+  # power cut is always the former — and that one is recorded, not acted on.
+  - id: ever_connected
     type: bool
     restore_value: false
     initial_value: "false"
@@ -347,11 +350,6 @@ rc522_spi:
           condition:
             lambda: "return id(current_uid) != x || !id(card_present);"
           then:
-            # Flash locally, before anything touches the network. Confirmation
-            # that the tag was READ must not depend on HA being up (§2.1). What
-            # happens next does, and arrives later as a colour.
-            - script.execute: flash_read
-
             - lambda: |-
                 id(current_uid) = x;
                 id(card_present) = true;
@@ -362,14 +360,30 @@ rc522_spi:
                 id: cartridge_present
                 state: true
 
-            - homeassistant.event:
-                event: esphome.nfc_card_inserted
-                data:
-                  uid: !lambda "return x;"
-            # ESPHome drops an event when no client is connected, and says so
-            # in the log. Remember that, so it can be told once there is
-            # somebody to tell.
-            - lambda: "id(undelivered) = !id(link_up);"
+            # A cartridge LEFT on the reader is not a cartridge being played.
+            #
+            # The RC522 reads it within a second of power returning, long before
+            # wifi, so every boot with one seated used to look like somebody had
+            # just tapped it — and start playing. Nobody asked for that: the
+            # room was quiet, and something began.
+            #
+            # No flash either. There is nobody standing over it to see one, and
+            # it turned a power cut into a light show ending in amber. Lift it
+            # and put it back to play it, which is the same gesture as always.
+            - if:
+                condition:
+                  lambda: "return id(ever_connected);"
+                then:
+                  # Flash locally, before anything touches the network.
+                  # Confirmation that the tag was READ must not depend on HA
+                  # being up (§2.1). What happens next does, and arrives later
+                  # as a colour.
+                  - script.execute: flash_read
+                  - homeassistant.event:
+                      event: esphome.nfc_card_inserted
+                      data:
+                        uid: !lambda "return x;"
+                  - lambda: "id(announced_insert) = true;"
 
   on_tag_removed:
     then:
@@ -386,13 +400,19 @@ script:
           condition:
             lambda: "return id(card_present);"
           then:
-            - homeassistant.event:
-                event: esphome.nfc_card_removed
-                data:
-                  uid: !lambda "return id(current_uid);"
+            # Only if its arrival was announced. See `announced_insert`.
+            - if:
+                condition:
+                  lambda: "return id(announced_insert);"
+                then:
+                  - homeassistant.event:
+                      event: esphome.nfc_card_removed
+                      data:
+                        uid: !lambda "return id(current_uid);"
             - lambda: |-
                 id(card_present) = false;
                 id(current_uid) = "";
+                id(announced_insert) = false;
             - binary_sensor.template.publish:
                 id: cartridge_present
                 state: false
@@ -407,7 +427,6 @@ script:
             - lambda: |-
                 id(holding) = false;
                 id(awaiting) = false;
-                id(undelivered) = false;
             - script.execute: show_ambient
 
   # ---- painting ----------------------------------------------------------
@@ -545,37 +564,6 @@ script:
           idx: 3
       - delay: 120ms
       - script.execute: show_ambient
-
-  # Tells Home Assistant about a cartridge that was already on the reader.
-  #
-  # Retried, because connecting is not the same as listening. `on_client_connected`
-  # fires when the socket comes up, and the client subscribes to actions a moment
-  # later; an event sent in that window is dropped, and the log says so outright:
-  #   Home Assistant event 'esphome.nfc_card_inserted' dropped;
-  #   client has not subscribed to actions (yet)
-  #
-  # There is no delivery receipt to check, so the add-on's own reply is used as
-  # one — `answered` is set by any incoming status. Deliberately quiet: the light
-  # stays on ambient throughout rather than going to "working", because a boot
-  # taking a couple of seconds to settle is not something to report as a fault.
-  - id: announce_seated
-    mode: restart
-    then:
-      - lambda: "id(answered) = false;"
-      - repeat:
-          count: 5
-          then:
-            - if:
-                condition:
-                  lambda: |-
-                    return !id(answered) && id(card_present) && id(link_up);
-                then:
-                  - delay: 2s
-                  - homeassistant.event:
-                      event: esphome.nfc_card_inserted
-                      data:
-                        uid: !lambda "return id(current_uid);"
-      - lambda: "id(undelivered) = false;"
 
   # Fired the event, waiting for someone to answer it.
   #
