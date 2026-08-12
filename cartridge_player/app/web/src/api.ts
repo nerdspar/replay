@@ -178,6 +178,16 @@ export const api = {
       seated: SeatedCartridge | null
     }>('api/pending'),
 
+  /** Whether the reader itself is reachable, separately from Home Assistant. */
+  reader: () =>
+    request<{
+      connected: boolean
+      device: string | null
+      supportsColor: boolean
+      seated: SeatedCartridge | null
+      last_seen: number | null
+    }>('api/reader'),
+
   scans: (limit = 50) =>
     request<{
       scans: ScanEvent[]

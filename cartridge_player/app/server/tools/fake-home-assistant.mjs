@@ -35,6 +35,9 @@ const sockets = new Set()
 // a native integration and Music Assistant ends up with two media players
 // carrying the SAME friendly name, which a name-only dropdown cannot tell apart.
 // Playback the fake reports for any single-entity lookup.
+export let readerOnline = true
+export function setReader(on) { readerOnline = on; console.log(`[ha] reader ${on ? 'online' : 'offline'}`) }
+
 export let playerState = 'idle'
 export let playerAttrs = {}
 export function setPlayer(state, attrs = {}) {
@@ -188,7 +191,7 @@ const supervisor = http.createServer((req, res) => {
       {
         domain: 'esphome',
         services: {
-          cartridge_reader_set_status: { name: 'set_status' },
+          ...(readerOnline ? { cartridge_reader_set_status: { name: 'set_status' } } : {}),
           cartridge_reader_set_palette: { name: 'set_palette' },
           cartridge_reader_set_status_color: { name: 'set_status_color' },
         },
@@ -334,6 +337,8 @@ http
     else if (url.pathname === '/calls') {
       res.writeHead(200, { 'content-type': 'application/json' })
       return res.end(JSON.stringify(serviceCalls))
+    } else if (url.pathname === '/reader') {
+      setReader(url.searchParams.get('online') !== 'false')
     } else if (url.pathname === '/player') {
       setPlayer(url.searchParams.get('state') ?? 'idle', {
         media_title: url.searchParams.get('title') ?? undefined,

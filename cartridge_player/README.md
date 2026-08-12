@@ -34,6 +34,17 @@ walks you through it:
 There is nothing to configure in the add-on's Configuration tab, and no
 automations to create. The add-on listens for the reader itself.
 
+## Is the reader there?
+
+**Status** shows the reader alongside the Home Assistant connection, because the
+two fail independently and which one is down decides where you go looking. It is
+read from whether Home Assistant is offering the reader's actions, which it only
+does while the device is connected — so it cannot be fooled by a renamed entity.
+
+If it says *not found*, look at the reader's own light: red means it cannot reach
+your wifi, amber means it is on wifi but Home Assistant has not connected back.
+Those work with this add-on stopped, which is the point of them.
+
 ## What is on the reader
 
 Whichever cartridge is currently on the reader appears in a bar at the top of the

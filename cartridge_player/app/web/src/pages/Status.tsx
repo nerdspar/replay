@@ -20,6 +20,12 @@ const SCAN_PAGE = 20
 
 export function Status({ stream, settings: initial }: StatusProps) {
   const [scans, setScans] = useState<ScanEvent[]>([])
+  const [reader, setReader] = useState<{
+    connected: boolean
+    device: string | null
+    supportsColor: boolean
+    last_seen: number | null
+  } | null>(null)
   const [limit, setLimit] = useState(SCAN_PAGE)
   const [total, setTotal] = useState(0)
   const [lastError, setLastError] = useState<{ message: string; at: number } | null>(null)
@@ -35,6 +41,12 @@ export function Status({ stream, settings: initial }: StatusProps) {
   useEffect(() => {
     api.getSettings().then(setSettings).catch(() => undefined)
   }, [])
+
+  // Re-asked on every scan: a reader that has just spoken is plainly awake, and
+  // that is exactly when the answer is most likely to have changed.
+  useEffect(() => {
+    api.reader().then(setReader).catch(() => setReader(null))
+  }, [stream.lastScan, stream.cardsVersion])
 
   useEffect(() => {
     api
@@ -89,7 +101,32 @@ export function Status({ stream, settings: initial }: StatusProps) {
             <span className={`dot ${stream.streamAlive ? 'ok' : 'bad'}`} />
             Live updates: {stream.streamAlive ? 'on' : 'off'}
           </span>
+          {/*
+            The reader is its own question. It and Home Assistant fail
+            independently, and which one is down is the difference between
+            looking at the add-on and walking over to the reader.
+          */}
+          <span className="pill">
+            <span className={`dot ${reader === null ? 'warn' : reader.connected ? 'ok' : 'bad'}`} />
+            Reader: {reader === null ? 'checking…' : reader.connected ? 'connected' : 'not found'}
+          </span>
         </div>
+
+        {reader?.connected ? (
+          <p className="hint">
+            {reader.device}
+            {reader.last_seen ? ` · last scan ${when(reader.last_seen)}` : ' · nothing scanned yet'}
+            {reader.supportsColor ? '' : ' · firmware predates artwork colours'}
+          </p>
+        ) : null}
+
+        {reader !== null && !reader.connected ? (
+          <p className="hint warn">
+            Home Assistant is not offering the reader's actions, which it only
+            does while the device is connected. Check the reader has power and is
+            on wifi — its own light says which, even with this add-on stopped.
+          </p>
+        ) : null}
         {stream.connectionDetail ? <p className="hint">{stream.connectionDetail}</p> : null}
         {!stream.streamAlive ? (
           <button className="btn small" style={{ marginTop: 12 }} onClick={stream.reconnect}>

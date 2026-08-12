@@ -69,6 +69,23 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
     return { ok: true }
   })
 
+  /**
+   * Is the reader there?
+   *
+   * Its own question, separate from the Home Assistant connection above: those
+   * fail independently, and knowing which one is down is the difference between
+   * checking the add-on and going to look at the reader.
+   */
+  app.get('/api/reader', async () => {
+    const reader = await ctx.light.describe()
+    const lastScan = ctx.store.listScans(1)[0] ?? null
+    return {
+      ...reader,
+      seated: ctx.seated,
+      last_seen: lastScan?.created_at ?? null,
+    }
+  })
+
   /** Poll fallback for SSE, and the recovery path after backgrounding (§8.2). */
   app.get('/api/pending', async () => ({
     pending: ctx.pending.get(),

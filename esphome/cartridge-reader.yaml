@@ -125,12 +125,7 @@ api:
           condition:
             lambda: "return id(undelivered) && id(card_present);"
           then:
-            - lambda: "id(undelivered) = false;"
-            - homeassistant.event:
-                event: esphome.nfc_card_inserted
-                data:
-                  uid: !lambda "return id(current_uid);"
-            - script.execute: enter_working
+            - script.execute: announce_seated
   on_client_disconnected:
     then:
       - lambda: "id(link_up) = false;"
@@ -550,6 +545,37 @@ script:
           idx: 3
       - delay: 120ms
       - script.execute: show_ambient
+
+  # Tells Home Assistant about a cartridge that was already on the reader.
+  #
+  # Retried, because connecting is not the same as listening. `on_client_connected`
+  # fires when the socket comes up, and the client subscribes to actions a moment
+  # later; an event sent in that window is dropped, and the log says so outright:
+  #   Home Assistant event 'esphome.nfc_card_inserted' dropped;
+  #   client has not subscribed to actions (yet)
+  #
+  # There is no delivery receipt to check, so the add-on's own reply is used as
+  # one — `answered` is set by any incoming status. Deliberately quiet: the light
+  # stays on ambient throughout rather than going to "working", because a boot
+  # taking a couple of seconds to settle is not something to report as a fault.
+  - id: announce_seated
+    mode: restart
+    then:
+      - lambda: "id(answered) = false;"
+      - repeat:
+          count: 5
+          then:
+            - if:
+                condition:
+                  lambda: |-
+                    return !id(answered) && id(card_present) && id(link_up);
+                then:
+                  - delay: 2s
+                  - homeassistant.event:
+                      event: esphome.nfc_card_inserted
+                      data:
+                        uid: !lambda "return id(current_uid);"
+      - lambda: "id(undelivered) = false;"
 
   # Fired the event, waiting for someone to answer it.
   #

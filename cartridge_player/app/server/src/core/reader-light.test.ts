@@ -241,3 +241,57 @@ describe('a scan drives the light', () => {
     expect(said).toEqual(['busy'])
   })
 })
+
+/**
+ * Is the reader there?
+ *
+ * Home Assistant registers an ESPHome device's actions when it connects and
+ * removes them when it drops, so their presence IS the device's liveness. No
+ * entity naming to guess at, and a renamed entity cannot fool it.
+ */
+describe('reporting whether the reader is connected', () => {
+  it('names the device, in the form it is written on the device itself', async () => {
+    const ha = fakeHa(['cartridge_reader_set_status', 'cartridge_reader_set_status_color'])
+
+    expect(await light(ha).describe()).toEqual({
+      connected: true,
+      device: 'cartridge-reader',
+      supportsColor: true,
+    })
+  })
+
+  it('says not connected when Home Assistant offers no actions for it', async () => {
+    const ha = fakeHa([])
+
+    expect(await light(ha).describe()).toEqual({
+      connected: false,
+      device: null,
+      supportsColor: false,
+    })
+  })
+
+  it('reports firmware that predates the artwork colours', async () => {
+    const ha = fakeHa(['cartridge_reader_set_status'])
+    const described = await light(ha).describe()
+
+    expect(described.connected).toBe(true)
+    expect(described.supportsColor).toBe(false)
+  })
+
+  it('asks again rather than answering from the cache', async () => {
+    const ha = fakeHa()
+    const reader = light(ha)
+
+    await reader.setStatus('playing')
+    ha.listServices.mockResolvedValue([])
+    // "Is it there RIGHT NOW" — a five-minute-old list would defeat the point.
+    expect((await reader.describe()).connected).toBe(false)
+  })
+
+  it('says not connected rather than throwing when Home Assistant is unreachable', async () => {
+    const ha = fakeHa()
+    ha.listServices.mockRejectedValue(new Error('connection refused'))
+
+    expect((await light(ha).describe()).connected).toBe(false)
+  })
+})

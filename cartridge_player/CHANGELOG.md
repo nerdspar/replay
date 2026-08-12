@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.0
+
+**Status** now shows whether the reader itself is connected, next to the Home
+Assistant connection. They fail independently, and knowing which one is down is
+the difference between checking the add-on and going to look at the reader.
+
+Also fixes the reader still ending on a flashing amber when it powers up with a
+cartridge already on it. 0.6.1 told Home Assistant about the cartridge as soon
+as it connected, which turned out to be too soon — connecting happens before the
+client starts listening, so that message was dropped as well. It now keeps
+trying until something answers.
+
+The brief red at power-on is not a fault: the reader is saying it has no wifi
+yet, which is true for the few seconds before it connects.
+
+Needs the 0.7.0 firmware for the boot fix.
+
 ## 0.6.1
 
 Playlists, radio stations, podcasts and audiobooks now carry on from a pause

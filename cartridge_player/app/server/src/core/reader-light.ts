@@ -217,6 +217,35 @@ export class ReaderLight {
    * failing. A reader that has not been reflashed should light up in the
    * palette colour, not stay dark.
    */
+  /**
+   * Whether the reader is connected, and what it is called.
+   *
+   * Home Assistant registers an ESPHome device's actions when it connects and
+   * removes them when it drops, so the presence of `<device>_set_status` is the
+   * device's own liveness — no entity naming to guess at, no device registry to
+   * walk, and it cannot be fooled by a renamed entity. It is the same list the
+   * light already fetches to find the reader in the first place.
+   */
+  async describe(): Promise<{
+    connected: boolean
+    device: string | null
+    supportsColor: boolean
+  }> {
+    // Straight past the cache: this is the question "is it there right now",
+    // and answering it from a five-minute-old list would defeat the point.
+    this.discoveredAt = Number.NEGATIVE_INFINITY
+
+    const prefix = await this.prefix()
+    if (!prefix) return { connected: false, device: null, supportsColor: false }
+
+    return {
+      connected: true,
+      // Back to how it is written on the device itself.
+      device: prefix.replace(/_/g, '-'),
+      supportsColor: await this.supports('set_status_color'),
+    }
+  }
+
   async setStatus(state: ReaderStatus, color?: string | null): Promise<void> {
     if (color && (await this.supports('set_status_color'))) {
       await this.call('set_status_color', { state, color: color.replace(/^#/, '') })
