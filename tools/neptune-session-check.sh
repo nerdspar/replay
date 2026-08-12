@@ -56,34 +56,67 @@ else:
 PY
 
 echo
-echo "Endpoints the Neptune plugin adds:"
-spec=""
+echo "Endpoints the Neptune plugins add:"
+
+# Written to a file, not passed as an argument. Jellyfin's OpenAPI document
+# describes the whole server and runs to megabytes, which is well past what a
+# command line can carry — the first version of this died with "Argument list
+# too long" rather than telling anyone anything.
+SPEC="$(mktemp)"
+trap 'rm -f "$SPEC"' EXIT
+
 for doc in "${base}/openapi.json" "${base}/api-docs/openapi.json"; do
-  spec="$(curl -fsS -H "X-Emby-Token: ${JELLYFIN_TOKEN}" "$doc" 2>/dev/null || true)"
-  [ -n "$spec" ] && break
+  if curl -fsS -H "X-Emby-Token: ${JELLYFIN_TOKEN}" "$doc" -o "$SPEC" 2>/dev/null \
+     && [ -s "$SPEC" ]; then
+    break
+  fi
 done
 
-python3 - "${spec:-}" "$base" <<'PY'
+python3 - "$SPEC" "$base" <<'PY'
 import json, sys
 
 try:
-    paths = json.loads(sys.argv[1]).get("paths", {})
+    with open(sys.argv[1]) as handle:
+        spec = json.load(handle)
 except Exception:
-    paths = {}
+    spec = {}
 
-hits = sorted(p for p in paths if "neptune" in p.lower())
-if not hits:
-    print("  None found, or the OpenAPI document is not readable with this key.")
-    print("  Worth a look in a browser while signed in as an admin:")
+paths = spec.get("paths", {})
+
+# The plugins are named "Neptune MDM" and "Neptune Indexers", and a plugin's
+# routes need not carry its name — so the tag and operationId are searched too.
+# Jellyfin tags a plugin's endpoints with its controller, which is where the
+# name usually surfaces even when the URL hides it.
+def relevant(path, op):
+    if "neptune" in path.lower():
+        return True
+    haystack = " ".join(str(t) for t in op.get("tags", []))
+    haystack += " " + str(op.get("operationId", ""))
+    return "neptune" in haystack.lower()
+
+hits = []
+for path, methods in sorted(paths.items()):
+    for method, op in methods.items():
+        if method.lower() not in ("get", "post", "put", "delete", "patch"):
+            continue
+        if isinstance(op, dict) and relevant(path, op):
+            hits.append((method.upper(), path, op))
+
+if not paths:
+    print("  Could not read the OpenAPI document with this key.")
+    print("  Open this in a browser while signed in as an admin instead:")
     print(f"    {sys.argv[2]}/api-docs/swagger")
+elif not hits:
+    print(f"  Nothing Neptune-shaped among {len(paths)} documented paths.")
+    print("  The plugins may register routes outside the OpenAPI document, in which")
+    print("  case the settings push travels over the Jellyfin WebSocket instead —")
+    print("  which would be the same channel remote control uses. See below.")
 else:
-    for path in hits:
-        for method, op in paths[path].items():
-            if method.lower() in ("get", "post", "put", "delete", "patch"):
-                print(f"  {method.upper():<6} {path}")
-                text = op.get("summary") or op.get("description") or ""
-                if text:
-                    print(f"         {text.strip().splitlines()[0][:96]}")
+    for method, path, op in hits:
+        print(f"  {method:<6} {path}")
+        text = op.get("summary") or op.get("description") or ""
+        if text:
+            print(f"         {text.strip().splitlines()[0][:96]}")
     print("""
   Read these closely. Anything that reaches a LIVE client is a route to remote
   play that needs no URL scheme at all — the settings push proves that channel

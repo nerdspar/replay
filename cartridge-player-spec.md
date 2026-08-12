@@ -742,6 +742,10 @@ confirmed the bare scheme foregrounds the app. None navigated to an item. The
 MDM settings screen the app's own plugin provides lists no URL scheme option
 either, among several hundred settings.
 
+The server carries **two** Neptune plugins, both 1.3.1.0: `Neptune MDM` and
+`Neptune Indexers`. Their routes need not be named after them, so the checker
+matches on OpenAPI tags and operation ids as well as the path.
+
 **The live channel is the lead worth following.** Neptune ships a Jellyfin
 server plugin, and its own description of it is the important part: *"Changes
 pushed to live clients take effect immediately, while offline users see the
