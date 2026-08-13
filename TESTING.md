@@ -231,6 +231,16 @@ starts, something is wrong — that delay belongs to video only.
 | 4d.7 | Mixed sheet: select both video and music cartridges | All print at the same 60 × 90 size |
 | 4d.8 | Switch between the **Print & cut by hand** and **Cricut** tabs | Page, margins, gutter, copies, cut guides and the preview appear only under hand-cutting; the Cricut tab shows the size, the artwork fit, the list and the download |
 | 4d.9 | On the Cricut tab, type a 200 × 280 mm size | Warns that it exceeds the Print Then Cut area and disables the download, rather than making images Design Space would refuse |
+| 4d.10 | Turn on **Include spine labels** | Each spine sits directly under its own label; still 6 cartridges per US Letter page |
+| 4d.11 | Compare a spine against its own sticker | Same colour on both — they are two edges of one cartridge |
+| 4d.12 | Find a cartridge with a light cover and one with a dark cover | Text is black on the light one and white on the dark one |
+| 4d.13 | Open **Edit → On the spine** on a long title | The preview shows it shortened with an ellipsis, and says so |
+| 4d.14 | Override the spine colour, save, then change that cartridge's artwork | The override survives; a cartridge left alone follows its new cover |
+| 4d.15 | Print a sheet with spines on paper | The coloured strips actually print rather than coming out white |
+| 4d.16 | Download the Cricut images with spines on | Two files per cartridge, the spine named `…-spine.png`, 709 × 83 px for 60 × 7 mm |
+
+4d.15 is the same trap as 4d.6: a browser drops backgrounds when printing
+unless told otherwise, and a spine is nothing but background.
 
 4d.6 is worth doing on real paper rather than in preview. Browsers drop
 backgrounds when printing unless told otherwise, and preview does not always

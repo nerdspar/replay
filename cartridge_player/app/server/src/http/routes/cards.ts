@@ -36,6 +36,19 @@ const createBody = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .nullable()
     .optional(),
+  // Null is meaningful for all three: it restores the default rather than
+  // blanking the spine, which is how "reset to artwork" is expressed.
+  spine_text: z.string().max(120).nullable().optional(),
+  spine_color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable()
+    .optional(),
+  spine_text_color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullable()
+    .optional(),
 })
 
 const patchBody = createBody.partial().omit({ tag_uid: true })
@@ -66,6 +79,9 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
       shuffle: body.shuffle ?? false,
       radio_mode: body.radio_mode ?? false,
       accent_color: body.accent_color ?? null,
+      spine_text: body.spine_text ?? null,
+      spine_color: body.spine_color ?? null,
+      spine_text_color: body.spine_text_color ?? null,
       // Never client-supplied: it records what the player was doing, and only
       // this add-on is in a position to know that.
       resume_hint: null,

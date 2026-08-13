@@ -178,6 +178,29 @@ The print screen opens on two tabs: **Print & cut by hand**, described below,
 and **Cricut**. Pick yours first — each shows only the settings its method
 actually uses, so nothing on screen is a control your machine will ignore.
 
+### Spine labels
+
+The strip along the edge of the cartridge, so a shelf of them can be read
+without pulling each one out. Turn on **Include spine labels** and each one is
+laid out directly beneath its own label — one cartridge comes out of one print
+in one piece, rather than faces on one sheet and spines on another.
+
+They default to 60 × 7 mm: as wide as the face, because it is the same
+cartridge, and 7 mm deep. The background is the artwork's dominant colour, the
+same one the sticker's **Colour** option uses, so the two edges of a cartridge
+match. The text colour is chosen for legibility — black or white, whichever
+reads on that background — rather than being fixed.
+
+Seven millimetres holds roughly 25 characters. Longer titles shrink until
+shrinking stops helping and are then shortened with an ellipsis, which is
+rarely where you would have chosen to cut. Set a shorter name under **Edit → On
+the spine**, where a life-size preview shows exactly what will print. The
+background and text colours can be overridden there too, and reset back to the
+artwork afterwards.
+
+An overridden colour stays put when you change the cover; one left alone
+follows the new artwork.
+
 There is no title caption, on purpose: the poster already carries the title, and
 a caption bar could only take its space from the artwork, which would crop the
 poster. A cartridge pinned to a single episode gets a small episode badge in the

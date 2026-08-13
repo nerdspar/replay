@@ -325,6 +325,19 @@ describe('migrating a database written before music existed', () => {
     db.close()
   })
 
+  it('leaves an existing cartridge following its artwork for the spine', () => {
+    const db = v3Database()
+    migrate(db)
+
+    const row = db.prepare('SELECT * FROM cards').get() as Record<string, unknown>
+    // Null, not an empty string. Blank would print a bare coloured strip on
+    // every cartridge that predates this; null means "use the title".
+    expect(row.spine_text).toBeNull()
+    expect(row.spine_color).toBeNull()
+    expect(row.spine_text_color).toBeNull()
+    db.close()
+  })
+
   it('defaults lifting a music cartridge to pause', () => {
     const db = v3Database()
     migrate(db)

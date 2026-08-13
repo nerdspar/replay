@@ -1,5 +1,6 @@
 import type { ArtFit, Card } from '../types'
 import { fitBackdrop, objectFitFor } from './artFit'
+import { SPINE_PAD_RATIO, fitSpineText, spineColors, spineText } from './spine'
 
 /**
  * Renders one sticker as a PNG for Cricut Design Space.
@@ -148,6 +149,68 @@ export async function renderStickerPng(
   return blob
 }
 
+export interface SpineExportOptions {
+  widthMm: number
+  heightMm: number
+  radiusMm: number
+  dpi?: number
+}
+
+/**
+ * Renders one spine label as a PNG.
+ *
+ * Same clip-then-fill shape as a sticker, so Print Then Cut traces the rounded
+ * strip rather than a rectangle around it. The font is read from the page so
+ * the exported strip matches the on-screen preview, and `document.fonts.ready`
+ * is awaited because a canvas asked to draw a font the browser has not finished
+ * loading silently falls back to a different one — which would print at a
+ * different width and quietly truncate somewhere else than the preview showed.
+ */
+export async function renderSpinePng(
+  card: Card,
+  options: SpineExportOptions,
+): Promise<Blob> {
+  const dpi = options.dpi ?? EXPORT_DPI
+  const w = mmToPx(options.widthMm, dpi)
+  const h = mmToPx(options.heightMm, dpi)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Your browser could not create the image.')
+
+  roundedRectPath(ctx, w, h, mmToPx(options.radiusMm, dpi))
+  ctx.clip()
+
+  const { background, text } = await spineColors(card)
+  ctx.fillStyle = background
+  ctx.fillRect(0, 0, w, h)
+
+  await document.fonts?.ready
+  const family = getComputedStyle(document.body).fontFamily || 'sans-serif'
+  const font = (size: number) => `600 ${size}px ${family}`
+
+  // Measured in pixels here and in millimetres on the sheet — the same
+  // proportions either way, since both are "how wide is this at that size".
+  const fitted = fitSpineText(spineText(card), w, h, (value, size) => {
+    ctx.font = font(size)
+    return ctx.measureText(value).width
+  })
+
+  ctx.font = font(fitted.size)
+  ctx.fillStyle = text
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(fitted.text, h * SPINE_PAD_RATIO, h / 2)
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/png'),
+  )
+  if (!blob) throw new Error('Your browser could not create the image.')
+  return blob
+}
+
 /** Safe, recognisable filename — Design Space shows it in the upload list. */
 export function stickerFileName(card: Card, widthMm: number, heightMm: number): string {
   const slug = card.title
@@ -156,6 +219,11 @@ export function stickerFileName(card: Card, widthMm: number, heightMm: number): 
     .replace(/^-|-$/g, '')
     .slice(0, 40)
   return `${slug || 'cartridge'}-${widthMm}x${heightMm}mm.png`
+}
+
+/** Distinguished from the face label, which is otherwise the same name. */
+export function spineFileName(card: Card, widthMm: number, heightMm: number): string {
+  return stickerFileName(card, widthMm, heightMm).replace(/\.png$/, '-spine.png')
 }
 
 /**

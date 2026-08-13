@@ -7,6 +7,8 @@ import { Icon } from './Icon'
 import { Poster, episodeBadge } from './Poster'
 import { Sheet } from './Sheet'
 import { StickerPreview } from './StickerPreview'
+import { SpinePreview } from './SpinePreview'
+import { readableTextColor, spineColors } from '../lib/spine'
 import type { ArtFit, Card, EntityOption } from '../types'
 
 /** What each music content type is called in the open. */
@@ -69,6 +71,21 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
   const [shuffle, setShuffle] = useState(card.shuffle)
   const [radioMode, setRadioMode] = useState(card.radio_mode)
   const [artFit, setArtFit] = useState<ArtFit>(card.art_fit ?? 'crop')
+  /*
+    Normalised to null rather than taken as-is. A card from an add-on that
+    predates spine labels has no such field at all, and `undefined` would then
+    differ from the `null` this state holds — leaving the sheet dirty the moment
+    it opened and the reset button lit on a card with nothing to reset.
+  */
+  const [spineTextValue, setSpineTextValue] = useState(card.spine_text ?? '')
+  const [spineColorValue, setSpineColorValue] = useState<string | null>(
+    card.spine_color ?? null,
+  )
+  const [spineTextColorValue, setSpineTextColorValue] = useState<string | null>(
+    card.spine_text_color ?? null,
+  )
+  /** The artwork's own colour, so "reset" has something to fall back to. */
+  const [artworkSpineColor, setArtworkSpineColor] = useState('#ffffff')
   const [speakers, setSpeakers] = useState<EntityOption[]>([])
   const [playing, setPlaying] = useState(false)
   const [playResult, setPlayResult] = useState<{ ok: boolean; message: string } | null>(null)
@@ -83,6 +100,29 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
       .then((e) => setSpeakers(e.musicPlayers))
       .catch(() => setSpeakers([]))
   }, [music])
+
+  /*
+    The colour the spine takes when nothing has been chosen for it.
+
+    Resolved against a copy with the override stripped, so it stays the
+    artwork's answer rather than echoing whatever is currently set — otherwise
+    "reset to artwork" would reset to the override.
+  */
+  useEffect(() => {
+    let cancelled = false
+    void spineColors({ ...card, spine_color: null, spine_text_color: null })
+      .then((resolved) => {
+        if (!cancelled) setArtworkSpineColor(resolved.background)
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [card])
+
+  const effectiveSpineColor = spineColorValue ?? artworkSpineColor
+  const effectiveSpineTextColor =
+    spineTextColorValue ?? readableTextColor(effectiveSpineColor)
 
   const playNow = async () => {
     setPlaying(true)
@@ -116,7 +156,10 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
     player !== card.player_entity ||
     shuffle !== card.shuffle ||
     radioMode !== card.radio_mode ||
-    artFit !== (card.art_fit ?? 'crop')
+    artFit !== (card.art_fit ?? 'crop') ||
+    spineTextValue !== (card.spine_text ?? '') ||
+    spineColorValue !== (card.spine_color ?? null) ||
+    spineTextColorValue !== (card.spine_text_color ?? null)
 
   const save = async () => {
     setSaving(true)
@@ -126,6 +169,11 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
         await api.updateCard(card.id, {
           poster_url: poster,
           label: label.trim() === '' ? null : label.trim(),
+          // Null rather than '' throughout: it means "follow the artwork", so
+          // clearing a field restores the default instead of printing a blank.
+          spine_text: spineTextValue.trim() === '' ? null : spineTextValue.trim(),
+          spine_color: spineColorValue,
+          spine_text_color: spineTextColorValue,
           ...(music
             ? {
                 player_entity: player,
@@ -339,6 +387,72 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
           </p>
         </>
       ) : null}
+
+      {/*
+        Outside the music block above: every cartridge has an edge, whatever it
+        plays. The colour follows the artwork until it is overridden, so most
+        cartridges never need this opened at all.
+      */}
+      <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>On the spine</h3>
+      <SpinePreview
+        text={spineTextValue.trim() === '' ? card.title : spineTextValue}
+        background={effectiveSpineColor}
+        textColor={effectiveSpineTextColor}
+      />
+
+      <label className="field" style={{ marginTop: 12 }}>
+        <span>Spine text</span>
+        <input
+          type="text"
+          placeholder={card.title}
+          value={spineTextValue}
+          onChange={(e) => setSpineTextValue(e.target.value)}
+        />
+        <p className="hint">
+          Empty follows the title. There is room for about 25 characters, so a
+          long one is worth shortening by hand.
+        </p>
+      </label>
+
+      <div className="row" style={{ gap: 10, alignItems: 'flex-end' }}>
+        <label className="field grow" style={{ marginBottom: 0 }}>
+          <span>Background</span>
+          <input
+            type="color"
+            value={effectiveSpineColor}
+            onChange={(e) => setSpineColorValue(e.target.value)}
+          />
+        </label>
+        <label className="field grow" style={{ marginBottom: 0 }}>
+          <span>Text</span>
+          <input
+            type="color"
+            value={effectiveSpineTextColor}
+            onChange={(e) => setSpineTextColorValue(e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="row" style={{ gap: 8, marginTop: 8 }}>
+        <button
+          className="btn small"
+          disabled={spineColorValue === null && spineTextColorValue === null}
+          onClick={() => {
+            setSpineColorValue(null)
+            setSpineTextColorValue(null)
+          }}
+        >
+          <Icon name="undo" size={16} />
+          Back to the artwork's colour
+        </button>
+      </div>
+      <p className="hint">
+        {spineColorValue === null
+          ? 'Taken from the artwork, and follows it if you change the cover.'
+          : 'Set by hand. It will stay this colour if you change the cover.'}
+        {spineTextColorValue === null
+          ? ' The text picks black or white for legibility.'
+          : ' The text colour is set by hand.'}
+      </p>
 
       <label className="field" style={{ marginTop: 18 }}>
         <span>Label (optional)</span>

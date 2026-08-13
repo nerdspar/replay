@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.8.0
+
+**Spine labels.** The strip along the edge of a cartridge, so a shelf of them
+can be read without pulling each one out. Turn on **Include spine labels** on
+the print screen and each one is laid out directly beneath its own label, so a
+cartridge comes out of one print in one piece rather than its two halves
+landing on separate sheets. They export for Cricut as well, one PNG each.
+
+60 × 7 mm by default — as wide as the face, because it is the same cartridge.
+The background is the artwork's dominant colour, the same one the sticker's
+**Colour** option uses, so the two edges of a cartridge match. The text colour
+is not fixed: it is black or white depending on what can be read against that
+background, because a dominant colour can come back anywhere from near-black to
+pale cream.
+
+Seven millimetres holds about 25 characters, so **Edit → On the spine** takes a
+shorter name, along with colour overrides and a reset. It shows the spine
+life-size, since whether a title fits on 7 mm of cartridge edge is not
+something you can judge from a scaled preview. Longer text shrinks until
+shrinking stops helping and is then shortened with an ellipsis.
+
+A colour left alone follows the artwork, so replacing a cover updates the spine.
+One set by hand stays where it was put.
+
 ## 0.7.5
 
 **The print screen is now two tabs: Print & cut by hand, and Cricut.** Each

@@ -106,6 +106,13 @@ export interface Card {
   art_fit: ArtFit | null
   /** `#rrggbb` sampled from the artwork, for the reader's light. */
   accent_color: string | null
+  /**
+   * Spine label overrides. NULL means "follow the artwork", not "blank" — the
+   * text falls back to the title and the colours are sampled from the cover.
+   */
+  spine_text: string | null
+  spine_color: string | null
+  spine_text_color: string | null
   shuffle: boolean
   radio_mode: boolean
   created_at: number

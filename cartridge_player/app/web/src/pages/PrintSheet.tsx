@@ -15,11 +15,29 @@ import {
 import {
   EXPORT_DPI,
   downloadBlob,
+  renderSpinePng,
   renderStickerPng,
+  spineFileName,
   stickerFileName,
 } from '../lib/exportSticker'
 import { fitBackdrop, objectFitFor, type FitBackdrop } from '../lib/artFit'
+import {
+  SPINE_HEIGHT_MM,
+  SPINE_PAD_RATIO,
+  fitSpineText,
+  spineColors,
+  spineMeasurer,
+  spineText,
+} from '../lib/spine'
 import type { Card } from '../types'
+
+/** What one cartridge's spine looks like once its artwork has been read. */
+interface SpineRender {
+  background: string
+  text: string
+  label: string
+  sizeMm: number
+}
 
 type Fit = 'cover' | 'contain'
 
@@ -56,6 +74,8 @@ export function PrintSheet() {
   const [fit, setFit] = useState<Fit>('cover')
   const [guides, setGuides] = useState(true)
   const [method, setMethod] = useState<PrintMethod>('hand')
+  const [spineLabels, setSpineLabels] = useState(false)
+  const [spineHeight, setSpineHeight] = useState(SPINE_HEIGHT_MM)
   const [exporting, setExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -130,19 +150,71 @@ export function PrintSheet() {
   const cricut = method === 'cricut'
 
   /**
+   * A spine is the same cartridge's other edge, so it is exactly as wide as the
+   * face and sits directly beneath it — one grid cell holds both. That keeps
+   * the two halves of a cartridge adjacent on the paper instead of on separate
+   * sheets, and pagination needs no notion of spines at all.
+   */
+  const cellHeight = spineLabels ? height + gap + spineHeight : height
+
+  // A 4 mm radius on a 7 mm strip is very nearly a pill. Kept proportional so
+  // the spine reads as the same family as the label without becoming a lozenge.
+  const spineRadius = Math.min(radius, spineHeight / 4)
+
+  /**
    * Print Then Cut has a maximum design area, and each sticker is imported as
    * its own image — so the limit applies to the sticker, not to any page. Only
    * a hand-typed size can breach it, and the failure otherwise arrives in
    * Design Space long after the images were made.
    */
+  /*
+    Spine colours and text, worked out once per cartridge.
+
+    Same shape as the backdrops above and for the same reason: a card can appear
+    several times when copies are set, and decoding its cover once per copy
+    would be wasted work. The text is fitted here too, so the printed strip and
+    the exported PNG are laid out by one function rather than by two that agree
+    until someone edits one of them.
+  */
+  const [spineData, setSpineData] = useState<Record<number, SpineRender>>({})
+
+  useEffect(() => {
+    if (!spineLabels || chosen.length === 0) return
+
+    let cancelled = false
+    const measure = spineMeasurer()
+
+    void Promise.all(
+      chosen.map(async (card) => {
+        const colors = await spineColors(card)
+        const fitted = fitSpineText(spineText(card), width, spineHeight, measure)
+        return [
+          card.id,
+          {
+            background: colors.background,
+            text: colors.text,
+            label: fitted.text,
+            sizeMm: fitted.size,
+          },
+        ] as const
+      }),
+    ).then((entries) => {
+      if (!cancelled) setSpineData(Object.fromEntries(entries))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [chosen, spineLabels, width, spineHeight])
+
   const cricutSizeOk = useMemo(
     () => fitsCricutDesignArea({ width, height }),
     [width, height],
   )
 
   const plan = useMemo(
-    () => planGrid({ page, margin, gap, sticker: { width, height } }),
-    [page, margin, gap, width, height],
+    () => planGrid({ page, margin, gap, sticker: { width, height: cellHeight } }),
+    [page, margin, gap, width, cellHeight],
   )
 
   const pages = useMemo(
@@ -195,25 +267,55 @@ export function PrintSheet() {
    * to its own PNG at true size. Sequential rather than parallel: browsers
    * throttle bursts of downloads, and a slow one would be dropped silently.
    */
+  /**
+   * Every file this export will produce, in the order they download.
+   *
+   * A card's spine follows its face rather than all spines coming last, so a
+   * failure part-way through leaves whole cartridges done instead of a pile of
+   * labels with no spines.
+   */
+  const exportJobs = useMemo(() => {
+    const jobs: { card: Card; kind: 'face' | 'spine' }[] = []
+    for (const card of chosen) {
+      jobs.push({ card, kind: 'face' })
+      if (spineLabels) jobs.push({ card, kind: 'spine' })
+    }
+    return jobs
+  }, [chosen, spineLabels])
+
   const exportForCricut = async () => {
     setExporting(true)
     setExportError(null)
     const failed: string[] = []
 
-    for (const [index, card] of chosen.entries()) {
+    for (const [index, job] of exportJobs.entries()) {
       setExportProgress(index + 1)
       try {
-        const blob = await renderStickerPng(card, {
-          widthMm: width,
-          heightMm: height,
-          radiusMm: radius,
-          round: preset.shape === 'round',
-          fit,
-        })
-        downloadBlob(blob, stickerFileName(card, width, height))
+        const blob =
+          job.kind === 'face'
+            ? await renderStickerPng(job.card, {
+                widthMm: width,
+                heightMm: height,
+                radiusMm: radius,
+                round: preset.shape === 'round',
+                fit,
+              })
+            : await renderSpinePng(job.card, {
+                widthMm: width,
+                heightMm: spineHeight,
+                radiusMm: spineRadius,
+              })
+        downloadBlob(
+          blob,
+          job.kind === 'face'
+            ? stickerFileName(job.card, width, height)
+            : spineFileName(job.card, width, spineHeight),
+        )
         await new Promise((resolve) => setTimeout(resolve, 350))
       } catch (e) {
-        failed.push(card.title)
+        failed.push(
+          job.kind === 'spine' ? `${job.card.title} (spine)` : job.card.title,
+        )
       }
     }
 
@@ -408,6 +510,46 @@ export function PrintSheet() {
         )}
 
         <div className="card">
+          <h2>Spine labels</h2>
+          <div className="switch">
+            <span>Include spine labels</span>
+            <input
+              type="checkbox"
+              checked={spineLabels}
+              onChange={(e) => setSpineLabels(e.target.checked)}
+            />
+          </div>
+          <p className="hint">
+            The strip along the edge of the cartridge, in the colour of its
+            artwork. Each one sits directly under its own label
+            {cricut ? ' and downloads with it' : ' on the sheet'}, so a cartridge
+            comes out in one piece.
+          </p>
+
+          {spineLabels ? (
+            <>
+              <label className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+                <span>Spine height (mm)</span>
+                <input
+                  type="number"
+                  min={4}
+                  max={30}
+                  step={0.5}
+                  value={spineHeight}
+                  onChange={(e) => setSpineHeight(Number(e.target.value))}
+                />
+              </label>
+              <p className="hint">
+                The width matches the label above — it is the same cartridge.
+                Text shrinks to fit and is shortened if it still will not,
+                so set a shorter name under <strong>Edit → Spine</strong> for
+                anything long.
+              </p>
+            </>
+          ) : null}
+        </div>
+
+        <div className="card">
           <h2>Look</h2>
           {cricut ? null : (
             <>
@@ -490,19 +632,20 @@ export function PrintSheet() {
             )}
             <button
               className="btn primary block"
-              disabled={chosen.length === 0 || exporting || !cricutSizeOk}
+              disabled={exportJobs.length === 0 || exporting || !cricutSizeOk}
               onClick={() => void exportForCricut()}
             >
               {exporting
-                ? `Making image ${exportProgress} of ${chosen.length}…`
-                : `Download ${chosen.length} image${chosen.length === 1 ? '' : 's'} for Design Space`}
+                ? `Making image ${exportProgress} of ${exportJobs.length}…`
+                : `Download ${exportJobs.length} image${exportJobs.length === 1 ? '' : 's'} for Design Space`}
             </button>
             <p className="hint">
-              One PNG per cartridge at {width} × {height} mm, {EXPORT_DPI} dpi, with
-              the corners cut out so Print Then Cut follows the rounded shape.
-              Upload them in Design Space, arrange them on a sheet there, and use
-              Print Then Cut. Your browser may ask permission to download several
-              files.
+              One PNG per cartridge at {width} × {height} mm
+              {spineLabels ? `, plus a ${width} × ${spineHeight} mm spine each` : ''}
+              , {EXPORT_DPI} dpi, with the corners cut out so Print Then Cut
+              follows the rounded shape. Upload them in Design Space, arrange
+              them on a sheet there, and use Print Then Cut. Your browser may ask
+              permission to download several files.
             </p>
             {exportError ? <p className="hint warn">{exportError}</p> : null}
           </>
@@ -510,8 +653,12 @@ export function PrintSheet() {
           <>
             {plan.impossible ? (
               <div className="banner error">
-                A {width} × {height} mm sticker does not fit on {page.label} with a{' '}
-                {margin} mm margin. Reduce the size or the margin.
+                A {width} × {height} mm sticker
+                {spineLabels
+                  ? ` and its ${spineHeight} mm spine need ${cellHeight} mm, which does not fit`
+                  : ' does not fit'}{' '}
+                on {page.label} with a {margin} mm margin. Reduce the size or the
+                margin{spineLabels ? ', or turn off spine labels' : ''}.
               </div>
             ) : (
               <div className="banner alert">
@@ -558,6 +705,10 @@ export function PrintSheet() {
             '--page-h': `${page.height}mm`,
             '--sticker-w': `${width}mm`,
             '--sticker-h': `${height}mm`,
+            '--cell-h': `${cellHeight}mm`,
+            '--spine-h': `${spineHeight}mm`,
+            '--spine-radius': `${spineRadius}mm`,
+            '--spine-pad': `${spineHeight * SPINE_PAD_RATIO}mm`,
             '--sheet-margin': `${margin}mm`,
             '--sheet-gap': `${gap}mm`,
             '--sticker-radius': preset.shape === 'round' ? '50%' : `${radius}mm`,
@@ -568,10 +719,8 @@ export function PrintSheet() {
           <div className="sheet-page" key={pageIndex}>
             <div className="sheet-grid" style={{ gridTemplateColumns: `repeat(${plan.columns}, var(--sticker-w))` }}>
               {items.map((card, index) => (
-                <div
-                  className={`sticker ${guides ? 'guides' : ''}`}
-                  key={`${card.id}-${index}`}
-                >
+                <div className="sheet-cell" key={`${card.id}-${index}`}>
+                <div className={`sticker ${guides ? 'guides' : ''}`}>
                   {/*
                     No crossOrigin on the image: poster hosts do not all send
                     CORS headers, and setting it would fail the load outright.
@@ -609,6 +758,27 @@ export function PrintSheet() {
                       {episodeBadge(card.season, card.episode)}
                     </span>
                   ) : null}
+                </div>
+                {/*
+                  Rendered only once its colour is known. A spine drawn before
+                  the artwork has been read would print white, and on paper
+                  there is no second frame to settle into.
+                */}
+                {spineLabels && spineData[card.id] ? (
+                  <div
+                    className={`spine ${guides ? 'guides' : ''}`}
+                    style={{ background: spineData[card.id]!.background }}
+                  >
+                    <span
+                      style={{
+                        color: spineData[card.id]!.text,
+                        fontSize: `${spineData[card.id]!.sizeMm}mm`,
+                      }}
+                    >
+                      {spineData[card.id]!.label}
+                    </span>
+                  </div>
+                ) : null}
                 </div>
               ))}
             </div>

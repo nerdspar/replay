@@ -229,8 +229,9 @@ export class Store {
            (tag_uid, kind, provider, content_type, external_id, title, year,
             poster_url, original_poster_url, season, episode, label,
             player_entity, art_fit, shuffle, radio_mode, accent_color,
-            resume_hint, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            resume_hint, spine_text, spine_color, spine_text_color,
+            created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.tag_uid,
@@ -255,6 +256,9 @@ export class Store {
         input.radio_mode ? 1 : 0,
         input.accent_color,
         input.resume_hint,
+        input.spine_text,
+        input.spine_color,
+        input.spine_text_color,
         now,
         now,
       )
@@ -282,6 +286,9 @@ export class Store {
       'radio_mode',
       'accent_color',
       'resume_hint',
+      'spine_text',
+      'spine_color',
+      'spine_text_color',
       'status',
     ]
     const assignments: string[] = []

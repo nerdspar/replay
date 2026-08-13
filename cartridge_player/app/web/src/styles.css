@@ -840,10 +840,71 @@ a:focus-visible {
 
 .sheet-grid {
   display: grid;
-  grid-auto-rows: var(--sticker-h);
+  /*
+   * The cell, not the sticker: with spine labels on it holds a label and the
+   * spine beneath it. Without them the two are the same height, so this is the
+   * previous behaviour by another name.
+   */
+  grid-auto-rows: var(--cell-h, var(--sticker-h));
   gap: var(--sheet-gap);
   justify-content: start;
   align-content: start;
+}
+
+/*
+ * The spine as it appears in the edit sheet: life-size, because judging whether
+ * a title fits on 7 mm of cartridge edge is exactly what it is for.
+ */
+.spine-preview-face {
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 1mm;
+  box-sizing: border-box;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.spine-preview-face span {
+  white-space: nowrap;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* One cartridge: its face, and its spine directly below. */
+.sheet-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sheet-gap);
+  width: var(--sticker-w);
+}
+
+.spine {
+  width: var(--sticker-w);
+  height: var(--spine-h);
+  border-radius: var(--spine-radius);
+  padding: 0 var(--spine-pad);
+  display: flex;
+  align-items: center;
+  /*
+   * The text was already measured to fit, so this clips nothing in practice.
+   * It is here because a browser that lays the font out a hair wider than the
+   * canvas measured must push the strip out of true rather than reflow the
+   * whole sheet — the failure has to stay inside one spine.
+   */
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.spine span {
+  white-space: nowrap;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.spine.guides {
+  outline: 0.2mm dashed #b0b0b0;
+  outline-offset: 0;
 }
 
 .sticker {
@@ -974,6 +1035,7 @@ a:focus-visible {
   .sticker,
   .sticker-art,
   .sticker-badge,
+  .spine,
   .sticker-art img {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

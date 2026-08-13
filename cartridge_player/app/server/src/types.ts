@@ -164,6 +164,14 @@ export interface Card {
    * NULL when there is nothing to carry on from.
    */
   resume_hint: string | null
+  /**
+   * The label on the cartridge's spine. All three are NULL by default, and NULL
+   * means "follow the artwork" rather than "blank" — so replacing a cover
+   * updates the spine, while an override survives until it is cleared.
+   */
+  spine_text: string | null
+  spine_color: string | null
+  spine_text_color: string | null
   /** Music only. Shuffles the queue this cartridge builds. */
   shuffle: boolean
   /** Music only. Keeps playing similar music once the selection runs out. */

@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 9
+export const SCHEMA_VERSION = 10
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -263,6 +263,24 @@ const V9 = `
 ALTER TABLE cards ADD COLUMN resume_hint TEXT;
 `
 
+/**
+ * The label on the spine of the cartridge — the edge you see on a shelf.
+ *
+ * All three are NULL by default, and NULL means "follow the artwork", not
+ * "blank". So a cartridge whose cover is replaced gets a new spine colour for
+ * free, while one that has been overridden keeps what was chosen for it until
+ * that override is cleared.
+ *
+ * The colours are not sampled here for the same reason `accent_color` is not:
+ * the server has no image decoder, and the browser is already reading these
+ * exact pixels to build the sticker. Only overrides are stored.
+ */
+const V10 = `
+ALTER TABLE cards ADD COLUMN spine_text TEXT;
+ALTER TABLE cards ADD COLUMN spine_color TEXT;
+ALTER TABLE cards ADD COLUMN spine_text_color TEXT;
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -292,6 +310,9 @@ export function migrate(db: Database): void {
   }
   if (current < 9) {
     db.exec(V9)
+  }
+  if (current < 10) {
+    db.exec(V10)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)
