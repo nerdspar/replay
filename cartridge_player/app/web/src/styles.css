@@ -1091,6 +1091,15 @@ a:focus-visible {
   border-bottom-color: var(--accent);
 }
 
+/* A tab holding edits that have not been saved. */
+.tab-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
 .tab-count {
   font-size: 12px;
   font-weight: 600;

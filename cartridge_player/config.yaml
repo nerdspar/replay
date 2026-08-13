@@ -1,5 +1,5 @@
 name: Cartridge Player
-version: "0.8.1"
+version: "0.8.2"
 slug: cartridge_player
 # Prebuilt by CI, so an update is a pull with a progress bar rather than
 # Home Assistant compiling better-sqlite3 on the user's own machine.

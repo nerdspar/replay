@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.2
+
+**Settings are now four tabs: Players, Playback, Light and Access.** It had
+grown to eight sections on one scroll, where the light's colour pickers sat
+between the lift-off actions and the PIN field.
+
+Players holds the TV's remote and media player and the default speaker.
+Playback holds what a tap does and what lifting a cartridge off does. Light
+holds the reader's status light. Access holds the two that are about reaching
+this app at all — the address behind the home-screen link, and the direct-access
+PIN.
+
+One Save button still covers all four, so it stays below the tabs rather than
+moving inside one. A tab holding an unsaved change shows a dot: tabbing hides
+pending edits behind the tabs you are not looking at, and without that marker a
+change made under Playback is invisible from Players and reads as never having
+been made.
+
 ## 0.8.1
 
 **Fixed: a cartridge wearing its own colour could light the reader white.**

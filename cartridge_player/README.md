@@ -263,6 +263,19 @@ using the sidebar is **not** — it contains a session token that rotates.
 
 ## Settings worth knowing
 
+Settings sit under four tabs:
+
+| Tab | What is on it |
+|---|---|
+| **Players** | The TV's remote and media player, and the default speaker |
+| **Playback** | What a tap does, and what lifting a cartridge off does |
+| **Light** | Everything about the reader's status light, including its colours |
+| **Access** | The address used to build the home-screen link, and the direct-access PIN |
+
+One **Save settings** button covers all four, so it sits below the tabs rather
+than inside one. A tab holding a change you have not saved shows a dot, since
+an edit made under one tab is otherwise invisible from the others.
+
 | Setting | What it is for |
 |---|---|
 | **Wake the TV first** | A link opened on a sleeping TV lands *behind* the screensaver. Pressing Home first dismisses it. |

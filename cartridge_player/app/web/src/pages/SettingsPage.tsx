@@ -41,6 +41,45 @@ const MUSIC_REMOVAL_OPTIONS: {
   { value: 'none', label: 'Keep playing', hint: 'The music carries on regardless.' },
 ]
 
+type SettingsTab = 'players' | 'playback' | 'light' | 'access'
+
+const TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'players', label: 'Players' },
+  { id: 'playback', label: 'Playback' },
+  { id: 'light', label: 'Light' },
+  { id: 'access', label: 'Access' },
+]
+
+/**
+ * Which settings live under which tab.
+ *
+ * Kept as data because one Save button covers all four, and tabbing hides
+ * pending edits behind the tabs you are not looking at. This is what lets a tab
+ * say it is holding some — otherwise the only way to find an unsaved change
+ * would be to go looking for it.
+ */
+const TAB_SETTINGS: Record<SettingsTab, (keyof Settings)[]> = {
+  players: ['remote_entity', 'media_player_entity', 'music_player_entity'],
+  playback: [
+    'home_first_enabled',
+    'home_delay_ms',
+    'autoplay_enabled',
+    'autoplay_delay_ms',
+    'removal_action',
+    'music_removal_action',
+  ],
+  light: [
+    'led_enabled',
+    'led_playing_mode',
+    'led_playing_artwork',
+    'led_follow_player',
+    'led_match_cartridge',
+    'led_scope',
+    'led_palette',
+  ],
+  access: ['public_base_url'],
+}
+
 interface SettingsPageProps {
   settings: Settings
   onSaved: (settings: Settings) => void
@@ -57,6 +96,15 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pin, setPin] = useState('')
+  const [tab, setTab] = useState<SettingsTab>('players')
+
+  /** Whether a tab is holding edits that have not been saved yet. */
+  const unsaved = (which: SettingsTab) =>
+    TAB_SETTINGS[which].some(
+      (key) => JSON.stringify(draft[key]) !== JSON.stringify(settings[key]),
+    ) ||
+    // The PIN is write-only, so it is never part of the draft to compare.
+    (which === 'access' && pin.trim() !== '')
 
   useEffect(() => setDraft(settings), [settings])
 
@@ -127,6 +175,30 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
       {message ? <div className="banner alert">{message}</div> : null}
       {error ? <div className="banner error">{error}</div> : null}
 
+      <div className="tabs" role="tablist" aria-label="Settings">
+        {TABS.map((option) => (
+          <button
+            key={option.id}
+            role="tab"
+            aria-selected={tab === option.id}
+            className={tab === option.id ? 'active' : ''}
+            onClick={() => setTab(option.id)}
+          >
+            {option.label}
+            {/*
+              A tab holding unsaved edits. One Save button covers all four, so
+              without this a change made under Playback is invisible from
+              Players and reads as never having been made.
+            */}
+            {unsaved(option.id) ? (
+              <span className="tab-dot" aria-label="unsaved changes" />
+            ) : null}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'players' ? (
+      <>
       <div className="card">
         <h2>Your TV</h2>
         <div style={{ marginTop: 12 }}>
@@ -175,7 +247,11 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
           />
         </div>
       </div>
+      </>
+      ) : null}
 
+      {tab === 'playback' ? (
+      <>
       <div className="card">
         <h2>What happens on a tap</h2>
 
@@ -282,6 +358,10 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         </div>
       </div>
 
+      </>
+      ) : null}
+
+      {tab === 'light' ? (
       <LightSettings
         enabled={draft.led_enabled}
         useArtwork={draft.led_playing_artwork}
@@ -298,7 +378,10 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         onPaletteChange={(v: LedPalette) => set('led_palette', v)}
         onPlayingModeChange={(v: LedPlayingMode) => set('led_playing_mode', v)}
       />
+      ) : null}
 
+      {tab === 'access' ? (
+      <>
       <div className="card">
         <h2>Home screen icon</h2>
         <label className="field" style={{ marginTop: 12 }}>
@@ -343,10 +426,21 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
           </p>
         </label>
       </div>
+      </>
+      ) : null}
 
+      {/*
+        Outside the tabs, because it saves all four. A Save button inside a tab
+        would read as saving that tab alone.
+      */}
       <button className="btn primary block" disabled={saving} onClick={() => void save()}>
         {saving ? 'Saving…' : 'Save settings'}
       </button>
+      {TABS.some((option) => unsaved(option.id)) ? (
+        <p className="hint" style={{ textAlign: 'center', marginTop: 8 }}>
+          Saves every tab, not just this one.
+        </p>
+      ) : null}
     </>
   )
 }
