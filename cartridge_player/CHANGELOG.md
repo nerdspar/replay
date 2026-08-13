@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.1
+
+**Fixed: a cartridge wearing its own colour could light the reader white.**
+
+The colour is stored per cartridge, and a stored one was never looked at again.
+So a value written by an earlier release stayed put however wrong it was, and a
+near-black one is wrong in a way that is hard to spot: ESPHome normalises an RGB
+colour so its brightest channel is full, which turns `#0d1117` into `#90bcff` on
+the way to the LED — a pale wash that reads as white. Every layer reported
+success.
+
+Two changes. The add-on now checks a colour is bright and saturated enough to
+show before sending it, and falls back to the palette colour if not — the
+palette is at least a colour. And the library re-samples any stored colour that
+fails that check, either replacing it or clearing it, so the data gets corrected
+rather than merely ignored.
+
+A cartridge whose cover genuinely has no colour to offer — a dark or
+black-and-white one — now correctly shows the palette colour rather than a
+wash. That is the artwork having no answer, not the setting failing.
+
 ## 0.8.0
 
 **Spine labels.** The strip along the edge of a cartridge, so a shelf of them

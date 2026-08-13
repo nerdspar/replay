@@ -299,8 +299,13 @@ export function LightSettings({
               </div>
               <p className="hint">
                 Takes the colour from that cartridge's artwork instead of the
-                Playing colour below — the same colour used behind a square cover
-                on its sticker. Cartridges with no artwork keep the fixed colour.
+                Playing colour below. It looks for the most identifiable colour
+                on the cover, which is not the same as the one behind a square
+                cover on its sticker: a sticker wants the dominant tone, so a
+                dark cover correctly gets a dark border, while a light asked for
+                that same near-black is indistinguishable from switched off. A
+                cover with no bright colour to offer — dark, or black and white
+                — keeps the fixed colour below.
               </p>
             </>
           )}

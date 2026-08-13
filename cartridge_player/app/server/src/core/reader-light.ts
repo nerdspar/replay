@@ -52,6 +52,45 @@ export const DEFAULT_PALETTE: LedPalette = {
   paused: { color: '#00ff26', brightness: 18 },
 }
 
+/**
+ * Below these, a colour cannot read as light — it reads as "off", or as white.
+ *
+ * The same floors the browser's sampler applies before it will offer a colour
+ * at all (`lightAccent` in artFit.ts). Repeated here because this is the last
+ * gate before the wire, and a colour that reached the database from an older
+ * release — or by any other route — has never been past those floors.
+ */
+const WEARABLE_MIN_SATURATION = 0.35
+const WEARABLE_MIN_VALUE = 0.25
+
+/**
+ * Whether the reader can actually show this colour as itself.
+ *
+ * A near-black colour is the trap. It looks like a reasonable value in the
+ * database and it is a perfectly good sticker colour, but ESPHome normalises an
+ * RGB colour so its brightest channel is full — so `#0d1117` reaches the LED as
+ * `#90bcff`, a pale wash that reads as white. The light then looks broken while
+ * every layer reports success.
+ *
+ * A colour the browser sampled for this purpose always passes, since that
+ * sampler scales its answer to full value before returning it.
+ */
+export function isWearableAccent(color: string | null | undefined): boolean {
+  const match = color ? HEX_COLOR.exec(color) : null
+  if (!match) return false
+
+  const hex = match[1]!
+  const [r, g, b] = [0, 2, 4].map((at) => parseInt(hex.slice(at, at + 2), 16)) as [
+    number,
+    number,
+    number,
+  ]
+
+  const max = Math.max(r, g, b)
+  if (max / 255 < WEARABLE_MIN_VALUE) return false
+  return (max - Math.min(r, g, b)) / max >= WEARABLE_MIN_SATURATION
+}
+
 /** How long a discovered service name is trusted before being looked up again. */
 const DISCOVERY_TTL_MS = 5 * 60_000
 
@@ -247,7 +286,13 @@ export class ReaderLight {
   }
 
   async setStatus(state: ReaderStatus, color?: string | null): Promise<void> {
-    if (color && (await this.supports('set_status_color'))) {
+    // Checked here rather than at each call site: this is the last point before
+    // the wire, so a colour that cannot be shown is dropped whatever asked for
+    // it. Dropping means the palette colour, which is a colour — where sending
+    // it anyway means a pale wash the reader cannot distinguish from white.
+    if (color && !isWearableAccent(color)) {
+      log.debug(`ignoring accent ${color}: too dark or too grey to show`)
+    } else if (color && (await this.supports('set_status_color'))) {
       await this.call('set_status_color', { state, color: color.replace(/^#/, '') })
       return
     }

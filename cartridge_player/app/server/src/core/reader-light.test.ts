@@ -3,6 +3,7 @@ import {
   DEFAULT_PALETTE,
   LED_STATES,
   ReaderLight,
+  isWearableAccent,
   normalizePalette,
   packPalette,
   statusForPlayingMode,
@@ -293,6 +294,59 @@ describe('reporting whether the reader is connected', () => {
     ha.listServices.mockRejectedValue(new Error('connection refused'))
 
     expect((await light(ha).describe()).connected).toBe(false)
+  })
+})
+
+/**
+ * The bug this exists for: a cartridge whose stored colour was `#0d1117`, dark
+ * enough that ESPHome's normalisation turned it into `#90bcff` at the LED. The
+ * setting looked broken, and every layer reported success.
+ */
+describe('refusing a colour the reader cannot show', () => {
+  it('accepts what the browser sampler produces', () => {
+    // That sampler scales to full value, so its output always has a full
+    // channel. These are real values from a library.
+    expect(isWearableAccent('#1cffe6')).toBe(true)
+    expect(isWearableAccent('#00ff26')).toBe(true)
+    expect(isWearableAccent('1cffe6')).toBe(true)
+  })
+
+  it('rejects a near-black colour, whatever its hue', () => {
+    expect(isWearableAccent('#0d1117')).toBe(false)
+    expect(isWearableAccent('#101012')).toBe(false)
+    expect(isWearableAccent('#000000')).toBe(false)
+  })
+
+  it('rejects a grey, which would light the reader as plain white', () => {
+    expect(isWearableAccent('#ffffff')).toBe(false)
+    expect(isWearableAccent('#c0c0c0')).toBe(false)
+  })
+
+  it('rejects nothing at all, rather than treating it as a colour', () => {
+    expect(isWearableAccent(null)).toBe(false)
+    expect(isWearableAccent(undefined)).toBe(false)
+    expect(isWearableAccent('rgb(1,2,3)')).toBe(false)
+  })
+
+  it('falls back to the palette instead of sending an unwearable colour', async () => {
+    const ha = fakeHa(['cartridge_reader_set_status', 'cartridge_reader_set_status_color'])
+    await light(ha).setStatus('playing', '#0d1117')
+
+    // The plain action, so the reader wears its own green rather than a wash.
+    expect(ha.calls).toEqual([
+      { domain: 'esphome', service: 'cartridge_reader_set_status', data: { state: 'playing' } },
+    ])
+  })
+
+  it('still sends a colour the reader can show', async () => {
+    const ha = fakeHa(['cartridge_reader_set_status', 'cartridge_reader_set_status_color'])
+    await light(ha).setStatus('playing', '#1cffe6')
+
+    expect(ha.calls[0]).toEqual({
+      domain: 'esphome',
+      service: 'cartridge_reader_set_status_color',
+      data: { state: 'playing', color: '1cffe6' },
+    })
   })
 })
 

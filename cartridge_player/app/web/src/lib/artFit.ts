@@ -135,6 +135,32 @@ const LIGHT_MIN_SATURATION = 0.35
 const LIGHT_MIN_VALUE = 0.25
 
 /**
+ * Whether a stored accent colour is one the reader could actually wear.
+ *
+ * `lightAccent` scales its answer to full value, so anything it returns passes
+ * this. Anything that does NOT pass therefore came from somewhere else — an
+ * older release, a hand-edited row — and is worth resampling rather than
+ * leaving in place, because nothing else ever looks at it again.
+ *
+ * The add-on applies the same floors before sending a colour to the reader.
+ */
+export function isWearableAccent(color: string | null | undefined): boolean {
+  if (!color || !/^#?[0-9a-f]{6}$/i.test(color)) return false
+
+  const hex = color.replace(/^#/, '')
+  const [r, g, b] = [0, 2, 4].map((at) => parseInt(hex.slice(at, at + 2), 16)) as [
+    number,
+    number,
+    number,
+  ]
+
+  return (
+    Math.max(r, g, b) / 255 >= LIGHT_MIN_VALUE &&
+    saturationOf(r, g, b) >= LIGHT_MIN_SATURATION
+  )
+}
+
+/**
  * The colour a cover should light an LED with.
  *
  * Deliberately NOT `dominantColor`, though the first version of this reused it

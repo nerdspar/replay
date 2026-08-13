@@ -6,7 +6,7 @@ import { CardSheet } from '../components/CardSheet'
 import { Confirm } from '../components/Confirm'
 import { Icon } from '../components/Icon'
 import { Poster, episodeBadge } from '../components/Poster'
-import { accentColor } from '../lib/artFit'
+import { accentColor, isWearableAccent } from '../lib/artFit'
 import type { AppStream } from '../hooks/useAppStream'
 import type { Card, CardKind, ScanEvent } from '../types'
 
@@ -87,9 +87,18 @@ export function Library({ stream }: LibraryProps) {
 
     A few at a time: this reads pixels back off a canvas per cartridge, and a
     library of eighty should not do eighty of those the moment it opens.
+
+    A colour already stored is re-sampled if the reader could not wear it. A
+    blank was once the only signal, which meant a colour written by an older
+    release was permanent however wrong it was — and a near-black one reaches
+    the LED as a pale wash, so the light looked broken with nothing reporting a
+    failure. Re-sampling settles: either it yields a usable colour or it clears
+    the field, and a cleared field falls back to the palette.
   */
   useEffect(() => {
-    const missing = cards.filter((c) => c.poster_url && !c.accent_color).slice(0, 4)
+    const missing = cards
+      .filter((c) => c.poster_url && !isWearableAccent(c.accent_color))
+      .slice(0, 4)
     if (missing.length === 0) return
 
     let cancelled = false
@@ -98,7 +107,11 @@ export function Library({ stream }: LibraryProps) {
       for (const card of missing) {
         if (cancelled) return
         const color = await accentColor(card)
-        if (!color || cancelled) continue
+        if (cancelled) return
+        // Nothing usable in this cover. Only worth a write if the card is
+        // currently holding a colour the reader cannot wear — clearing it is
+        // what moves the light back to the palette.
+        if (!color && !card.accent_color) continue
         try {
           await api.updateCard(card.id, { accent_color: color })
           sampled = true
