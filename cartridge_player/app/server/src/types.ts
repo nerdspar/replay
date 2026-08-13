@@ -132,6 +132,9 @@ export type LedPlayingMode = 'hold' | 'confirm' | 'off'
  */
 export type LedScope = 'cartridge' | 'playback'
 
+/** How spine label text sits within the strip. */
+export type SpineAlign = 'left' | 'center' | 'right'
+
 /**
  * `unassigned` is a cartridge you still own that currently plays nothing —
  * distinct from deleting it, which is for a cartridge that is lost or broken.
@@ -209,6 +212,9 @@ export interface Settings {
   led_palette: LedPalette
   /** ESPHome device name. Blank means "whichever reader answers" (§1.2). */
   reader_device: string | null
+  /** How spine labels are set. Global: a shelf wants one typeface. */
+  spine_font: string
+  spine_align: SpineAlign
   pin_hash: string | null
   public_base_url: string | null
   setup_complete: boolean

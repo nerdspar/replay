@@ -5,6 +5,8 @@ import {
   fitSpineText,
   spineMeasurer,
 } from '../lib/spine'
+import { fontStack } from '../lib/spineFonts'
+import type { SpineAlign } from '../types'
 
 /**
  * What this cartridge's spine will look like, at its real size.
@@ -22,6 +24,9 @@ interface SpinePreviewProps {
   text: string
   background: string
   textColor: string
+  /** Id from SPINE_FONTS. */
+  font?: string
+  align?: SpineAlign
   widthMm?: number
   heightMm?: number
 }
@@ -30,12 +35,17 @@ export function SpinePreview({
   text,
   background,
   textColor,
+  font,
+  align = 'left',
   widthMm = 60,
   heightMm = SPINE_HEIGHT_MM,
 }: SpinePreviewProps) {
+  const stack = fontStack(font)
+  // Fitted in the face it will be set in, so a wide face truncating earlier than
+  // a narrow one is visible here rather than discovered on paper.
   const fitted = useMemo(
-    () => fitSpineText(text, widthMm, heightMm, spineMeasurer()),
-    [text, widthMm, heightMm],
+    () => fitSpineText(text, widthMm, heightMm, spineMeasurer(stack)),
+    [text, widthMm, heightMm, stack],
   )
 
   return (
@@ -47,9 +57,13 @@ export function SpinePreview({
           height: `${heightMm}mm`,
           padding: `0 ${heightMm * SPINE_PAD_RATIO}mm`,
           background,
+          justifyContent:
+            align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start',
         }}
       >
-        <span style={{ color: textColor, fontSize: `${fitted.size}mm` }}>
+        <span
+          style={{ color: textColor, fontSize: `${fitted.size}mm`, fontFamily: stack }}
+        >
           {fitted.text}
         </span>
       </div>

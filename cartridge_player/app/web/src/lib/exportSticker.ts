@@ -1,6 +1,8 @@
 import type { ArtFit, Card } from '../types'
 import { fitBackdrop, objectFitFor } from './artFit'
 import { SPINE_PAD_RATIO, fitSpineText, spineColors, spineText } from './spine'
+import { fontStack } from './spineFonts'
+import type { SpineAlign } from '../types'
 
 /**
  * Renders one sticker as a PNG for Cricut Design Space.
@@ -153,6 +155,9 @@ export interface SpineExportOptions {
   widthMm: number
   heightMm: number
   radiusMm: number
+  /** Id from SPINE_FONTS. */
+  font?: string
+  align?: SpineAlign
   dpi?: number
 }
 
@@ -188,7 +193,7 @@ export async function renderSpinePng(
   ctx.fillRect(0, 0, w, h)
 
   await document.fonts?.ready
-  const family = getComputedStyle(document.body).fontFamily || 'sans-serif'
+  const family = fontStack(options.font)
   const font = (size: number) => `600 ${size}px ${family}`
 
   // Measured in pixels here and in millimetres on the sheet — the same
@@ -200,9 +205,15 @@ export async function renderSpinePng(
 
   ctx.font = font(fitted.size)
   ctx.fillStyle = text
-  ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillText(fitted.text, h * SPINE_PAD_RATIO, h / 2)
+
+  // Measured from the padded box, not the sticker, so centred text sits between
+  // the same margins the left- and right-set versions start and end at.
+  const pad = h * SPINE_PAD_RATIO
+  const align = options.align ?? 'left'
+  ctx.textAlign = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left'
+  const x = align === 'center' ? w / 2 : align === 'right' ? w - pad : pad
+  ctx.fillText(fitted.text, x, h / 2)
 
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, 'image/png'),

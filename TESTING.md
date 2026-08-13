@@ -242,6 +242,10 @@ starts, something is wrong — that delay belongs to video only.
 4d.15 is the same trap as 4d.6: a browser drops backgrounds when printing
 unless told otherwise, and a spine is nothing but background.
 
+| 4d.17 | Set the typeface to Courier New, then to Impact | The same long title truncates earlier in Courier and fits at a larger size in Impact |
+| 4d.18 | Set alignment to Right, download the Cricut spine | Text sits against the right margin in the PNG, not just on screen |
+| 4d.19 | Pick a typeface, leave the print screen, come back | It is still selected; page size and margins are back to their defaults |
+
 4d.6 is worth doing on real paper rather than in preview. Browsers drop
 backgrounds when printing unless told otherwise, and preview does not always
 show it.

@@ -1091,6 +1091,39 @@ a:focus-visible {
   border-bottom-color: var(--accent);
 }
 
+/*
+ * Each name set in its own face, so the list IS the specimen sheet. Scrolls
+ * rather than growing, because twelve full-height rows would push the sheet
+ * preview off the screen on a phone.
+ */
+.font-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 232px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+}
+
+.font-option {
+  min-height: var(--tap);
+  padding: 0 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.font-option.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 /* A tab holding edits that have not been saved. */
 .tab-dot {
   width: 6px;

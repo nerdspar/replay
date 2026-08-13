@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.9.0
+
+**Spine labels can be set left, centred or right, in one of twelve typefaces.**
+The list shows each name in its own face, so it reads as a specimen sheet rather
+than twelve identical lines — a native dropdown could not do that, since iOS
+Safari ignores styling on its options.
+
+Every face is one already on the machine, so nothing is downloaded and the
+printed sheet matches the preview. A face your device does not have falls back
+to the nearest it does, which is what the list shows you.
+
+Both are global rather than per cartridge: a shelf wants one typeface, and
+picking it thirty times would be the wrong tool. They are also the only two
+choices on the print screen that are remembered between visits, because the
+preview in **Edit → On the spine** cannot say where a title truncates without
+knowing the face it will be set in — Courier fits 31 characters where Impact
+fits 37, and at a larger size.
+
 ## 0.8.2
 
 **Settings are now four tabs: Players, Playback, Light and Access.** It had

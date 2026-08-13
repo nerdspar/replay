@@ -44,10 +44,33 @@ describe('settings', () => {
       led_scope: 'cartridge',
       led_palette: DEFAULT_PALETTE,
       reader_device: null,
+      // A shelf wants one typeface, and the default is whatever the phone or
+      // laptop already sets its own interface in.
+      spine_font: 'system',
+      spine_align: 'left',
       pin_hash: null,
       public_base_url: null,
       setup_complete: false,
     })
+    store.close()
+  })
+
+  /**
+   * Spine typography is global, and the edit sheet's preview reads it back to
+   * decide where a title truncates — a wide face fits several fewer characters
+   * than a narrow one. So it has to survive the round trip, or the preview
+   * quietly describes a different font from the one that prints.
+   */
+  it('round-trips the spine typeface and alignment', () => {
+    const store = memoryStore()
+
+    const saved = store.updateSettings({ spine_font: 'futura', spine_align: 'center' })
+    expect(saved.spine_font).toBe('futura')
+    expect(saved.spine_align).toBe('center')
+
+    // Read fresh, not the object the write returned.
+    expect(store.getSettings().spine_font).toBe('futura')
+    expect(store.getSettings().spine_align).toBe('center')
     store.close()
   })
 

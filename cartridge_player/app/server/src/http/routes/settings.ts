@@ -34,6 +34,8 @@ const putBody = z.object({
     )
     .optional(),
   reader_device: z.string().nullable().optional(),
+  spine_font: z.string().max(40).optional(),
+  spine_align: z.enum(['left', 'center', 'right']).optional(),
   public_base_url: z.string().nullable().optional(),
   setup_complete: z.boolean().optional(),
   /** Write-only. `null` clears it; the hash is never returned. */

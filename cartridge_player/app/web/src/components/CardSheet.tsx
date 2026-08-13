@@ -9,7 +9,7 @@ import { Sheet } from './Sheet'
 import { StickerPreview } from './StickerPreview'
 import { SpinePreview } from './SpinePreview'
 import { readableTextColor, spineColors } from '../lib/spine'
-import type { ArtFit, Card, EntityOption } from '../types'
+import type { ArtFit, Card, EntityOption, SpineAlign } from '../types'
 
 /** What each music content type is called in the open. */
 const CONTENT_LABEL: Record<string, string> = {
@@ -86,6 +86,22 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
   )
   /** The artwork's own colour, so "reset" has something to fall back to. */
   const [artworkSpineColor, setArtworkSpineColor] = useState('#ffffff')
+  /*
+    Typeface and alignment are global and set on the print screen, but the
+    preview has to know them: where a title truncates depends on the face it is
+    set in, so a preview using a different one would be quietly wrong.
+  */
+  const [spineStyle, setSpineStyle] = useState<{ font: string; align: SpineAlign }>({
+    font: 'system',
+    align: 'left',
+  })
+
+  useEffect(() => {
+    void api
+      .getSettings()
+      .then((s) => setSpineStyle({ font: s.spine_font ?? 'system', align: s.spine_align ?? 'left' }))
+      .catch(() => undefined)
+  }, [])
   const [speakers, setSpeakers] = useState<EntityOption[]>([])
   const [playing, setPlaying] = useState(false)
   const [playResult, setPlayResult] = useState<{ ok: boolean; message: string } | null>(null)
@@ -398,7 +414,13 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
         text={spineTextValue.trim() === '' ? card.title : spineTextValue}
         background={effectiveSpineColor}
         textColor={effectiveSpineTextColor}
+        font={spineStyle.font}
+        align={spineStyle.align}
       />
+      <p className="hint" style={{ marginTop: 6 }}>
+        Typeface and alignment are the same for every cartridge, and are chosen
+        on the print screen.
+      </p>
 
       <label className="field" style={{ marginTop: 12 }}>
         <span>Spine text</span>

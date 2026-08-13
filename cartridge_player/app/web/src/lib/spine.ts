@@ -87,16 +87,21 @@ export function fitSpineText(
 const MEASURE_PX_PER_MM = 10
 let measureCtx: CanvasRenderingContext2D | null = null
 
-export function spineMeasurer(): (text: string, sizeMm: number) => number {
+export function spineMeasurer(
+  family?: string,
+): (text: string, sizeMm: number) => number {
   if (!measureCtx) {
     measureCtx = document.createElement('canvas').getContext('2d')
   }
   const ctx = measureCtx
-  const family = getComputedStyle(document.body).fontFamily || 'sans-serif'
+  // Measured in the face it will be SET in. A condensed face fits several more
+  // characters than a wide one at the same size, so measuring in one and
+  // printing in another would truncate somewhere the preview never showed.
+  const stack = family ?? (getComputedStyle(document.body).fontFamily || 'sans-serif')
 
   return (text, sizeMm) => {
     if (!ctx) return text.length * sizeMm * 0.5
-    ctx.font = `600 ${sizeMm * MEASURE_PX_PER_MM}px ${family}`
+    ctx.font = `600 ${sizeMm * MEASURE_PX_PER_MM}px ${stack}`
     return ctx.measureText(text).width / MEASURE_PX_PER_MM
   }
 }

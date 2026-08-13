@@ -19,6 +19,7 @@ import type {
   RemovalAction,
   ScanEvent,
   Settings,
+  SpineAlign,
 } from '../types.js'
 import { kindOfContentType } from '../types.js'
 
@@ -63,6 +64,8 @@ interface SettingsRow {
   led_scope: string
   led_palette: string | null
   reader_device: string | null
+  spine_font: string
+  spine_align: string
   pin_hash: string | null
   public_base_url: string | null
   setup_complete: number
@@ -104,6 +107,8 @@ function toSettings(row: SettingsRow): Settings {
     // an older release or a hand-edited row happens to hold.
     led_palette: normalizePalette(parsePalette(row.led_palette)),
     reader_device: row.reader_device,
+    spine_font: row.spine_font,
+    spine_align: row.spine_align as SpineAlign,
     pin_hash: row.pin_hash,
     public_base_url: row.public_base_url,
     setup_complete: row.setup_complete !== 0,
@@ -142,6 +147,8 @@ const WRITABLE_SETTINGS = [
   'led_scope',
   'led_palette',
   'reader_device',
+  'spine_font',
+  'spine_align',
   'pin_hash',
   'public_base_url',
   'setup_complete',

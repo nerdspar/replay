@@ -47,6 +47,9 @@ export type LedPlayingMode = 'hold' | 'confirm' | 'off'
 
 /** Whether the light is about the reader, or about what is playing. */
 export type LedScope = 'cartridge' | 'playback'
+
+/** How spine label text sits within the strip. */
+export type SpineAlign = 'left' | 'center' | 'right'
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
 
 export interface MetaPreview {
@@ -139,6 +142,8 @@ export interface Settings {
   led_scope: LedScope
   led_palette: LedPalette
   reader_device: string | null
+  spine_font: string
+  spine_align: SpineAlign
   public_base_url: string | null
   setup_complete: boolean
   pin_set: boolean

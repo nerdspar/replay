@@ -201,6 +201,17 @@ artwork afterwards.
 An overridden colour stays put when you change the cover; one left alone
 follows the new artwork.
 
+**Alignment and typeface** are chosen on the print screen and apply to every
+spine — a shelf wants one typeface. Twelve faces are offered, each shown in
+itself, and all of them are already on your device: nothing is downloaded, so
+the print matches the preview. A face your machine lacks falls back to the
+nearest it has.
+
+These two are the only print-screen choices that are remembered between visits.
+They have to be, because where a title truncates depends on the face: Courier
+fits about 31 characters on a 60 mm spine where Impact fits 37, and at a larger
+size. A preview that did not know the face would be quietly wrong.
+
 There is no title caption, on purpose: the poster already carries the title, and
 a caption bar could only take its space from the artwork, which would crop the
 poster. A cartridge pinned to a single episode gets a small episode badge in the

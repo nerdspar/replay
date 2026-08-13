@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 10
+export const SCHEMA_VERSION = 11
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -281,6 +281,23 @@ ALTER TABLE cards ADD COLUMN spine_color TEXT;
 ALTER TABLE cards ADD COLUMN spine_text_color TEXT;
 `
 
+/**
+ * How spine labels are set, rather than what they say.
+ *
+ * Global rather than per cartridge: a shelf wants one typeface. Picking a font
+ * thirty times to get a consistent row would be the wrong tool, and the two
+ * things that ARE per cartridge — its words and its colour — already live on
+ * the card.
+ *
+ * Stored rather than left on the print screen because text fitting depends on
+ * the font, so the preview in the edit sheet cannot be honest without knowing
+ * it.
+ */
+const V11 = `
+ALTER TABLE settings ADD COLUMN spine_font TEXT NOT NULL DEFAULT 'system';
+ALTER TABLE settings ADD COLUMN spine_align TEXT NOT NULL DEFAULT 'left';
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -313,6 +330,9 @@ export function migrate(db: Database): void {
   }
   if (current < 10) {
     db.exec(V10)
+  }
+  if (current < 11) {
+    db.exec(V11)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

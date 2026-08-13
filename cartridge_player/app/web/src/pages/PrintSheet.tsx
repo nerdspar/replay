@@ -29,7 +29,8 @@ import {
   spineMeasurer,
   spineText,
 } from '../lib/spine'
-import type { Card } from '../types'
+import { SPINE_FONTS, fontStack } from '../lib/spineFonts'
+import type { Card, SpineAlign, Settings } from '../types'
 
 /** What one cartridge's spine looks like once its artwork has been read. */
 interface SpineRender {
@@ -76,6 +77,31 @@ export function PrintSheet() {
   const [method, setMethod] = useState<PrintMethod>('hand')
   const [spineLabels, setSpineLabels] = useState(false)
   const [spineHeight, setSpineHeight] = useState(SPINE_HEIGHT_MM)
+  /*
+    Font and alignment are saved, unlike everything else on this screen.
+
+    They are not really print settings — they are how a shelf of cartridges
+    looks, so they should hold from one print to the next, and the edit sheet's
+    preview cannot be honest about where a title truncates without knowing the
+    face it will be set in.
+  */
+  const [spineFont, setSpineFont] = useState('system')
+  const [spineAlign, setSpineAlign] = useState<SpineAlign>('left')
+
+  useEffect(() => {
+    void api
+      .getSettings()
+      .then((s: Settings) => {
+        setSpineFont(s.spine_font ?? 'system')
+        setSpineAlign(s.spine_align ?? 'left')
+      })
+      .catch(() => undefined)
+  }, [])
+
+  /** Saved as chosen: this screen has no Save button, and never has had one. */
+  const rememberSpineStyle = (patch: { spine_font?: string; spine_align?: SpineAlign }) => {
+    void api.saveSettings(patch).catch(() => undefined)
+  }
   const [exporting, setExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -182,7 +208,7 @@ export function PrintSheet() {
     if (!spineLabels || chosen.length === 0) return
 
     let cancelled = false
-    const measure = spineMeasurer()
+    const measure = spineMeasurer(fontStack(spineFont))
 
     void Promise.all(
       chosen.map(async (card) => {
@@ -205,7 +231,7 @@ export function PrintSheet() {
     return () => {
       cancelled = true
     }
-  }, [chosen, spineLabels, width, spineHeight])
+  }, [chosen, spineLabels, width, spineHeight, spineFont])
 
   const cricutSizeOk = useMemo(
     () => fitsCricutDesignArea({ width, height }),
@@ -304,6 +330,8 @@ export function PrintSheet() {
                 widthMm: width,
                 heightMm: spineHeight,
                 radiusMm: spineRadius,
+                font: spineFont,
+                align: spineAlign,
               })
         downloadBlob(
           blob,
@@ -542,9 +570,59 @@ export function PrintSheet() {
               <p className="hint">
                 The width matches the label above — it is the same cartridge.
                 Text shrinks to fit and is shortened if it still will not,
-                so set a shorter name under <strong>Edit → Spine</strong> for
-                anything long.
+                so set a shorter name under <strong>Edit → On the spine</strong>{' '}
+                for anything long.
               </p>
+              <div className="row" style={{ gap: 8, marginTop: 14 }}>
+                {(['left', 'center', 'right'] as SpineAlign[]).map((option) => (
+                  <button
+                    key={option}
+                    className={`btn small grow ${spineAlign === option ? 'primary' : ''}`}
+                    onClick={() => {
+                      setSpineAlign(option)
+                      rememberSpineStyle({ spine_align: option })
+                    }}
+                  >
+                    {option === 'left' ? 'Left' : option === 'center' ? 'Centre' : 'Right'}
+                  </button>
+                ))}
+              </div>
+              <p className="hint">
+                Where the words sit. Left lines a shelf up down its edge; centred
+                reads better when the titles are short and about the same length.
+              </p>
+
+              <label className="field" style={{ marginTop: 14, marginBottom: 6 }}>
+                <span>Typeface</span>
+              </label>
+              {/*
+                A list rather than a select. Each name is set in its own face,
+                and iOS Safari ignores font-family on an <option> — so a native
+                dropdown would show twelve identical lines.
+              */}
+              <div className="font-list">
+                {SPINE_FONTS.map((option) => (
+                  <button
+                    key={option.id}
+                    className={`font-option ${spineFont === option.id ? 'selected' : ''}`}
+                    style={{ fontFamily: option.stack }}
+                    onClick={() => {
+                      setSpineFont(option.id)
+                      rememberSpineStyle({ spine_font: option.id })
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <p className="hint">
+                Faces already on this device, so nothing is downloaded and the
+                print matches the preview. One that your machine does not have
+                falls back to the nearest it does — which is what you see above.
+                Typeface and alignment are remembered; the rest of this screen is
+                not.
+              </p>
+
             </>
           ) : null}
         </div>
@@ -767,12 +845,21 @@ export function PrintSheet() {
                 {spineLabels && spineData[card.id] ? (
                   <div
                     className={`spine ${guides ? 'guides' : ''}`}
-                    style={{ background: spineData[card.id]!.background }}
+                    style={{
+                      background: spineData[card.id]!.background,
+                      justifyContent:
+                        spineAlign === 'center'
+                          ? 'center'
+                          : spineAlign === 'right'
+                            ? 'flex-end'
+                            : 'flex-start',
+                    }}
                   >
                     <span
                       style={{
                         color: spineData[card.id]!.text,
                         fontSize: `${spineData[card.id]!.sizeMm}mm`,
+                        fontFamily: fontStack(spineFont),
                       }}
                     >
                       {spineData[card.id]!.label}
