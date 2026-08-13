@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.1
+
+**Every entity in a picker now shows its entity id**, and the one you have
+chosen is repeated below the list with its current state.
+
+The id used to appear only when two entities shared a friendly name. That is the
+wrong test: a television commonly exposes two media players with DIFFERENT
+names, one reporting power and one reporting playback, and only the id says
+which is which. Neither looked ambiguous, so neither showed its id — and an
+entity you had already identified in Developer Tools could not be found in the
+list at all.
+
+The current state is there because it is the quickest way to tell those two
+apart. A player sitting at `on` cannot report what an app inside it is doing;
+one that says `playing` or `idle` can. Choosing the first is how the light ends
+up stuck on Ready, which is white.
+
 ## 0.9.0
 
 **Spine labels can be set left, centred or right, in one of twelve typefaces.**

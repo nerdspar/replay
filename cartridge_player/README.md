@@ -295,6 +295,14 @@ an edit made under one tab is otherwise invisible from the others.
 | **Wait before Select** | How long Stremio needs to list streams. Too short and it presses Select on an empty page. |
 | **When a video cartridge is lifted off** | Do nothing (default), pause, back, home, or turn the TV off. |
 | **Default speaker** | Where music cartridges play, unless one names its own. |
+
+Entity pickers show each entity's id, and repeat the chosen one underneath with
+its current state. That state is worth reading when picking a **Media player**
+for a television: many sets expose one entity that reports only power (`on` /
+`off`) and another that reports playback (`playing` / `paused` / `idle`). Only
+the second can drive **Follow what is actually playing** — pick the power one
+and the light stays on Ready, which is white, however well everything else is
+configured.
 | **When a music cartridge is lifted off** | Pause (default), stop, or keep playing. A speaker has no Back or Home, which is why this is a separate setting. |
 
 **Pause and Stop are the difference between carrying on and starting over.**
