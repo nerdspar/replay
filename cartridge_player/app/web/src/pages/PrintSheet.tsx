@@ -3,10 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { episodeBadge } from '../components/Poster'
 import {
-  CRICUT_SAFE_MARGIN,
   PAGE_SIZES,
   STICKER_PRESETS,
-  fitsCricutArea,
+  fitsCricutDesignArea,
   paginate,
   planGrid,
   withCopies,
@@ -23,6 +22,20 @@ import { fitBackdrop, objectFitFor, type FitBackdrop } from '../lib/artFit'
 import type { Card } from '../types'
 
 type Fit = 'cover' | 'contain'
+
+/**
+ * The two ways a sticker gets made, and they share almost nothing.
+ *
+ * Cutting by hand means printing a laid-out sheet from the browser, so page
+ * size, margins, gutter and cut guides all matter. A Cricut is handed one image
+ * per sticker and does its own layout in Design Space, so none of them do —
+ * including the registration margins this page used to set, because Print Then
+ * Cut prints from Design Space and can only register a sheet it printed itself.
+ *
+ * They were previously one screen with a checkbox, which left every reader
+ * working out for themselves which of the controls their method ignored.
+ */
+type PrintMethod = 'hand' | 'cricut'
 
 export function PrintSheet() {
   const navigate = useNavigate()
@@ -42,7 +55,7 @@ export function PrintSheet() {
   const [copies, setCopies] = useState(1)
   const [fit, setFit] = useState<Fit>('cover')
   const [guides, setGuides] = useState(true)
-  const [cricut, setCricut] = useState(false)
+  const [method, setMethod] = useState<PrintMethod>('hand')
   const [exporting, setExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState(0)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -114,7 +127,18 @@ export function PrintSheet() {
     }
   }, [chosen])
 
-  const cricutOk = useMemo(() => fitsCricutArea(page, margin), [page, margin])
+  const cricut = method === 'cricut'
+
+  /**
+   * Print Then Cut has a maximum design area, and each sticker is imported as
+   * its own image — so the limit applies to the sticker, not to any page. Only
+   * a hand-typed size can breach it, and the failure otherwise arrives in
+   * Design Space long after the images were made.
+   */
+  const cricutSizeOk = useMemo(
+    () => fitsCricutDesignArea({ width, height }),
+    [width, height],
+  )
 
   const plan = useMemo(
     () => planGrid({ page, margin, gap, sticker: { width, height } }),
@@ -229,6 +253,25 @@ export function PrintSheet() {
           </span>
         </div>
 
+        <div className="tabs" role="tablist" aria-label="How you are cutting">
+          <button
+            role="tab"
+            aria-selected={!cricut}
+            className={!cricut ? 'active' : ''}
+            onClick={() => setMethod('hand')}
+          >
+            Print &amp; cut by hand
+          </button>
+          <button
+            role="tab"
+            aria-selected={cricut}
+            className={cricut ? 'active' : ''}
+            onClick={() => setMethod('cricut')}
+          >
+            Cricut
+          </button>
+        </div>
+
         <div className="card">
           <h2>Sticker size</h2>
           <div className="preset-list" style={{ marginTop: 10 }}>
@@ -290,7 +333,9 @@ export function PrintSheet() {
             <p className="hint">
               {preset.shape === 'round'
                 ? 'Round stickers are always fully rounded.'
-                : 'Rounds the cut guide as well as the artwork, so the guide matches the shape you cut to.'}
+                : cricut
+                  ? 'Rounds the exported image, leaving its corners transparent — Print Then Cut traces the opaque shape, so this is the line the machine cuts.'
+                  : 'Rounds the cut guide as well as the artwork, so the guide matches the shape you cut to.'}
             </p>
           </label>
 
@@ -300,6 +345,12 @@ export function PrintSheet() {
           </p>
         </div>
 
+        {/*
+          Page, margins, gutter and copies describe a sheet this app lays out
+          and prints. Design Space lays out its own, so none of it reaches a
+          Cricut and it is hidden rather than merely ignored.
+        */}
+        {cricut ? null : (
         <div className="card">
           <h2>Page</h2>
           <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
@@ -343,36 +394,6 @@ export function PrintSheet() {
             10 mm unless you know yours goes closer.
           </p>
 
-          {/*
-            A Cricut prints registration marks around the design and reads them
-            back, so the design must sit inside a smaller box than the page. The
-            10 mm default overflows it, and the failure is late and annoying:
-            Design Space rejects the size, or the cut lands off-register.
-          */}
-          <div className="switch" style={{ marginTop: 14 }}>
-            <span>Cutting with a Cricut</span>
-            <input
-              type="checkbox"
-              checked={cricut}
-              onChange={(e) => {
-                setCricut(e.target.checked)
-                if (e.target.checked) {
-                  setMargin(CRICUT_SAFE_MARGIN)
-                  // The machine does the cutting; printed guides would just be
-                  // ink left on the sticker.
-                  setGuides(false)
-                }
-              }}
-            />
-          </div>
-          <p className={`hint ${cricut && !cricutOk ? 'warn' : ''}`}>
-            {cricut
-              ? cricutOk
-                ? `Margins set to ${CRICUT_SAFE_MARGIN} mm and cut guides turned off, so the sheet stays inside the area Print Then Cut can register.`
-                : `A ${margin} mm margin puts the stickers outside the area Print Then Cut can register on ${page.label}. Use ${CRICUT_SAFE_MARGIN} mm or more.`
-              : 'Sets margins Print Then Cut can register, and turns off cut guides since the machine does the cutting.'}
-          </p>
-
           <label className="field" style={{ marginTop: 14, marginBottom: 0 }}>
             <span>Copies of each</span>
             <input
@@ -384,25 +405,30 @@ export function PrintSheet() {
             />
           </label>
         </div>
+        )}
 
         <div className="card">
           <h2>Look</h2>
-          <div className="switch">
-            <span className={cricut ? 'muted' : undefined}>Cut guides</span>
-            <input
-              type="checkbox"
-              checked={guides && !cricut}
-              disabled={cricut}
-              onChange={(e) => setGuides(e.target.checked)}
-            />
-          </div>
-          <p className="hint">
-            {cricut
-              ? 'Not used with a Cricut — the machine cuts to its own registration marks, so printed guides would only leave ink on the sticker.'
-              : 'Dashed lines showing where to cut. They sit exactly on the edge of each sticker and follow its corner radius, so cutting along the line gives you the size above. Turn them off for a clean sheet, or if you are cutting by machine.'}
-          </p>
+          {cricut ? null : (
+            <>
+              <div className="switch">
+                <span>Cut guides</span>
+                <input
+                  type="checkbox"
+                  checked={guides}
+                  onChange={(e) => setGuides(e.target.checked)}
+                />
+              </div>
+              <p className="hint">
+                Dashed lines showing where to cut. They sit exactly on the edge
+                of each sticker and follow its corner radius, so cutting along
+                the line gives you the size above. Turn them off for a clean
+                sheet.
+              </p>
+            </>
+          )}
 
-          <div className="row" style={{ gap: 8, marginTop: 12 }}>
+          <div className="row" style={{ gap: 8, marginTop: cricut ? 0 : 12 }}>
             <button
               className={`btn small ${fit === 'cover' ? 'primary' : ''}`}
               onClick={() => setFit('cover')}
@@ -454,24 +480,17 @@ export function PrintSheet() {
           </div>
         </div>
 
-        {plan.impossible ? (
-          <div className="banner error">
-            A {width} × {height} mm sticker does not fit on {page.label} with a{' '}
-            {margin} mm margin. Reduce the size or the margin.
-          </div>
-        ) : (
-          <div className="banner alert">
-            {plan.columns} across × {plan.rows} down — {plan.perPage} per page,{' '}
-            {pages.length} page{pages.length === 1 ? '' : 's'} for{' '}
-            {chosen.length * copies} sticker{chosen.length * copies === 1 ? '' : 's'}.
-          </div>
-        )}
-
         {cricut ? (
           <>
+            {cricutSizeOk ? null : (
+              <div className="banner error">
+                A {width} × {height} mm sticker is larger than the biggest design
+                Print Then Cut can handle. Reduce the size above.
+              </div>
+            )}
             <button
               className="btn primary block"
-              disabled={chosen.length === 0 || exporting}
+              disabled={chosen.length === 0 || exporting || !cricutSizeOk}
               onClick={() => void exportForCricut()}
             >
               {exporting
@@ -481,36 +500,55 @@ export function PrintSheet() {
             <p className="hint">
               One PNG per cartridge at {width} × {height} mm, {EXPORT_DPI} dpi, with
               the corners cut out so Print Then Cut follows the rounded shape.
-              Upload them in Design Space and use Print Then Cut. Your browser may
-              ask permission to download several files.
+              Upload them in Design Space, arrange them on a sheet there, and use
+              Print Then Cut. Your browser may ask permission to download several
+              files.
             </p>
             {exportError ? <p className="hint warn">{exportError}</p> : null}
-            <p className="hint" style={{ marginTop: 10 }}>
-              Printing the sheet below is for cutting by hand instead.
+          </>
+        ) : (
+          <>
+            {plan.impossible ? (
+              <div className="banner error">
+                A {width} × {height} mm sticker does not fit on {page.label} with a{' '}
+                {margin} mm margin. Reduce the size or the margin.
+              </div>
+            ) : (
+              <div className="banner alert">
+                {plan.columns} across × {plan.rows} down — {plan.perPage} per page,{' '}
+                {pages.length} page{pages.length === 1 ? '' : 's'} for{' '}
+                {chosen.length * copies} sticker
+                {chosen.length * copies === 1 ? '' : 's'}.
+              </div>
+            )}
+
+            <button
+              className="btn block primary"
+              disabled={pages.length === 0 || !artworkReady}
+              onClick={print}
+            >
+              {pages.length === 0
+                ? 'Nothing to print'
+                : artworkReady
+                  ? `Print ${pages.length} page${pages.length === 1 ? '' : 's'}`
+                  : 'Preparing artwork…'}
+            </button>
+
+            <h2 style={{ fontSize: 16, margin: '22px 0 8px' }}>Preview</h2>
+            <p className="hint" style={{ marginBottom: 12 }}>
+              Shown at real proportions. In the print dialog, set scale to 100%
+              and turn off "fit to page", or the sizes above will not come out
+              right.
             </p>
           </>
-        ) : null}
-
-        <button
-          className={`btn block ${cricut ? '' : 'primary'}`}
-          style={cricut ? { marginTop: 12 } : undefined}
-          disabled={pages.length === 0 || !artworkReady}
-          onClick={print}
-        >
-          {pages.length === 0
-            ? 'Nothing to print'
-            : artworkReady
-              ? `Print ${pages.length} page${pages.length === 1 ? '' : 's'}`
-              : 'Preparing artwork…'}
-        </button>
-
-        <h2 style={{ fontSize: 16, margin: '22px 0 8px' }}>Preview</h2>
-        <p className="hint" style={{ marginBottom: 12 }}>
-          Shown at real proportions. In the print dialog, set scale to 100% and
-          turn off "fit to page", or the sizes above will not come out right.
-        </p>
+        )}
       </div>
 
+      {/*
+        Only built for the hand-cut path. It is the thing `window.print()`
+        prints, and a Cricut never sees it.
+      */}
+      {cricut ? null : (
       <div
         className="sheets"
         ref={sheetsRef}
@@ -531,7 +569,7 @@ export function PrintSheet() {
             <div className="sheet-grid" style={{ gridTemplateColumns: `repeat(${plan.columns}, var(--sticker-w))` }}>
               {items.map((card, index) => (
                 <div
-                  className={`sticker ${guides && !cricut ? 'guides' : ''}`}
+                  className={`sticker ${guides ? 'guides' : ''}`}
                   key={`${card.id}-${index}`}
                 >
                   {/*
@@ -577,6 +615,7 @@ export function PrintSheet() {
           </div>
         ))}
       </div>
+      )}
     </>
   )
 }

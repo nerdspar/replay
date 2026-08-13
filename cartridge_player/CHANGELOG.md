@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.5
+
+**The print screen is now two tabs: Print & cut by hand, and Cricut.** Each
+shows only what its method uses, so nothing on screen is a control your machine
+will ignore.
+
+The two methods share almost nothing. Cutting by hand means printing a sheet
+laid out here, so page size, margins, gutter, copies and cut guides all matter.
+A Cricut is handed one image per sticker and lays out its own sheet in Design
+Space, so none of them do. Previously that was a checkbox, which left every
+reader working out for themselves which of the surrounding settings still
+applied to them, and offered a Print button that produced a sheet a Cricut
+cannot use.
+
+Setting the registration margins went with it. Print Then Cut prints its own
+marks and can only read back a sheet Design Space printed, so those margins
+never reached the machine. What replaces them is a check that actually applies:
+a sticker larger than the area Print Then Cut can register is caught before the
+images are made, rather than being refused by Design Space afterwards.
+
 ## 0.7.4
 
 **Blurred** now shows the whole cover over a blurred copy of itself, rather than

@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   CRICUT_DESIGN_AREA,
-  CRICUT_SAFE_MARGIN,
   PAGE_SIZES,
   STICKER_PRESETS,
-  fitsCricutArea,
+  fitsCricutDesignArea,
   paginate,
   planGrid,
   withCopies,
@@ -165,27 +164,26 @@ describe('the cartridge label on real paper', () => {
   })
 })
 
+/**
+ * The limit is on the sticker, not the page: Design Space is handed one image
+ * per cartridge and lays out the sheet itself, so this app's own page margins
+ * never reach the machine.
+ */
 describe('Cricut Print Then Cut', () => {
-  /**
-   * A Cricut prints registration marks around the design and reads them back,
-   * so the design has to sit inside a smaller box than the page. The 10 mm
-   * default does not.
-   */
-  it('rejects the default margin, which overflows the registerable area', () => {
-    expect(fitsCricutArea(LETTER, 10)).toBe(false)
-    expect(fitsCricutArea(A4, 10)).toBe(false)
+  it('passes every preset, which is the point of the presets', () => {
+    for (const preset of STICKER_PRESETS) {
+      expect(fitsCricutDesignArea(preset)).toBe(true)
+    }
   })
 
-  it('accepts the safe margin on both page sizes', () => {
-    expect(fitsCricutArea(LETTER, CRICUT_SAFE_MARGIN)).toBe(true)
-    expect(fitsCricutArea(A4, CRICUT_SAFE_MARGIN)).toBe(true)
+  it('rejects a hand-typed size too big to register', () => {
+    expect(fitsCricutDesignArea({ width: 200, height: 280 })).toBe(false)
   })
 
-  it('does not cost a row or column to switch to it', () => {
-    const label = STICKER_PRESETS.find((p) => p.id === 'cartridge-label')!
-    expect(plan(LETTER, label.width, label.height, CRICUT_SAFE_MARGIN).perPage).toBe(
-      plan(LETTER, label.width, label.height, 10).perPage,
-    )
+  it('accepts a sticker that fits either published material', () => {
+    // Taller than Letter allows, shorter than A4 allows: still cuttable, so
+    // long as the right material is picked in Design Space.
+    expect(fitsCricutDesignArea({ width: 180, height: 260 })).toBe(true)
   })
 
   it('matches the areas Cricut publishes, converted from inches', () => {

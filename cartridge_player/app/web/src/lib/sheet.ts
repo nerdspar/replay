@@ -73,17 +73,24 @@ export const CRICUT_DESIGN_AREA: Record<string, { width: number; height: number 
 }
 
 /**
- * Margin that keeps the design inside Cricut's registerable area on both
- * supported page sizes. Letter needs 13.5 mm; 14 rounds up for comfort, and
- * still fits the same six cartridge labels per page as the 10 mm default.
+ * Whether one sticker is small enough for Print Then Cut.
+ *
+ * The limit applies to the sticker rather than to any page: Design Space is
+ * handed a single image per cartridge and lays out the sheet itself, so the
+ * margins this app uses for its own printed sheet never reach the machine.
+ *
+ * True if it fits either published area, since which one applies depends on the
+ * material chosen in Design Space. Only a hand-typed size can breach this —
+ * every preset is far under — but the alternative is a stack of PNGs that
+ * Design Space refuses after they have all been made.
  */
-export const CRICUT_SAFE_MARGIN = 14
-
-/** Whether a layout stays inside the area Cricut can register and cut. */
-export function fitsCricutArea(page: PageSize, margin: number): boolean {
-  const area = CRICUT_DESIGN_AREA[page.id]
-  if (!area) return false
-  return page.width - margin * 2 <= area.width && page.height - margin * 2 <= area.height
+export function fitsCricutDesignArea(sticker: {
+  width: number
+  height: number
+}): boolean {
+  return Object.values(CRICUT_DESIGN_AREA).some(
+    (area) => sticker.width <= area.width && sticker.height <= area.height,
+  )
 }
 
 export interface SheetLayout {

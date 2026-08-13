@@ -229,6 +229,8 @@ starts, something is wrong — that delay belongs to video only.
 | 4d.5 | Change the artwork, then download again | The new artwork appears — not the previous one from cache |
 | 4d.6 | Print one **Blurred** sticker on paper | The blurred area actually prints, rather than coming out white |
 | 4d.7 | Mixed sheet: select both video and music cartridges | All print at the same 60 × 90 size |
+| 4d.8 | Switch between the **Print & cut by hand** and **Cricut** tabs | Page, margins, gutter, copies, cut guides and the preview appear only under hand-cutting; the Cricut tab shows the size, the artwork fit, the list and the download |
+| 4d.9 | On the Cricut tab, type a 200 × 280 mm size | Warns that it exceeds the Print Then Cut area and disables the download, rather than making images Design Space would refuse |
 
 4d.6 is worth doing on real paper rather than in preview. Browsers drop
 backgrounds when printing unless told otherwise, and preview does not always

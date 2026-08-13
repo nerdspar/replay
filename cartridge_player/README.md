@@ -174,6 +174,10 @@ You can also set the size and corner radius by hand in millimetres, change the
 page to A4 or US Letter, adjust margins and spacing, and print several copies of
 each.
 
+The print screen opens on two tabs: **Print & cut by hand**, described below,
+and **Cricut**. Pick yours first — each shows only the settings its method
+actually uses, so nothing on screen is a control your machine will ignore.
+
 There is no title caption, on purpose: the poster already carries the title, and
 a caption bar could only take its space from the artwork, which would crop the
 poster. A cartridge pinned to a single episode gets a small episode badge in the
@@ -186,19 +190,31 @@ margins, the stickers come out slightly too small and stop matching the shell.
 
 **Cut guides** are dashed lines showing where to cut. They sit exactly on each
 sticker's edge and follow its corner radius, so cutting along the line gives you
-the size in the table. Turn them off for a clean sheet, or if you are cutting by
-machine and would rather register on the artwork.
+the size in the table. Turn them off for a clean sheet.
 
 Sheets default to **US Letter**; A4 is a click away.
 
 ### Cutting with a Cricut
 
-Turn on **Cutting with a Cricut** before printing. Print Then Cut prints
-registration marks around the design and reads them back, so the design has to
-sit inside a smaller box than the page — Cricut's usable area on US Letter is
-7.44 × 9.94 in (189 × 252.5 mm). The 10 mm default margin overflows that. The
-setting widens the margin to 14 mm, which fits, and turns cut guides off since
-the machine does the cutting. You still get six labels to a page.
+Switch to the **Cricut** tab. The two methods share nothing but the sticker
+size and the artwork, so the tab drops everything that only describes a printed
+sheet — page size, margins, gutter, copies, cut guides and the preview all
+belong to cutting by hand. Design Space lays out its own sheet.
+
+The tab's one action is **Download images for Design Space**. It saves one PNG
+per cartridge at true size — 709 × 1063 px for a 60 × 90 mm label, 300 dpi —
+with the area outside the rounded corners left transparent, which is how Print
+Then Cut knows to cut a rounded rectangle rather than a square. Upload those in
+Design Space, arrange them on a sheet there, and use Print Then Cut. Your
+browser may ask permission to download several files at once.
+
+Registration is Design Space's job, not this app's: Print Then Cut prints its
+own marks and can only read back a sheet it printed itself, so a page printed
+from here is for hand-cutting. What the app still checks is that a sticker fits
+the area Print Then Cut can register at all — 7.44 × 9.94 in (189 × 252.5 mm) on
+US Letter. Every preset is far under it; only a hand-typed size can breach it,
+and it is worth catching before you make a stack of images Design Space will
+refuse.
 
 What you need beyond the machine itself:
 
@@ -207,14 +223,6 @@ What you need beyond the machine itself:
 - **An Explore or Maker.** Cricut Joy cannot do Print Then Cut at all
 - A **StandardGrip mat**, and light-coloured material so the sensor can read the
   registration marks
-
-With the option on, a **Download images for Design Space** button appears. It
-saves one PNG per cartridge at true size — 709 × 1063 px for a 60 × 90 mm label,
-300 dpi — with the area outside the rounded corners left transparent, which is
-how Print Then Cut knows to cut a rounded rectangle rather than a square.
-
-Upload those in Design Space and use Print Then Cut. Your browser may ask
-permission to download several files at once.
 
 Printing the sheet instead is for cutting by hand.
 
