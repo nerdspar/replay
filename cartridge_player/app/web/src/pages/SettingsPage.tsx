@@ -220,9 +220,14 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
           emptyLabel="Not set"
           hint={
             <>
-              Only used for pause and stop. If the same name appears twice, pick
-              the one from your TV's own integration — a Music Assistant copy of
-              the same player controls audio, not the app on screen.
+              Used for pause and stop, and — if <strong>Follow what is actually
+              playing</strong> is on — to decide when the reader's light shows
+              the playing colour. For that it has to be an entity that reports{' '}
+              <code>playing</code> and <code>paused</code>, not one that only
+              reports <code>on</code> and <code>off</code>. Many televisions
+              expose both; the state shown above tells you which you have picked.
+              A Music Assistant copy of the same player controls audio, not the
+              app on screen.
             </>
           }
         />

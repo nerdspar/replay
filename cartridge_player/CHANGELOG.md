@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.2
+
+Corrects the **Media player** hint, which said it was "only used for pause and
+stop". That stopped being true when **Follow what is actually playing** was
+added: the same entity decides when the reader's light shows the playing
+colour. The hint now says so, and says what kind of entity is needed — one that
+reports `playing` and `paused`, not one that only reports `on` and `off`.
+
+Televisions commonly expose both, and picking the power one leaves the light
+sitting on Ready — white — with every other setting correct. The description
+made that field look unimportant at exactly the moment it mattered most.
+
 ## 0.9.1
 
 **Every entity in a picker now shows its entity id**, and the one you have
