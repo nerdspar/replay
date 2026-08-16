@@ -30,7 +30,9 @@ export function Status({ stream, settings: initial }: StatusProps) {
   const [limit, setLimit] = useState(SCAN_PAGE)
   const [total, setTotal] = useState(0)
   const [lastError, setLastError] = useState<{ message: string; at: number } | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [pin, setPin] = useState('')
+  const [savingPin, setSavingPin] = useState(false)
+  const [pinMessage, setPinMessage] = useState<string | null>(null)
   const [tvTest, setTvTest] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [tvError, setTvError] = useState<string | null>(null)
   // Refetched on mount: the add-on slug — and so the panel link — can resolve
@@ -75,14 +77,18 @@ export function Status({ stream, settings: initial }: StatusProps) {
     }
   }
 
-  const copyPanelUrl = async () => {
-    if (!settings.panel_url) return
+  const savePin = async () => {
+    setSavingPin(true)
+    setPinMessage(null)
     try {
-      await navigator.clipboard.writeText(settings.panel_url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
-    } catch {
-      setCopied(false)
+      await api.saveSettings({ pin: pin.trim() })
+      setPin('')
+      setPinMessage('Saved.')
+      setTimeout(() => setPinMessage(null), 3000)
+    } catch (e) {
+      setPinMessage((e as Error).message)
+    } finally {
+      setSavingPin(false)
     }
   }
 
@@ -177,26 +183,44 @@ export function Status({ stream, settings: initial }: StatusProps) {
         )}
       </div>
 
+      {/*
+        Direct access lives here rather than in Settings because it describes
+        this add-on rather than any one reader — and Settings is now entirely
+        per-reader. Status is already where the machine-level truth is: the
+        connections, the reader, the scan log.
+      */}
       <div className="card">
-        <h2>Add to your home screen</h2>
-        {settings.panel_url ? (
-          <>
-            <p className="mono" style={{ marginTop: 10 }}>
-              {settings.panel_url}
-            </p>
-            <button className="btn small" style={{ marginTop: 10 }} onClick={() => void copyPanelUrl()}>
-              {copied ? 'Copied' : 'Copy link'}
-            </button>
-            <p className="hint">
-              Open this in your phone's browser, then use Share → Add to Home Screen.
-            </p>
-          </>
-        ) : (
-          <p className="muted" style={{ marginTop: 8 }}>
-            Set your Home Assistant address in Settings and this link appears here.
-            {settings.addon_slug ? null : ' (Waiting on the add-on slug from Supervisor.)'}
+        <h2>Direct access (advanced)</h2>
+        <p className="muted">
+          {settings.direct_mode.enabled
+            ? settings.direct_mode.running
+              ? `On, port ${settings.direct_mode.port}. A PIN is required to open it.`
+              : `Requested on port ${settings.direct_mode.port}, but it will not start until a PIN is set.`
+            : 'Off. The app is reached through Home Assistant, which is the recommended setup.'}
+        </p>
+        <label className="field" style={{ marginTop: 12 }}>
+          <span>{settings.pin_set ? 'Change PIN' : 'Set a PIN'}</span>
+          <input
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            placeholder={settings.pin_set ? '••••' : 'At least 4 characters'}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+          />
+          <p className="hint">
+            Direct access skips Home Assistant's login entirely, so it is gated
+            by this PIN.
           </p>
-        )}
+        </label>
+        <button
+          className="btn block"
+          disabled={pin.trim() === '' || savingPin}
+          onClick={() => void savePin()}
+        >
+          {savingPin ? 'Saving…' : 'Save PIN'}
+        </button>
+        {pinMessage ? <p className="hint">{pinMessage}</p> : null}
       </div>
 
       {lastError ?? stream.lastError ? (

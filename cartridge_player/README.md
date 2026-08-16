@@ -260,32 +260,22 @@ What you need beyond the machine itself:
 
 Printing the sheet instead is for cutting by hand.
 
-## Put it on your phone's home screen
-
-This is the intended way to use the app.
-
-1. In **Settings**, set **Home Assistant address** to the address you normally
-   use, for example `https://homeassistant.local:8123`
-2. Open **Status** and copy the link shown there
-3. Open that link in your phone's browser, then **Share → Add to Home Screen**
-
-The link under Status is stable. The URL in your browser's address bar while
-using the sidebar is **not** — it contains a session token that rotates.
-
 ## Settings worth knowing
 
-Settings sit under four tabs:
+Settings sit under three tabs, and every one of them describes a reader:
 
 | Tab | What is on it |
 |---|---|
 | **Players** | The TV's remote and media player, and the default speaker |
 | **Playback** | What a tap does, and what lifting a cartridge off does |
 | **Light** | Everything about the reader's status light, including its colours |
-| **Access** | The address used to build the home-screen link, and the direct-access PIN |
 
-One **Save settings** button covers all four, so it sits below the tabs rather
+One **Save settings** button covers all three, so it sits below the tabs rather
 than inside one. A tab holding a change you have not saved shows a dot, since
 an edit made under one tab is otherwise invisible from the others.
+
+Anything describing the add-on rather than a reader — **direct access and the
+PIN** — lives under **Status**, alongside the connections and the scan log.
 
 | Setting | What it is for |
 |---|---|

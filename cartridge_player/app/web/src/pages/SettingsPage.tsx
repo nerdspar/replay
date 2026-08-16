@@ -41,13 +41,20 @@ const MUSIC_REMOVAL_OPTIONS: {
   { value: 'none', label: 'Keep playing', hint: 'The music carries on regardless.' },
 ]
 
-type SettingsTab = 'players' | 'playback' | 'light' | 'access'
+/**
+ * Every tab here describes one reader.
+ *
+ * That uniformity is the point: with a reader chosen in the title bar, a tab
+ * that quietly ignored it would be a trap. Anything about the add-on as a whole
+ * — direct access, the PIN — lives under Status instead, alongside the rest of
+ * the machine-level truth.
+ */
+type SettingsTab = 'players' | 'playback' | 'light'
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'players', label: 'Players' },
   { id: 'playback', label: 'Playback' },
   { id: 'light', label: 'Light' },
-  { id: 'access', label: 'Access' },
 ]
 
 /**
@@ -77,7 +84,6 @@ const TAB_SETTINGS: Record<SettingsTab, (keyof Settings)[]> = {
     'led_scope',
     'led_palette',
   ],
-  access: ['public_base_url'],
 }
 
 interface SettingsPageProps {
@@ -95,16 +101,13 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [pin, setPin] = useState('')
   const [tab, setTab] = useState<SettingsTab>('players')
 
   /** Whether a tab is holding edits that have not been saved yet. */
   const unsaved = (which: SettingsTab) =>
     TAB_SETTINGS[which].some(
       (key) => JSON.stringify(draft[key]) !== JSON.stringify(settings[key]),
-    ) ||
-    // The PIN is write-only, so it is never part of the draft to compare.
-    (which === 'access' && pin.trim() !== '')
+    )
 
   useEffect(() => setDraft(settings), [settings])
 
@@ -156,11 +159,8 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         led_match_cartridge: draft.led_match_cartridge,
         led_scope: draft.led_scope,
         led_palette: draft.led_palette,
-        public_base_url: draft.public_base_url,
-        ...(pin.trim() === '' ? {} : { pin: pin.trim() }),
       })
       onSaved(saved)
-      setPin('')
       setMessage('Saved.')
       setTimeout(() => setMessage(null), 3000)
     } catch (e) {
@@ -186,7 +186,7 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
           >
             {option.label}
             {/*
-              A tab holding unsaved edits. One Save button covers all four, so
+              A tab holding unsaved edits. One Save button covers all three, so
               without this a change made under Playback is invisible from
               Players and reads as never having been made.
             */}
@@ -385,57 +385,8 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
       />
       ) : null}
 
-      {tab === 'access' ? (
-      <>
-      <div className="card">
-        <h2>Home screen icon</h2>
-        <label className="field" style={{ marginTop: 12 }}>
-          <span>Home Assistant address</span>
-          <input
-            type="url"
-            inputMode="url"
-            autoCapitalize="off"
-            placeholder="https://homeassistant.local:8123"
-            value={draft.public_base_url ?? ''}
-            onChange={(e) => set('public_base_url', e.target.value || null)}
-          />
-          <p className="hint">
-            Used to build the bookmarkable link for adding this app to your phone's
-            home screen. Find the link under Status.
-          </p>
-        </label>
-      </div>
-
-      <div className="card">
-        <h2>Direct access (advanced)</h2>
-        <p className="muted">
-          {draft.direct_mode.enabled
-            ? draft.direct_mode.running
-              ? `On, port ${draft.direct_mode.port}. A PIN is required to open it.`
-              : `Requested on port ${draft.direct_mode.port}, but it will not start until a PIN is set.`
-            : 'Off. The app is reached through Home Assistant, which is the recommended setup.'}
-        </p>
-        <label className="field" style={{ marginTop: 12 }}>
-          <span>{draft.pin_set ? 'Change PIN' : 'Set a PIN'}</span>
-          <input
-            type="password"
-            inputMode="numeric"
-            autoComplete="new-password"
-            placeholder={draft.pin_set ? '••••' : 'At least 4 characters'}
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-          />
-          <p className="hint">
-            Direct access skips Home Assistant's login entirely, so it is gated by this
-            PIN.
-          </p>
-        </label>
-      </div>
-      </>
-      ) : null}
-
       {/*
-        Outside the tabs, because it saves all four. A Save button inside a tab
+        Outside the tabs, because it saves all three. A Save button inside a tab
         would read as saving that tab alone.
       */}
       <button className="btn primary block" disabled={saving} onClick={() => void save()}>

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.0
+
+**Settings is now three tabs — Players, Playback and Light — and every one of
+them describes one reader.** That uniformity is groundwork for running more than
+one reader in a house: with a reader chosen at the top of the screen, a tab that
+quietly ignored it would be a trap.
+
+**Direct access and the PIN moved to Status**, which is where the rest of the
+machine-level truth already lives — the connections, the reader, the scan log.
+They describe the add-on rather than any one reader, so they do not belong in a
+per-reader screen.
+
+**"Add to your home screen" is gone.** The link it produced returned a 404 in
+practice, and the same address fed the app manifest, so neither worked. The
+manifest now uses a relative start address.
+
 ## 0.10.0
 
 **A player that cannot report playback no longer leaves the light looking
