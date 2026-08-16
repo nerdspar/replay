@@ -141,13 +141,19 @@ Six states the reader works out by itself:
 | White, slow breathe | Read it, waiting to hear what happens next |
 | Amber, **fast** pulse | Nothing answered. Usually means the add-on is stopped |
 
-Three the add-on sends, because the reader cannot know them:
+Five the add-on sends, because the reader cannot know them:
 
 | Look | Meaning |
 |---|---|
 | Green | The cartridge started something |
+| Green, dim | Playing, but paused |
+| Green, slow breathe | Opened, and waiting for you to press play |
 | Blue, slow breathe | A cartridge with nothing on it yet. Holds until you set it up |
 | Red, **fast** pulse | Something failed. Clears itself after 30 seconds |
+
+Those first three share a hue on purpose: all three are about the cartridge on
+the reader, and motion and brightness separate them. All three can wear the
+cartridge's own artwork colour instead.
 
 Speed carries meaning: **slow means waiting, fast means wrong.** That is why red
 and amber each appear twice — a slow red is no wifi, a fast red is a failure.
@@ -173,8 +179,17 @@ means lifting one off returns the reader to idle, whatever is still playing.
 pairs with setting music lift-off to keep playing. Either way, the bar at the top
 of the library shows what is actually in the reader.
 
-All nine colours and brightnesses are yours to change under **Settings → Reader
-light**, each with a reset button. The three speeds are fixed, because they are
+**When your television cannot report playback.** Many sets expose a media
+player that only ever says `on` — it has no idea what an app inside it is doing.
+Following one forever would leave the light on Ready indefinitely, which looks
+exactly like a launch that failed. So after a few polls of nothing informative,
+or straight away if Home Assistant flags the entity as assumed-state, the light
+reports what the launch did instead and **Status says why** — naming the entity
+and what it reported. An `idle` player is still waited on: idle means it can
+answer and currently is not playing.
+
+All eleven colours and brightnesses are yours to change under **Settings →
+Light**, each with a reset button. The three speeds are fixed, because they are
 what keeps two states apart when they share a colour.
 
 **Use the cartridge's own colour** makes a playing cartridge light the reader in

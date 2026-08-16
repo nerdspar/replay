@@ -191,6 +191,8 @@ export const api = {
       supportsColor: boolean
       seated: SeatedCartridge | null
       last_seen: number | null
+      /** Why the light is doing what it is, when that needs saying. */
+      light_reason: string | null
     }>('api/reader'),
 
   scans: (limit = 50) =>

@@ -46,6 +46,20 @@ export interface PlaybackWatcherDeps {
   now?: () => number
 }
 
+/**
+ * States that mean a player cannot report playback at all.
+ *
+ * `on` is the trap. It is a perfectly valid media_player state and it is what a
+ * television reports when it is awake — it has no idea what an app inside it is
+ * doing. A player stuck on it will never say `playing`, so following it forever
+ * is not patience, it is a hang. `idle` is NOT here: an idle player is one that
+ * could report playback and currently is not, which is worth waiting on.
+ */
+const UNINFORMATIVE_STATES = new Set(['on', 'unknown', 'unavailable', 'standby'])
+
+/** Polls of nothing useful before we stop believing the player will ever answer. */
+const GIVE_UP_AFTER = 4
+
 const PLAYING_STATES = new Set(['playing', 'buffering'])
 const PAUSED_STATES = new Set(['paused'])
 
@@ -140,6 +154,9 @@ export class PlaybackWatcher {
   private seated = false
   private last: ReaderStatus | null = null
   private playback: PlaybackState = 'idle'
+  /** Consecutive polls where the player said nothing that could ever be playback. */
+  private uninformative = 0
+  private explanation: string | null = null
 
   constructor(private readonly deps: PlaybackWatcherDeps) {}
 
@@ -160,6 +177,8 @@ export class PlaybackWatcher {
    */
   start(card: Card, seated = true): void {
     this.stop()
+    this.uninformative = 0
+    this.explanation = null
     this.card = card
     this.seated = seated
     this.announce()
@@ -209,6 +228,11 @@ export class PlaybackWatcher {
     )
   }
 
+  /** Why the light is doing what it is doing, when that is not self-evident. */
+  get reason(): string | null {
+    return this.explanation
+  }
+
   private async tick(): Promise<void> {
     const card = this.card
     if (!card) return
@@ -224,9 +248,13 @@ export class PlaybackWatcher {
     }
 
     let playback: PlaybackState = 'idle'
+    let raw: string | null = null
+    let assumed = false
     try {
       const state = await this.deps.ha.getState(entity)
-      playback = playbackFromState(state?.state)
+      raw = state?.state ?? null
+      assumed = state?.attributes?.assumed_state === true
+      playback = playbackFromState(raw)
       if (
         playback !== 'idle' &&
         settings.led_match_cartridge &&
@@ -237,6 +265,34 @@ export class PlaybackWatcher {
     } catch (error) {
       log.debug(`could not read ${entity}: ${(error as Error).message}`)
       return
+    }
+
+    /*
+      Give up on a player that cannot answer the question.
+
+      Home Assistant sets `assumed_state` when it is guessing rather than
+      reading, and a television parked on `on` will never say `playing` however
+      long it is watched. Either way, continuing to follow it means the light
+      sits on Ready for ever — indistinguishable from a launch that failed, and
+      the reason this needed three rounds of diagnosis to find.
+
+      Reported rather than merely handled: the add-on knows exactly why, and
+      leaving the user to infer it from an LED is what made this expensive.
+    */
+    if (playback === 'idle' && (assumed || (raw !== null && UNINFORMATIVE_STATES.has(raw)))) {
+      this.uninformative += 1
+      if (this.uninformative >= GIVE_UP_AFTER) {
+        this.explanation = assumed
+          ? `${entity} is an assumed-state player, so Home Assistant cannot tell whether it is playing. Showing what the launch did instead.`
+          : `${entity} reports "${raw}", which is not playback. Showing what the launch did instead.`
+        log.info(this.explanation)
+        this.push(statusForPlayingMode(settings.led_playing_mode))
+        this.stop()
+        return
+      }
+    } else {
+      this.uninformative = 0
+      this.explanation = null
     }
 
     if (playback !== this.playback) {
@@ -254,9 +310,16 @@ export class PlaybackWatcher {
       this.push('ready')
       this.stop()
     } else {
-      // Seated but nothing is playing — which is exactly the case that used to
-      // show green for ever.
-      this.push('ready')
+      /*
+        Seated, launched, and not playing yet.
+
+        Its own state rather than Ready: an empty reader and a cartridge waiting
+        for you to press play are different situations, and showing both as idle
+        left the light saying nothing at the one moment it was being watched —
+        a deep link that lands on a detail page with autoplay off is exactly
+        this, and it looked identical to a failure.
+      */
+      this.push('waiting')
     }
   }
 
@@ -266,8 +329,12 @@ export class PlaybackWatcher {
     this.last = status
 
     const settings = this.deps.settings()
+    // Playing, paused and waiting are all about the cartridge on the reader,
+    // so all three may wear its colour — which is also exactly the set the
+    // firmware applies an accent to. These two lists have to agree.
     const accent =
-      settings.led_playing_artwork && (status === 'paused' || status.startsWith('playing'))
+      settings.led_playing_artwork &&
+      (status === 'paused' || status === 'waiting' || status.startsWith('playing'))
         ? this.card?.accent_color
         : null
 

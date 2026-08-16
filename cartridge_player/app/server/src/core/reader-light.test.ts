@@ -62,7 +62,7 @@ describe('packing the palette', () => {
       error: { color: 'not-a-colour', brightness: 80 },
     })
 
-    expect(packed).toHaveLength(80)
+    expect(packed).toHaveLength(88)
     expect(packed.slice(64, 72)).toBe('ff0000cc')
   })
 

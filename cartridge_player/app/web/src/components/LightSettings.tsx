@@ -29,6 +29,7 @@ export const DEFAULT_PALETTE: LedPalette = {
   new: { color: '#1a59ff', brightness: 60 },
   error: { color: '#ff0000', brightness: 80 },
   paused: { color: '#00ff26', brightness: 18 },
+  waiting: { color: '#00ff26', brightness: 40 },
 }
 
 interface StateInfo {
@@ -81,6 +82,12 @@ const ADDON_STATES: StateInfo[] = [
     label: 'Paused',
     hint: 'Playing, but held. The Playing colour dimmed, by default.',
     motion: 'Steady',
+  },
+  {
+    key: 'waiting',
+    label: 'Waiting for you to press play',
+    hint: 'Opened, but the player has not started it. Shares the Playing colour and breathes, so the three cartridge states read as one family.',
+    motion: 'Slow',
   },
   { key: 'error', label: 'Something failed', hint: 'Clears itself after 30 seconds.', motion: 'Fast' },
 ]

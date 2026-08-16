@@ -32,6 +32,7 @@ export type LedStateName =
   | 'new'
   | 'error'
   | 'paused'
+  | 'waiting'
 
 export interface LedStateStyle {
   /** `#rrggbb`. A grey is driven through the LED's white die. */

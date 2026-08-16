@@ -33,6 +33,7 @@ export const LED_STATES: LedStateName[] = [
   // Appended, not inserted: the firmware unpacks by position, and older
   // firmware simply keeps its default for a state it does not know about.
   'paused',
+  'waiting',
 ]
 
 /** Matches the fallback palette compiled into the firmware. */
@@ -50,6 +51,10 @@ export const DEFAULT_PALETTE: LedPalette = {
   // means running, dim means stopped, and it works with a borrowed artwork
   // colour too.
   paused: { color: '#00ff26', brightness: 18 },
+  // The same green again, and the firmware breathes it. Three states share this
+  // hue because all three are about the cartridge on the reader; motion and
+  // brightness separate them, which is cheaper to learn than a third colour.
+  waiting: { color: '#00ff26', brightness: 40 },
 }
 
 /**
@@ -140,6 +145,8 @@ export type ReaderStatus =
   | 'playing'
   | 'playing_hold'
   | 'paused'
+  /** Launched, and the player is not playing it yet. Press play. */
+  | 'waiting'
   | 'new'
   | 'error'
   | 'ready'

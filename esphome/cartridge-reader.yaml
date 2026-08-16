@@ -295,21 +295,21 @@ globals:
   # broken are exactly the ones nobody customises. Writing to flash every time
   # somebody dragged a colour picker would be worse.
   - id: pal_r
-    type: float[10]
+    type: float[11]
     restore_value: false
-    initial_value: "{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.10f, 1.0f, 0.0f}"
+    initial_value: "{1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.10f, 1.0f, 0.0f, 0.0f}"
   - id: pal_g
-    type: float[10]
+    type: float[11]
     restore_value: false
-    initial_value: "{0.0f, 0.55f, 1.0f, 1.0f, 1.0f, 0.55f, 1.0f, 0.35f, 0.0f, 1.0f}"
+    initial_value: "{0.0f, 0.55f, 1.0f, 1.0f, 1.0f, 0.55f, 1.0f, 0.35f, 0.0f, 1.0f, 1.0f}"
   - id: pal_b
-    type: float[10]
+    type: float[11]
     restore_value: false
-    initial_value: "{0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.15f, 1.0f, 0.0f, 0.15f}"
+    initial_value: "{0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.15f, 1.0f, 0.0f, 0.15f, 0.15f}"
   - id: pal_br
-    type: float[10]
+    type: float[11]
     restore_value: false
-    initial_value: "{0.45f, 0.45f, 0.10f, 1.0f, 0.40f, 0.80f, 0.70f, 0.60f, 0.80f, 0.18f}"
+    initial_value: "{0.45f, 0.45f, 0.10f, 1.0f, 0.40f, 0.80f, 0.70f, 0.60f, 0.80f, 0.18f, 0.40f}"
 
   # How each state moves: 0 steady, 1 slow breathe, 2 fast pulse. NOT
   # configurable — motion is what separates two states that share a colour.
@@ -317,9 +317,9 @@ globals:
   # Home Assistant" and amber fast is "Home Assistant is there, the add-on is
   # not answering". Handing that to a colour picker would lose it.
   - id: pal_motion
-    type: uint8_t[10]
+    type: uint8_t[11]
     restore_value: false
-    initial_value: "{1, 1, 0, 0, 1, 2, 0, 1, 2, 0}"
+    initial_value: "{1, 1, 0, 0, 1, 2, 0, 1, 2, 0, 1}"
 
   # A colour sampled from the playing cartridge's artwork, when the add-on sends
   # one. Overrides the palette for the playing state only — every other state
@@ -495,12 +495,13 @@ script:
     then:
       - script.stop: breathe
       - lambda: |-
-          if (!id(status_auto).state || idx < 0 || idx > 9) return;
+          if (!id(status_auto).state || idx < 0 || idx > 10) return;
 
-          // Playing and paused are the two states a cartridge may colour
-          // itself: both are about that cartridge. Every other state means the
-          // same thing whatever is on the reader.
-          const bool accent = ((idx == 6 || idx == 9) && id(accent_on));
+          // Playing, paused and waiting are the three states a cartridge may
+          // colour itself: all three are about that cartridge. Every other
+          // state means the same thing whatever is on the reader.
+          const bool accent =
+              ((idx == 6 || idx == 9 || idx == 10) && id(accent_on));
           const float r = accent ? id(accent_r) : id(pal_r)[idx];
           const float g = accent ? id(accent_g) : id(pal_g)[idx];
           const float b = accent ? id(accent_b) : id(pal_b)[idx];
@@ -524,7 +525,7 @@ script:
       - if:
           condition:
             lambda: |-
-              return id(status_auto).state && idx >= 0 && idx <= 9 &&
+              return id(status_auto).state && idx >= 0 && idx <= 10 &&
                      id(pal_motion)[idx] != 0;
           then:
             - script.execute: breathe
@@ -677,7 +678,7 @@ script:
             id(holding) = false;
             id(awaiting) = false;
           } else if (state == "playing_hold" || state == "paused" ||
-                     state == "new" || state == "error") {
+                     state == "waiting" || state == "new" || state == "error") {
             id(holding) = true;
             id(awaiting) = false;
           } else {
@@ -692,6 +693,7 @@ script:
             if (state == "new") return 7;
             if (state == "error") return 8;
             if (state == "paused") return 9;
+            if (state == "waiting") return 10;
             return -1;                        // ambient handles the rest
       - if:
           condition:
@@ -719,7 +721,7 @@ script:
             lambda: |-
               return state != "busy" && state != "playing" &&
                      state != "playing_hold" && state != "paused" &&
-                     state != "new" && state != "error";
+                     state != "waiting" && state != "new" && state != "error";
           then:
             - script.execute: show_ambient
 
@@ -741,8 +743,8 @@ script:
     then:
       - lambda: |-
           const int entries = packed.length() / 8;
-          if (packed.length() % 8 != 0 || entries < 1 || entries > 10) {
-            ESP_LOGW("palette", "ignored: %u chars is not 1-10 entries of 8",
+          if (packed.length() % 8 != 0 || entries < 1 || entries > 11) {
+            ESP_LOGW("palette", "ignored: %u chars is not 1-11 entries of 8",
                      (unsigned) packed.length());
             return;
           }
@@ -754,7 +756,7 @@ script:
             return -1;
           };
 
-          float r[10], g[10], b[10], br[10];
+          float r[11], g[11], b[11], br[11];
           for (int i = 0; i < entries; i++) {
             int v[8];
             for (int n = 0; n < 8; n++) {

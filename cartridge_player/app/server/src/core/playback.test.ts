@@ -67,15 +67,87 @@ describe('which player a cartridge belongs to', () => {
   })
 })
 
+/**
+ * A player that can never answer the question.
+ *
+ * Following one for ever is not patience, it is a hang: the light sits on a
+ * cartridge state indefinitely, which is indistinguishable from a launch that
+ * failed. This is the case that took three rounds of diagnosis to find, and
+ * the whole point is that the add-on now says which player and why.
+ */
+describe('giving up on a player that cannot report playback', () => {
+  it('waits a few polls before deciding, so a slow start is not misread', async () => {
+    const { w, said } = watcher('on')
+    w.start(card())
+    await settle()
+
+    // Still waiting: pressing play three seconds late must not be missed.
+    expect(said).toEqual(['waiting'])
+    expect(w.reason).toBeNull()
+    w.stop()
+  })
+
+  it('reports what the launch did once the player has proved uninformative', async () => {
+    const { w, said } = watcher('on')
+    w.start(card())
+    await settle()
+    for (let i = 0; i < 4; i++) await w['tick']()
+
+    expect(said).toEqual(['waiting', 'playing_hold'])
+    expect(w.reason).toContain('media_player.tv')
+    expect(w.reason).toContain('"on"')
+    w.stop()
+  })
+
+  it('gives up immediately on a player Home Assistant only assumes', async () => {
+    const { w, said, attributes } = watcher('idle')
+    // Home Assistant's own admission that it is guessing, not reading.
+    attributes.assumed_state = true
+    w.start(card())
+    await settle()
+    for (let i = 0; i < 4; i++) await w['tick']()
+
+    expect(said).toEqual(['waiting', 'playing_hold'])
+    expect(w.reason).toContain('assumed-state')
+    w.stop()
+  })
+
+  it('keeps waiting on an idle player, which can still answer', async () => {
+    // `idle` means "able to report playback, and currently not playing". That is
+    // worth waiting on for as long as the cartridge is seated.
+    const { w, said } = watcher('idle')
+    w.start(card())
+    await settle()
+    for (let i = 0; i < 6; i++) await w['tick']()
+
+    expect(said).toEqual(['waiting'])
+    expect(w.reason).toBeNull()
+    w.stop()
+  })
+
+  it('forgets the reason once a player starts answering again', async () => {
+    const { w } = watcher('on')
+    w.start(card())
+    await settle()
+    await w['tick']()
+    await w['tick']()
+
+    expect(w.reason).toBeNull()
+    w.stop()
+  })
+})
+
 describe('the bug this exists for', () => {
   it('stops claiming playback when the launch landed on a menu', async () => {
     // The exact case: a deep link opens the detail page, autoplay is off, and
-    // nothing ever starts. The old code called that "playing" for ever.
+    // nothing ever starts. The old code called that "playing" for ever; then it
+    // called it Ready, which was honest but indistinguishable from an empty
+    // reader. It now has its own word.
     const { w, said } = watcher('idle')
     w.start(card())
     await settle()
 
-    expect(said).toEqual(['ready'])
+    expect(said).toEqual(['waiting'])
     w.stop()
   })
 
@@ -129,7 +201,7 @@ describe('staying quiet', () => {
     store.state = 'idle'
     await w['tick']()
 
-    expect(said).toEqual(['playing_hold', 'paused', 'ready'])
+    expect(said).toEqual(['playing_hold', 'paused', 'waiting'])
     w.stop()
   })
 })
@@ -194,7 +266,8 @@ describe('only for this cartridge', () => {
     w.start(withTitle)
     await settle()
 
-    expect(said).toEqual(['ready'])
+    // Nothing of this cartridge is playing, but it is still on the reader.
+    expect(said).toEqual(['waiting'])
     w.stop()
   })
 
@@ -254,7 +327,7 @@ describe('saying which cartridge is in the reader', () => {
 })
 
 describe('artwork colour', () => {
-  it('rides along with playing and paused, and nothing else', async () => {
+  it('rides along with every state that is about the cartridge', async () => {
     const store = { state: 'playing' }
     const said: string[] = []
     const w = new PlaybackWatcher({
@@ -276,7 +349,11 @@ describe('artwork colour', () => {
     await w['tick']()
 
     // "ready" is about the reader, not the cartridge, so it keeps its own colour.
-    expect(said).toEqual(['playing_hold:#3366cc', 'paused:#3366cc', 'ready'])
+    expect(said).toEqual([
+      'playing_hold:#3366cc',
+      'paused:#3366cc',
+      'waiting:#3366cc',
+    ])
     w.stop()
   })
 })

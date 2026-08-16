@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.10.0
+
+**A player that cannot report playback no longer leaves the light looking
+broken.** Three related changes, all from one bug that took three rounds to
+diagnose.
+
+**A new light state: waiting for you to press play.** A deep link that lands on
+a detail page with autoplay off is not idle and not playing, and the light had
+no word for it — it showed Ready, which is what an empty reader shows. It now
+has its own state, sharing the Playing colour and breathing, so the three
+states about the cartridge on the reader read as one family separated by
+motion. Like the other two, it can wear the cartridge's own artwork colour.
+
+**The add-on gives up on a player that can never answer.** Many televisions
+expose a media player that only ever reports `on` — it has no idea what an app
+inside it is doing — and following one forever is not patience, it is a hang.
+After four polls of nothing informative, or immediately when Home Assistant
+flags the entity as assumed-state, the light reports what the launch did
+instead. An `idle` player is still waited on: idle means able to answer and
+currently not playing.
+
+**And it says why.** Status now shows, for example, `media_player.sony_tv
+reports "on", which is not playback. Showing what the launch did instead.` The
+add-on always knew this; leaving it to be inferred from an LED is what made the
+original problem so expensive to find.
+
+Firmware carries the new state, so reflash for it.
+
 ## 0.9.2
 
 Corrects the **Media player** hint, which said it was "only used for pause and

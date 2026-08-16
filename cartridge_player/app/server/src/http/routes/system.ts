@@ -83,6 +83,9 @@ export function registerSystemRoutes(app: FastifyInstance, ctx: AppContext): voi
       ...reader,
       seated: ctx.seated,
       last_seen: lastScan?.created_at ?? null,
+      // Why the light is doing what it is doing, when that needs saying. Null
+      // when it is behaving as configured and nothing needs explaining.
+      light_reason: ctx.playback?.reason ?? null,
     }
   })
 

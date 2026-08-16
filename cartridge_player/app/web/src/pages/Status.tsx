@@ -25,6 +25,7 @@ export function Status({ stream, settings: initial }: StatusProps) {
     device: string | null
     supportsColor: boolean
     last_seen: number | null
+    light_reason: string | null
   } | null>(null)
   const [limit, setLimit] = useState(SCAN_PAGE)
   const [total, setTotal] = useState(0)
@@ -117,6 +118,18 @@ export function Status({ stream, settings: initial }: StatusProps) {
             {reader.device}
             {reader.last_seen ? ` · last scan ${when(reader.last_seen)}` : ' · nothing scanned yet'}
             {reader.supportsColor ? '' : ' · firmware predates artwork colours'}
+          </p>
+        ) : null}
+
+        {/*
+          The add-on knows exactly why the light is doing what it is doing, and
+          leaving that to be inferred from an LED is what made a misconfigured
+          media player take three rounds to find. So it says so, in the place
+          you look when something seems wrong.
+        */}
+        {reader?.light_reason ? (
+          <p className="hint warn" style={{ marginTop: 8 }}>
+            {reader.light_reason}
           </p>
         ) : null}
 
