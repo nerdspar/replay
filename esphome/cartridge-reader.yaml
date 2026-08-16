@@ -136,16 +136,22 @@ api:
       - lambda: "id(link_up) = false;"
       - script.execute: show_ambient
 
+# No OTA password. A reader that changes hands should be updatable by whoever
+# has it, without a secret being passed along with the hardware — and anyone who
+# could reach this port is already on the home network.
 ota:
   - platform: esphome
-    password: !secret cartridge_reader_ota_password
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  # Fixed, and deliberately the obvious one. This AP only exists when the reader
+  # cannot find the network compiled into it — which is exactly what happens
+  # when it moves house — and its whole job is to let whoever is holding it type
+  # in the new wifi. A secret they would have to be told first defeats that.
   ap:
     ssid: "${friendly_name} Fallback"
-    password: !secret fallback_ap_password
+    password: "12345678"
   on_connect:
     then:
       - lambda: "id(net_up) = true;"

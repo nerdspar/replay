@@ -106,6 +106,28 @@ Once it is running you should see a `Cartridge ID` sensor, a `Cartridge Present`
 binary sensor, a `Status Light`, a `Status Light Automatic` switch, and a
 `Test Light` button in Home Assistant.
 
+### Moving a reader to a different house
+
+The wifi network is compiled in, so a reader that moves cannot find it — and
+falls back to serving its own access point, **`<name> Fallback`**, with the
+password **`12345678`**. Join it from a phone and a captive portal opens where
+you choose the new network. That is saved to the reader and survives reboots,
+so no reflash is needed.
+
+The password is fixed and obvious on purpose: this AP exists precisely when
+nobody can reach the reader any other way, and a secret that has to be passed
+along with the hardware would defeat it. There is no OTA password either, for
+the same reason — whoever has the reader can update it.
+
+What does NOT travel with the reader is the library. The reader only ever knows
+tag UIDs; what each cartridge plays lives in the add-on's database on whichever
+Home Assistant runs it. On a new machine every cartridge arrives as "seen but
+not assigned" until it is set up again, or until an add-on backup is restored
+there.
+
+The one secret still needed is the API encryption key, which Home Assistant
+asks for when it adopts the device.
+
 ### What the light means
 
 Six states the reader works out by itself:
