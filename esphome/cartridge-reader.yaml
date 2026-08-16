@@ -26,6 +26,12 @@
 # Symptom: `[E][rc522] Reset command failed`, with wifi, uptime and the status
 # light all working normally. Fix: one jumper from RST to 3V3.
 
+# A SECOND READER IN THE SAME HOUSE. Copy this file and change BOTH names
+# below; everything else is identical. They must differ, because Home Assistant
+# derives each reader's entities and light actions from `device_name`, and two
+# devices claiming one name collide on mDNS as well. That same string rides on
+# every scan event, which is how the add-on tells one reader's taps from the
+# other's.
 substitutions:
   device_name: replay-cartridge-reader
   friendly_name: Replay Cartridge Reader
@@ -407,6 +413,14 @@ rc522_spi:
                       event: esphome.nfc_card_inserted
                       data:
                         uid: !lambda "return x;"
+                        # Which reader this came from. Both readers in a house
+                        # fire the same event type, so without this the add-on
+                        # cannot tell a tap in the lounge from one in the
+                        # bedroom. Deliberately `device_name` and not something
+                        # new: Home Assistant derives this reader's light
+                        # actions from the same string, so one value ties the
+                        # tap and the light it should drive together.
+                        device: "${device_name}"
                   - lambda: "id(announced_insert) = true;"
 
   on_tag_removed:
@@ -444,6 +458,7 @@ script:
                       event: esphome.nfc_card_removed
                       data:
                         uid: !lambda "return id(current_uid);"
+                        device: "${device_name}"
             - lambda: |-
                 ESP_LOGI("reader", "cartridge lifted: %s", id(current_uid).c_str());
                 id(card_present) = false;

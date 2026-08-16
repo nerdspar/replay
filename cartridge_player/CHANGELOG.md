@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.11.1
+
+**Firmware: every scan now says which reader it came from.** Groundwork for
+running more than one reader in a house — they all fire the same Home Assistant
+event, so without this there is nothing to tell a tap in one room from a tap in
+another.
+
+Nothing behaves differently yet. The add-on reads the name and writes it to its
+log, so that flashing a reader can be confirmed there rather than by waiting to
+see whether some later feature works:
+
+    insert 04-A3-B8 from replay-cartridge-reader
+
+A reader flashed before this still works and is treated as the only reader
+there is; its scans log as `from an unnamed reader`.
+
+Reflash for this one. The same flash carries the waiting state from 0.10.0.
+
 ## 0.11.0
 
 **Settings is now three tabs — Players, Playback and Light — and every one of

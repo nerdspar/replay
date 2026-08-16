@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { loadConfig } from './config.js'
 import { createContext } from './context.js'
 import { createLogger } from './log.js'
+import { readDevice, readUid } from './core/reader-identity.js'
 import { HomeAssistantWs } from './ha/ws.js'
 import { ensureAddonSlug } from './ha/supervisor.js'
 import { createEntityPlatformLookup } from './ha/entity-registry.js'
@@ -12,11 +13,6 @@ const log = createLogger('main')
 
 export const EVENT_INSERTED = 'esphome.nfc_card_inserted'
 export const EVENT_REMOVED = 'esphome.nfc_card_removed'
-
-function readUid(data: Record<string, unknown>): string | null {
-  const uid = data.uid
-  return typeof uid === 'string' && uid.trim() !== '' ? uid.trim() : null
-}
 
 /** Slow enough to be free, often enough that a rebooted reader self-heals. */
 const PALETTE_REFRESH_MS = 15 * 60_000
@@ -39,6 +35,12 @@ async function main(): Promise<void> {
     onEvent: (event) => {
       const uid = readUid(event.data)
       if (!uid) return
+      const device = readDevice(event.data)
+      log.info(
+        device
+          ? `${event.event_type === EVENT_INSERTED ? 'insert' : 'remove'} ${uid} from ${device}`
+          : `${event.event_type === EVENT_INSERTED ? 'insert' : 'remove'} ${uid} from an unnamed reader (firmware predates reader identity)`,
+      )
       const handle =
         event.event_type === EVENT_INSERTED
           ? ctx.scans.handleInserted(uid)
