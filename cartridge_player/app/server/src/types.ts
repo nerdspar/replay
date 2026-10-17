@@ -133,6 +133,16 @@ export type LedPlayingMode = 'hold' | 'confirm' | 'off'
  */
 export type LedScope = 'cartridge' | 'playback'
 
+/**
+ * Which episode a series cartridge opens when it is tapped.
+ *
+ * `list` opens the episode list and lets the viewer choose — the old "whole
+ * show". `pinned` always opens one episode. `random` and `next` resolve an
+ * episode at tap time, which is what stops a show you are working through, or
+ * one you dip into, from opening the same first episode for ever.
+ */
+export type EpisodeMode = 'list' | 'pinned' | 'random' | 'next'
+
 /** How spine label text sits within the strip. */
 export type SpineAlign = 'left' | 'center' | 'right'
 
@@ -176,6 +186,15 @@ export interface Card {
   spine_text: string | null
   spine_color: string | null
   spine_text_color: string | null
+  /** Series only. Movies are always themselves. */
+  episode_mode: EpisodeMode
+  /**
+   * What `random` or `next` played last. Separate from `season`/`episode`,
+   * which still mean "pinned to this one" — overloading them would make a
+   * random cartridge look pinned to whatever it happened to play.
+   */
+  cursor_season: number | null
+  cursor_episode: number | null
   /** Music only. Shuffles the queue this cartridge builds. */
   shuffle: boolean
   /** Music only. Keeps playing similar music once the selection runs out. */

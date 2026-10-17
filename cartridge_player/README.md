@@ -78,6 +78,30 @@ regardless of what everything else does.
 **Whole show is usually the right answer.** You pick a stream by hand on the TV
 anyway, so the episode list costs one click and the cartridge never goes stale.
 
+## Which episode a series cartridge opens
+
+Four choices, set when you assign a show and changeable later under **Edit →
+Which episode**:
+
+| Choice | What a tap does |
+|---|---|
+| **Open the episode list** | The TV shows the episodes and you choose. The default, and never goes stale. |
+| **Next episode each time** | Works through the show in order, remembering where it got to. Wraps round at the end. |
+| **A random episode** | Any episode, never the same one twice running. |
+| **Always the same episode** | Pinned to one episode for ever. |
+
+The middle two resolve at tap time rather than when you assign the cartridge,
+so a show that gains episodes stays current without re-doing the card.
+
+**Specials are skipped.** Season 0 is where metadata sources put recaps and
+Christmas episodes, and nobody asking for the next episode wants one between
+episodes four and five. A series that is nothing but specials still plays them.
+
+Where a cartridge got to is stored separately from being pinned, so a random
+cartridge never ends up looking fixed to whatever it last played. If the
+metadata source cannot be reached at tap time, the cartridge opens the episode
+list rather than failing.
+
 ## Emptying vs deleting a cartridge
 
 These are different, and the app keeps them apart.

@@ -16,6 +16,7 @@ import {
   type PlaybackWatcher,
   type StateReader,
 } from './playback.js'
+import { pickEpisode } from './episode-pick.js'
 import {
   removalActionFor,
   runFireSequence,
@@ -212,6 +213,49 @@ export class ScanHandler {
     }
   }
 
+  /**
+   * Resolves `random` and `next` into an actual episode, at tap time.
+   *
+   * Returns a card pinned to that episode for this launch only. The provider
+   * builds its deep link from `season`/`episode` exactly as it does for a card
+   * that was pinned by hand, so neither the provider nor the target needs to
+   * know these modes exist.
+   *
+   * Everything here is best-effort. Cinemeta being slow or down must not fail a
+   * scan: the unresolved card opens the episode list, which is where a series
+   * cartridge went before any of this existed.
+   */
+  private async withEpisode(card: Card): Promise<Card> {
+    if (card.episode_mode !== 'random' && card.episode_mode !== 'next') return card
+
+    try {
+      const meta = await this.deps.providers.get(card.provider).getMeta(
+        card.content_type,
+        card.external_id,
+      )
+      const picked = pickEpisode(card.episode_mode, meta.videos ?? [], {
+        season: card.cursor_season,
+        episode: card.cursor_episode,
+      })
+      if (!picked) return card
+
+      // Written before the launch, not after. A launch that throws still moved
+      // the show on from the viewer's point of view — the TV has it open — and
+      // a cursor that only advanced on success would replay the same episode
+      // every time something downstream was flaky.
+      this.deps.store.updateCard(
+        card.id,
+        { cursor_season: picked.season, cursor_episode: picked.episode },
+        Date.now(),
+      )
+      log.info(`${card.title}: ${card.episode_mode} picked S${picked.season}E${picked.episode}`)
+      return { ...card, season: picked.season, episode: picked.episode }
+    } catch (error) {
+      log.info(`could not pick an episode for ${card.title}: ${(error as Error).message}`)
+      return card
+    }
+  }
+
   /** Also the per-card Test button (§6.2). */
   async fire(card: Card): Promise<ScanOutcome> {
     const { store, providers, targets, sleep } = this.deps
@@ -221,7 +265,7 @@ export class ScanHandler {
       const provider = providers.get(card.provider)
       const target = targets.createFor(card.kind, settings, card)
       const steps = await runFireSequence({
-        card,
+        card: await this.withEpisode(card),
         settings,
         provider,
         target,

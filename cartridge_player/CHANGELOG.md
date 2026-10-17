@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.12.0
+
+**A series cartridge can now pick its own episode.** Tapping Sesame Street no
+longer opens the same first episode every time.
+
+Two new choices when you assign a show, and switchable later under **Edit →
+Which episode**:
+
+- **Next episode each time** — works through the show in order and remembers
+  where it got to, so tapping it tomorrow carries on rather than starting
+  again. Wraps round at the end instead of going dead.
+- **A random episode** — any episode, never the same one twice running.
+
+Both resolve at tap time, so the cartridge never goes stale as a show gains
+episodes. Specials are skipped: season 0 is where recaps and Christmas episodes
+live, and nobody asking for the next episode wants one between episodes four
+and five. A series that is nothing but specials still plays them.
+
+Where it got to is kept separately from being pinned to an episode, so a random
+cartridge never starts looking like it is fixed to whatever it last played. If
+the metadata source cannot be reached, the cartridge opens the episode list —
+degraded, not failed.
+
 ## 0.11.1
 
 **Firmware: every scan now says which reader it came from.** Groundwork for

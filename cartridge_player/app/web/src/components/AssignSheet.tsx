@@ -2,7 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { api, ApiError } from '../api'
 import { Poster } from './Poster'
 import { Sheet } from './Sheet'
-import type { Card, CardKind, ContentType, Meta, MetaPreview } from '../types'
+import type {
+  Card,
+  CardKind,
+  ContentType,
+  EpisodeMode,
+  Meta,
+  MetaPreview,
+} from '../types'
 
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -138,6 +145,7 @@ export function AssignSheet({
     preview: MetaPreview,
     season: number | null,
     episode: number | null,
+    episodeMode: EpisodeMode = season !== null && episode !== null ? 'pinned' : 'list',
   ) => {
     setSaving(true)
     setSaveError(null)
@@ -150,6 +158,7 @@ export function AssignSheet({
         poster_url: preview.poster ?? null,
         season,
         episode,
+        episode_mode: episodeMode,
         label: label.trim() === '' ? null : label.trim(),
       }
       const card = existing
@@ -201,8 +210,31 @@ export function AssignSheet({
             Opens the episode list on the TV. This is the usual choice — you pick a
             stream by hand anyway, and the card never goes stale.
           </p>
+          <button
+            className="btn block"
+            disabled={saving}
+            onClick={() => void save(selected, null, null, 'next')}
+          >
+            Next episode each time
+          </button>
+          <p className="hint" style={{ marginTop: -4 }}>
+            Works through the show in order and remembers where it got to, so
+            tapping it tomorrow carries on rather than starting again. Wraps
+            round at the end.
+          </p>
+          <button
+            className="btn block"
+            disabled={saving}
+            onClick={() => void save(selected, null, null, 'random')}
+          >
+            A random episode
+          </button>
+          <p className="hint" style={{ marginTop: -4 }}>
+            Any episode, never the same one twice running. Good for a show
+            nobody watches in order.
+          </p>
           <button className="btn block" onClick={() => void loadEpisodes(selected)}>
-            Pick an episode
+            Always the same episode
           </button>
         </div>
         {saveError ? <div className="banner error">{saveError}</div> : null}

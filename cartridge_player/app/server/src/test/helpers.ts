@@ -7,6 +7,7 @@ import type {
   LaunchPayload,
   Meta,
   MetaPreview,
+  MetaVideo,
   Provider,
   Settings,
   Target,
@@ -119,6 +120,10 @@ export class FakeProvider implements Provider {
   readonly searches: { query: string; type: ContentType }[] = []
   /** So a test can prove an id survived the round trip unmangled. */
   readonly metaCalls: { type: string; id: string }[] = []
+  /** Overridable so an episode-mode test can have a series worth walking. */
+  seriesVideos: MetaVideo[] = [
+    { id: 'fake-1:1:1', season: 1, episode: 1, title: 'Fake Pilot' },
+  ]
 
   constructor(id = 'fake') {
     this.id = id
@@ -137,10 +142,7 @@ export class FakeProvider implements Provider {
       id,
       type: type === 'series' ? 'series' : 'movie',
       title: 'Fake Title',
-      videos:
-        type === 'series'
-          ? [{ id: `${id}:1:1`, season: 1, episode: 1, title: 'Fake Pilot' }]
-          : undefined,
+      videos: type === 'series' ? this.seriesVideos : undefined,
     }
   }
 
@@ -157,7 +159,10 @@ export class FakeProvider implements Provider {
   }
 
   buildLaunch(c: Card): LaunchPayload {
-    return { kind: 'uri', value: `fake://open/${c.external_id}` }
+    // Carries the episode, so a test can see which one was actually launched
+    // rather than only which one was written to the cursor.
+    const at = c.season !== null && c.episode !== null ? `/${c.season}/${c.episode}` : ''
+    return { kind: 'uri', value: `fake://open/${c.external_id}${at}` }
   }
 }
 

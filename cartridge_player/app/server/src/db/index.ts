@@ -17,6 +17,7 @@ import type {
   ContentType,
   MusicRemovalAction,
   RemovalAction,
+  EpisodeMode,
   ScanEvent,
   Settings,
   SpineAlign,
@@ -74,8 +75,15 @@ interface SettingsRow {
 interface CardRow
   extends Omit<
     Card,
-    'content_type' | 'status' | 'kind' | 'art_fit' | 'shuffle' | 'radio_mode'
+    | 'content_type'
+    | 'status'
+    | 'kind'
+    | 'art_fit'
+    | 'shuffle'
+    | 'radio_mode'
+    | 'episode_mode'
   > {
+  episode_mode: string
   content_type: string
   status: string
   kind: string
@@ -124,6 +132,7 @@ function toCard(row: CardRow): Card {
     art_fit: row.art_fit as ArtFit | null,
     shuffle: row.shuffle !== 0,
     radio_mode: row.radio_mode !== 0,
+    episode_mode: row.episode_mode as EpisodeMode,
   }
 }
 
@@ -237,8 +246,9 @@ export class Store {
             poster_url, original_poster_url, season, episode, label,
             player_entity, art_fit, shuffle, radio_mode, accent_color,
             resume_hint, spine_text, spine_color, spine_text_color,
+            episode_mode, cursor_season, cursor_episode,
             created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.tag_uid,
@@ -266,6 +276,9 @@ export class Store {
         input.spine_text,
         input.spine_color,
         input.spine_text_color,
+        input.episode_mode ?? 'list',
+        input.cursor_season ?? null,
+        input.cursor_episode ?? null,
         now,
         now,
       )
@@ -296,6 +309,9 @@ export class Store {
       'spine_text',
       'spine_color',
       'spine_text_color',
+      'episode_mode',
+      'cursor_season',
+      'cursor_episode',
       'status',
     ]
     const assignments: string[] = []

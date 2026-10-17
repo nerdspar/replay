@@ -49,6 +49,9 @@ export type LedPlayingMode = 'hold' | 'confirm' | 'off'
 /** Whether the light is about the reader, or about what is playing. */
 export type LedScope = 'cartridge' | 'playback'
 
+/** Which episode a series cartridge opens when tapped. */
+export type EpisodeMode = 'list' | 'pinned' | 'random' | 'next'
+
 /** How spine label text sits within the strip. */
 export type SpineAlign = 'left' | 'center' | 'right'
 export type ConnectionState = 'connecting' | 'connected' | 'disconnected'
@@ -117,6 +120,10 @@ export interface Card {
   spine_text: string | null
   spine_color: string | null
   spine_text_color: string | null
+  episode_mode: EpisodeMode
+  /** What random/next played last. Not the same as being pinned to it. */
+  cursor_season: number | null
+  cursor_episode: number | null
   shuffle: boolean
   radio_mode: boolean
   created_at: number

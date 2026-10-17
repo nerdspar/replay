@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 11
+export const SCHEMA_VERSION = 12
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -298,6 +298,32 @@ ALTER TABLE settings ADD COLUMN spine_font TEXT NOT NULL DEFAULT 'system';
 ALTER TABLE settings ADD COLUMN spine_align TEXT NOT NULL DEFAULT 'left';
 `
 
+/**
+ * Which episode a series cartridge opens, each time it is tapped.
+ *
+ * Previously implied by whether `season`/`episode` were set: both null meant
+ * "open the episode list", both set meant "this one, for ever". Neither suits a
+ * show you work through, or one where any episode will do — tapping Sesame
+ * Street should not open the same first episode every time.
+ *
+ * `cursor_season`/`cursor_episode` record what was last played, and are
+ * deliberately NOT the existing `season`/`episode`: those still mean "pinned to
+ * this", and overloading them would make a random cartridge look pinned to
+ * whatever it happened to play last.
+ *
+ * Backfilled from the old implication so no existing cartridge changes
+ * behaviour. No CHECK constraint: V4 had to rebuild this table because SQLite
+ * cannot drop one, and the value is validated where it is written instead.
+ */
+const V12 = `
+ALTER TABLE cards ADD COLUMN episode_mode TEXT NOT NULL DEFAULT 'list';
+ALTER TABLE cards ADD COLUMN cursor_season INTEGER;
+ALTER TABLE cards ADD COLUMN cursor_episode INTEGER;
+
+UPDATE cards SET episode_mode = 'pinned'
+  WHERE season IS NOT NULL AND episode IS NOT NULL;
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -333,6 +359,9 @@ export function migrate(db: Database): void {
   }
   if (current < 11) {
     db.exec(V11)
+  }
+  if (current < 12) {
+    db.exec(V12)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

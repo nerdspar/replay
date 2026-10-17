@@ -49,6 +49,11 @@ const createBody = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .nullable()
     .optional(),
+  // Validated here rather than by a CHECK constraint: SQLite cannot drop one,
+  // and V4 already had to rebuild this table to get rid of the last.
+  episode_mode: z.enum(['list', 'pinned', 'random', 'next']).optional(),
+  cursor_season: z.number().int().nullable().optional(),
+  cursor_episode: z.number().int().nullable().optional(),
 })
 
 const patchBody = createBody.partial().omit({ tag_uid: true })
@@ -79,6 +84,12 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
       shuffle: body.shuffle ?? false,
       radio_mode: body.radio_mode ?? false,
       accent_color: body.accent_color ?? null,
+      episode_mode:
+        body.episode_mode ??
+        // Both set is what "pinned to this episode" has always meant.
+        (body.season != null && body.episode != null ? 'pinned' : 'list'),
+      cursor_season: body.cursor_season ?? null,
+      cursor_episode: body.cursor_episode ?? null,
       spine_text: body.spine_text ?? null,
       spine_color: body.spine_color ?? null,
       spine_text_color: body.spine_text_color ?? null,

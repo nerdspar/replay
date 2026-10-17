@@ -9,7 +9,36 @@ import { Sheet } from './Sheet'
 import { StickerPreview } from './StickerPreview'
 import { SpinePreview } from './SpinePreview'
 import { readableTextColor, spineColors } from '../lib/spine'
-import type { ArtFit, Card, EntityOption, SpineAlign } from '../types'
+import type {
+  ArtFit,
+  Card,
+  EntityOption,
+  EpisodeMode,
+  SpineAlign,
+} from '../types'
+
+/**
+ * `pinned` is deliberately absent: picking WHICH episode needs the episode
+ * list, which belongs to the assignment flow. These are the modes that need no
+ * further input, so they can be switched here without a round trip to Cinemeta.
+ */
+const EPISODE_MODES: { value: EpisodeMode; label: string; hint: string }[] = [
+  {
+    value: 'list',
+    label: 'Open the episode list',
+    hint: 'The TV shows the episodes and you choose. Never goes stale.',
+  },
+  {
+    value: 'next',
+    label: 'Next episode each time',
+    hint: 'Works through the show in order, remembering where it got to. Wraps round at the end.',
+  },
+  {
+    value: 'random',
+    label: 'A random episode',
+    hint: 'Any episode, never the same one twice running.',
+  },
+]
 
 /** What each music content type is called in the open. */
 const CONTENT_LABEL: Record<string, string> = {
@@ -71,6 +100,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
   const [shuffle, setShuffle] = useState(card.shuffle)
   const [radioMode, setRadioMode] = useState(card.radio_mode)
   const [artFit, setArtFit] = useState<ArtFit>(card.art_fit ?? 'crop')
+  const [episodeMode, setEpisodeMode] = useState<EpisodeMode>(card.episode_mode ?? 'list')
   /*
     Normalised to null rather than taken as-is. A card from an add-on that
     predates spine labels has no such field at all, and `undefined` would then
@@ -107,6 +137,10 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
   const [playResult, setPlayResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   const music = card.kind === 'music'
+  // Pinned is not offered here: choosing WHICH episode needs the episode list,
+  // which lives in the assignment flow. This switches between the modes that
+  // need no further input.
+  const series = card.content_type === 'series'
   const device = music ? 'speaker' : 'TV'
 
   useEffect(() => {
@@ -173,6 +207,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
     shuffle !== card.shuffle ||
     radioMode !== card.radio_mode ||
     artFit !== (card.art_fit ?? 'crop') ||
+    episodeMode !== (card.episode_mode ?? 'list') ||
     spineTextValue !== (card.spine_text ?? '') ||
     spineColorValue !== (card.spine_color ?? null) ||
     spineTextColorValue !== (card.spine_text_color ?? null)
@@ -187,6 +222,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
           label: label.trim() === '' ? null : label.trim(),
           // Null rather than '' throughout: it means "follow the artwork", so
           // clearing a field restores the default instead of printing a blank.
+          ...(series ? { episode_mode: episodeMode } : {}),
           spine_text: spineTextValue.trim() === '' ? null : spineTextValue.trim(),
           spine_color: spineColorValue,
           spine_text_color: spineTextColorValue,
@@ -409,6 +445,45 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
         plays. The colour follows the artwork until it is overridden, so most
         cartridges never need this opened at all.
       */}
+      {series ? (
+        <>
+          <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>Which episode</h3>
+          <div className="radio-list">
+            {EPISODE_MODES.map((option) => (
+              <label key={option.value}>
+                <input
+                  type="radio"
+                  name="episode-mode"
+                  checked={episodeMode === option.value}
+                  onChange={() => setEpisodeMode(option.value)}
+                />
+                <span>
+                  {option.label}
+                  <span className="hint" style={{ display: 'block' }}>
+                    {option.hint}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {card.episode_mode === 'pinned' && episodeMode !== 'pinned' ? (
+            <p className="hint warn">
+              This cartridge is pinned to S
+              {String(card.season).padStart(2, '0')}E
+              {String(card.episode).padStart(2, '0')}. Saving will unpin it; use
+              <strong> Change what this plays</strong> to pin a different one.
+            </p>
+          ) : null}
+          {episodeMode === 'next' && card.cursor_season !== null ? (
+            <p className="hint">
+              Last played S{String(card.cursor_season).padStart(2, '0')}E
+              {String(card.cursor_episode).padStart(2, '0')} — the next tap
+              carries on from there.
+            </p>
+          ) : null}
+        </>
+      ) : null}
+
       <h3 style={{ fontSize: 15, margin: '24px 0 8px' }}>On the spine</h3>
       <SpinePreview
         text={spineTextValue.trim() === '' ? card.title : spineTextValue}
