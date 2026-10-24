@@ -327,7 +327,7 @@ export function AssignSheet({
           autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
-          placeholder={music ? 'Album, artist, playlist…' : 'Search…'}
+          placeholder={music ? 'Album, artist, playlist, or a Spotify link…' : 'Search…'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

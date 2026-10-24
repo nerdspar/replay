@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.13.0
+
+**Paste a Spotify link to make a playlist cartridge.** The music search now
+takes a Spotify share link as well as a name, and finds exactly that playlist —
+including your own, which searching by name could not reach, since names like
+"Car songs" are neither unique nor in the library. Album, track and artist links
+work too.
+
+The title and cover come from Spotify's public embed information, so no Spotify
+login is needed in the add-on. Playback goes through Music Assistant as before,
+which needs Spotify set up as a provider there. A private playlist has no public
+title or cover, so it is offered as "Spotify playlist", ready for a label.
+
 ## 0.12.0
 
 **A series cartridge can now pick its own episode.** Tapping Sesame Street no

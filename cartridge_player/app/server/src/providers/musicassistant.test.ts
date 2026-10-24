@@ -177,6 +177,70 @@ describe('MusicAssistantProvider (§5)', () => {
     })
   })
 
+  describe('a pasted Spotify link', () => {
+    const LINK = 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=abc'
+    const URI = 'spotify://playlist/37i9dQZF1DXcBWIGoYBM5M'
+
+    function withSpotify(entryId: string | null = 'entry-1') {
+      const callForResponse = vi.fn(async () => searchResponse())
+      const fetch = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ title: 'Car Songs', thumbnail_url: 'https://i.scdn.co/car.jpg' }),
+          ),
+      )
+      const provider = new MusicAssistantProvider({
+        callForResponse: callForResponse as never,
+        configEntryId: async () => entryId,
+        fetch: fetch as never,
+      })
+      return { provider, callForResponse, fetch }
+    }
+
+    it('answers the search with that one playlist, without asking Music Assistant', async () => {
+      const { provider, callForResponse } = withSpotify()
+
+      expect(await provider.search(LINK, 'music' as never)).toEqual([
+        { id: URI, type: 'playlist', title: 'Car Songs', poster: 'https://i.scdn.co/car.jpg' },
+      ])
+      expect(callForResponse).not.toHaveBeenCalled()
+    })
+
+    it('works before a speaker is chosen, since nothing is searched', async () => {
+      const { provider } = withSpotify(null)
+      expect(await provider.search(LINK, 'music' as never)).toHaveLength(1)
+    })
+
+    it('is not offered under a type it is not', async () => {
+      const { provider } = withSpotify()
+      expect(await provider.search(LINK, 'album')).toEqual([])
+    })
+
+    it('finds the cartridge’s cover again from its uri', async () => {
+      const { provider, callForResponse } = withSpotify()
+
+      expect((await provider.getArtwork('playlist', URI))[0]?.url).toBe(
+        'https://i.scdn.co/car.jpg',
+      )
+      expect((await provider.getMeta('playlist', URI)).title).toBe('Car Songs')
+      expect(callForResponse).not.toHaveBeenCalled()
+    })
+
+    it('plays it as a Music Assistant item, which its Spotify provider resolves', () => {
+      const { provider } = withSpotify()
+      const payload = provider.buildLaunch(
+        card({
+          kind: 'music',
+          provider: 'music_assistant',
+          content_type: 'playlist',
+          external_id: URI,
+        }),
+        settings(),
+      )
+      expect(payload).toMatchObject({ kind: 'media_item', value: URI, mediaType: 'playlist' })
+    })
+  })
+
   it('reports an item that has left the library instead of failing silently', async () => {
     const { provider } = make()
     await expect(provider.getMeta('album', 'library://album/999')).rejects.toThrow(

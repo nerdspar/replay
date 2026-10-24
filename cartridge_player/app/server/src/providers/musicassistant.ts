@@ -9,6 +9,7 @@ import type {
   Provider,
   Settings,
 } from '../types.js'
+import { parseSpotifyLink, SpotifyLinkResolver } from './spotify-link.js'
 
 /**
  * The kinds of thing Music Assistant can search for, in the order a person
@@ -71,6 +72,8 @@ export interface MusicAssistantDeps {
    * entity. Null when no speaker has been picked yet.
    */
   configEntryId(): Promise<string | null>
+  /** For describing pasted Spotify links. Defaults to the global fetch. */
+  fetch?: typeof fetch
 }
 
 function isMusicType(type: string): type is MusicType {
@@ -110,9 +113,21 @@ function coverArt(item: MassItem): string | undefined {
 export class MusicAssistantProvider implements Provider {
   readonly id = 'music_assistant'
 
-  constructor(private readonly deps: MusicAssistantDeps) {}
+  private readonly spotify: SpotifyLinkResolver
+
+  constructor(private readonly deps: MusicAssistantDeps) {
+    this.spotify = new SpotifyLinkResolver(deps.fetch)
+  }
 
   async search(query: string, type: ContentType): Promise<MetaPreview[]> {
+    // A pasted link names one item exactly, so it answers the search outright.
+    // Searching Music Assistant for the link's text would find nothing.
+    const link = parseSpotifyLink(query)
+    if (link) {
+      if (isMusicType(type) && type !== link.type) return []
+      return [await this.spotify.resolve(link)]
+    }
+
     // A caller asking for a video type has the wrong provider; answering with
     // albums would be worse than answering with nothing.
     const types: MusicType[] = isMusicType(type) ? [type] : [...MUSIC_TYPES]
@@ -189,6 +204,11 @@ export class MusicAssistantProvider implements Provider {
    * matches on name — so this searches by name and filters back to the URI.
    */
   private async lookup(uri: string, type: string): Promise<MetaPreview[]> {
+    // A cartridge made from a pasted link. Searching for it by name would look
+    // for its id, and find nothing.
+    const link = parseSpotifyLink(uri)
+    if (link) return [await this.spotify.resolve(link)]
+
     const name = decodeURIComponent(uri).split('/').pop() ?? uri
     const musicType = isMusicType(type) ? type : undefined
 
