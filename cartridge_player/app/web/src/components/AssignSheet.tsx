@@ -24,6 +24,20 @@ const MUSIC_TYPE_LABEL: Record<string, string> = {
   audiobook: 'Audiobook',
 }
 
+/**
+ * The few narrowings worth a button. Everything else — radio, podcasts,
+ * audiobooks — is still found under All, labelled as it is now; it is the
+ * common kinds that get buried there, because All asks for only a handful of
+ * each.
+ */
+const MUSIC_FILTERS: { type: ContentType | 'music'; label: string }[] = [
+  { type: 'music', label: 'All' },
+  { type: 'album', label: 'Albums' },
+  { type: 'playlist', label: 'Playlists' },
+  { type: 'artist', label: 'Artists' },
+  { type: 'track', label: 'Tracks' },
+]
+
 /** Artists rarely want their catalogue in album order. */
 const SHUFFLE_BY_DEFAULT = new Set(['artist'])
 
@@ -54,8 +68,8 @@ export function AssignSheet({
   const provider = existing?.provider ?? (music ? 'music_assistant' : 'stremio')
 
   // Video narrows to movie or series up front. Music searches everything at
-  // once and labels what it finds — six toggles above a phone keyboard would
-  // cost more than it saves.
+  // once and labels what it finds, with a short row of filters for when what
+  // you want is a playlist and All only shows a few.
   const [type, setType] = useState<ContentType | 'music'>(
     music ? 'music' : (existing?.content_type ?? 'movie'),
   )
@@ -300,7 +314,22 @@ export function AssignSheet({
         {tagUid}
       </p>
 
-      {music ? null : (
+      {music ? (
+        // One line that scrolls rather than wraps: a second row of filters
+        // pushes the search box further from the thumb than the filters save.
+        <div className="row" style={{ marginBottom: 12, gap: 6, overflowX: 'auto' }}>
+          {MUSIC_FILTERS.map((filter) => (
+            <button
+              key={filter.type}
+              className={`btn small ${type === filter.type ? 'primary' : ''}`}
+              style={{ flexShrink: 0 }}
+              onClick={() => setType(filter.type)}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      ) : (
         <div className="row" style={{ marginBottom: 12 }}>
           <button
             className={`btn small ${type === 'movie' ? 'primary' : ''}`}

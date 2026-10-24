@@ -6,11 +6,10 @@ import type { ContentType } from '../../types.js'
 const searchQuery = z.object({
   q: z.string().default(''),
   /*
-    `music` is a deliberate widening rather than a content type: the music tab
-    has one search box, because putting six toggles (album, artist, playlist,
-    radio, podcast, audiobook) above a phone keyboard would be worse than
-    showing everything and labelling each result. Providers narrow when given a
-    real type and search across their whole vocabulary otherwise.
+    `music` is a deliberate widening rather than a content type: the music tab's
+    All shows everything and labels each result, beside a few filters for the
+    common kinds. Providers narrow when given a real type and search across
+    their whole vocabulary otherwise.
   */
   type: z
     .enum([

@@ -95,7 +95,7 @@ export const api = {
 
   /**
    * `type` accepts the widening value `music`, meaning "anything a music
-   * provider can find" — the music tab has one box rather than six toggles.
+   * provider can find" — the music tab's All, beside a few narrower filters.
    */
   search: (q: string, type: ContentType | 'music', provider = 'stremio') =>
     request<{ provider: string; results: MetaPreview[] }>(

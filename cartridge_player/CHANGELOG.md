@@ -2,16 +2,20 @@
 
 ## 0.13.0
 
-**Paste a Spotify link to make a playlist cartridge.** The music search now
-takes a Spotify share link as well as a name, and finds exactly that playlist —
-including your own, which searching by name could not reach, since names like
-"Car songs" are neither unique nor in the library. Album, track and artist links
-work too.
+**Search for just playlists.** The music search has filters now — All,
+Albums, Playlists, Artists, Tracks. All still shows everything, but only a few
+of each kind, which buried playlists below the albums and artists. Picking
+Playlists shows a dozen, searched by name like any other music, from whatever
+Music Assistant can reach — Spotify included, when it is set up there.
 
-The title and cover come from Spotify's public embed information, so no Spotify
-login is needed in the add-on. Playback goes through Music Assistant as before,
-which needs Spotify set up as a provider there. A private playlist has no public
-title or cover, so it is offered as "Spotify playlist", ready for a label.
+**Or paste a Spotify link.** The search box also takes a Spotify share link and
+finds exactly that playlist, album, track or artist, whichever filter is
+selected — the way in for a playlist whose name is not unique, like "Car songs".
+
+The link's title and cover come from Spotify's public embed information, so no
+Spotify login is needed in the add-on. Playback goes through Music Assistant as
+before. A private playlist has no public title or cover, so it is offered as
+"Spotify playlist", ready for a label.
 
 ## 0.12.0
 

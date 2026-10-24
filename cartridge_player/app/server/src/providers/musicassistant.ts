@@ -123,10 +123,9 @@ export class MusicAssistantProvider implements Provider {
     // A pasted link names one item exactly, so it answers the search outright.
     // Searching Music Assistant for the link's text would find nothing.
     const link = parseSpotifyLink(query)
-    if (link) {
-      if (isMusicType(type) && type !== link.type) return []
-      return [await this.spotify.resolve(link)]
-    }
+    // It ignores a narrower filter on purpose: an album link pasted with
+    // Playlists selected still means that album, and "nothing found" would not.
+    if (link) return [await this.spotify.resolve(link)]
 
     // A caller asking for a video type has the wrong provider; answering with
     // albums would be worse than answering with nothing.

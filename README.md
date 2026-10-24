@@ -217,13 +217,18 @@ and waits for your first cartridge.
 After that: tap an unassigned cartridge on the reader, and the app offers to pick
 a movie or series for it. Tap an assigned one, and it opens on the TV.
 
-**Spotify playlists.** In the music search, paste a Spotify share link —
-**Share → Copy link** in the Spotify app — instead of typing a name. It finds
-that exact playlist, including ones you made yourself that a search by name
-would never turn up. Albums, tracks and artists work the same way. Music
-Assistant plays it, so Spotify has to be set up as a provider there. A private
-playlist has no public title or cover, so it arrives as "Spotify playlist" with
-no artwork: give it a label, and upload a cover under **Edit** if you want one.
+**Music search.** The music tab searches everything at once and labels each
+result. **All** shows only a few of each kind, so for a playlist tap
+**Playlists** — or **Albums**, **Artists**, **Tracks** — to see a dozen of just
+that. It searches whatever Music Assistant can reach, so with Spotify set up
+there, Spotify's playlists come up by name like everything else.
+
+**Spotify links.** You can also paste a Spotify share link (**Share → Copy
+link** in the Spotify app) instead of a name, to get that exact playlist, album,
+track or artist. That is the way in for a playlist whose name is not unique,
+like "Car songs". A private playlist has no public title or cover, so it arrives
+as "Spotify playlist" with no artwork: give it a label, and upload a cover under
+**Edit** if you want one.
 
 **Put it on your phone's home screen.** Under **Status**, set your Home Assistant
 address in Settings and copy the panel link, then use Share → Add to Home Screen.

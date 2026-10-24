@@ -211,9 +211,21 @@ describe('MusicAssistantProvider (§5)', () => {
       expect(await provider.search(LINK, 'music' as never)).toHaveLength(1)
     })
 
-    it('is not offered under a type it is not', async () => {
+    it('still answers when a different filter is selected', async () => {
       const { provider } = withSpotify()
-      expect(await provider.search(LINK, 'album')).toEqual([])
+      expect((await provider.search(LINK, 'album'))[0]?.type).toBe('playlist')
+    })
+
+    it('searches playlists by name like any other kind', async () => {
+      const { provider, callForResponse } = withSpotify()
+      await provider.search('car songs', 'playlist')
+
+      expect(callForResponse).toHaveBeenCalledWith('music_assistant', 'search', {
+        config_entry_id: 'entry-1',
+        name: 'car songs',
+        media_type: ['playlist'],
+        limit: 12,
+      })
     })
 
     it('finds the cartridge’s cover again from its uri', async () => {
