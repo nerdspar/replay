@@ -7,6 +7,7 @@ import type {
   Meta,
   MetaPreview,
   PendingUid,
+  RepeatMode,
   ScanEvent,
   SeatedCartridge,
   Settings,
@@ -67,6 +68,7 @@ export const api = {
     player_entity?: string | null
     art_fit?: ArtFit | null
     shuffle?: boolean
+    repeat?: RepeatMode
     radio_mode?: boolean
     accent_color?: string | null
   }) =>

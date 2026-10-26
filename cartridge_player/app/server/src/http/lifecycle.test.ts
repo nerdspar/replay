@@ -617,3 +617,58 @@ describe('asking about an item whose id is a URI', () => {
     await app.close()
   })
 })
+
+describe('shuffle and repeat defaults', () => {
+  async function create(ctx: TestContext['ctx'], payload: Record<string, unknown>) {
+    const app = buildServer(ctx, { requirePin: false })
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/cards',
+      payload: { provider: 'fake', external_id: 'fake-2', title: 'Rumours', ...payload },
+    })
+    await app.close()
+    expect(response.statusCode).toBe(201)
+    return (response.json() as { card: Card }).card
+  }
+
+  it('gives a new music cartridge the household defaults', async () => {
+    const { ctx } = setup()
+    ctx.store.updateSettings({ music_shuffle_default: true, music_repeat_default: 'all' })
+
+    const card = await create(ctx, { tag_uid: '04-00-00-01', content_type: 'album' })
+    expect(card.shuffle).toBe(true)
+    expect(card.repeat).toBe('all')
+  })
+
+  it('lets the cartridge say otherwise', async () => {
+    const { ctx } = setup()
+    ctx.store.updateSettings({ music_shuffle_default: true, music_repeat_default: 'all' })
+
+    const card = await create(ctx, {
+      tag_uid: '04-00-00-02',
+      content_type: 'album',
+      shuffle: false,
+      repeat: 'one',
+    })
+    expect(card.shuffle).toBe(false)
+    expect(card.repeat).toBe('one')
+  })
+
+  it('copies them rather than following them, so changing one leaves the shelf alone', async () => {
+    const { ctx } = setup()
+    ctx.store.updateSettings({ music_repeat_default: 'all' })
+    const card = await create(ctx, { tag_uid: '04-00-00-03', content_type: 'album' })
+
+    ctx.store.updateSettings({ music_repeat_default: 'off' })
+    expect(ctx.store.getCard(card.id)!.repeat).toBe('all')
+  })
+
+  it('leaves video cartridges out of it', async () => {
+    const { ctx } = setup()
+    ctx.store.updateSettings({ music_shuffle_default: true, music_repeat_default: 'all' })
+
+    const card = await create(ctx, { tag_uid: '04-00-00-04', content_type: 'movie' })
+    expect(card.shuffle).toBe(false)
+    expect(card.repeat).toBe('off')
+  })
+})

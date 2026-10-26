@@ -18,6 +18,8 @@ const putBody = z.object({
   removal_action: z.enum(['none', 'pause', 'back', 'home', 'off']).optional(),
   music_player_entity: z.string().nullable().optional(),
   music_removal_action: z.enum(['none', 'pause', 'stop']).optional(),
+  music_shuffle_default: z.boolean().optional(),
+  music_repeat_default: z.enum(['off', 'all', 'one']).optional(),
   led_enabled: z.boolean().optional(),
   led_playing_mode: z.enum(['hold', 'confirm', 'off']).optional(),
   led_playing_artwork: z.boolean().optional(),

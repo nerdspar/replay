@@ -223,6 +223,13 @@ result. **All** shows only a few of each kind, so for a playlist tap
 that. It searches whatever Music Assistant can reach, so with Spotify set up
 there, Spotify's playlists come up by name like everything else.
 
+**Shuffle and repeat.** Each music cartridge has its own **Shuffle** and
+**Repeat** (off, all, or one track) under **Edit** — an album wants its running
+order, a lullaby wants to loop. What a new cartridge starts with is set under
+**Settings → Playback → New music cartridges**. They are applied on every tap,
+off as well as on, so a cartridge never inherits whatever the speaker was last
+left doing.
+
 **Spotify links.** You can also paste a Spotify share link (**Share → Copy
 link** in the Spotify app) instead of a name, to get that exact playlist, album,
 track or artist. That is the way in for a playlist whose name is not unique,

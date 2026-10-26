@@ -36,6 +36,8 @@ describe('settings', () => {
       removal_action: 'none',
       music_player_entity: null,
       music_removal_action: 'pause',
+      music_shuffle_default: false,
+      music_repeat_default: 'off',
       led_enabled: true,
       led_playing_mode: 'hold',
       led_playing_artwork: false,

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.14.0
+
+**Repeat for music cartridges, and defaults for shuffle and repeat.** Each
+music cartridge now has **Repeat** — off, all, or one track — beside the
+Shuffle it already had, under **Edit**. A lullaby cartridge can loop one track
+all night; an album can go round again.
+
+**Settings → Playback → New music cartridges** sets what a new cartridge starts
+with. The defaults are copied onto a cartridge when it is set up, so changing
+them later never changes cartridges you already have. Artists still start
+shuffled either way.
+
+**A cartridge now sets shuffle and repeat every time, off as well as on.**
+Before, a cartridge without shuffle left the speaker alone — so an album tapped
+after a shuffled playlist came out shuffled too, because the speaker remembered.
+Existing cartridges are set to repeat off, which is what they were meant to do.
+
 ## 0.13.0
 
 **Search for just playlists.** The music search has filters now — All,

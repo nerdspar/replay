@@ -20,6 +20,9 @@ export type ArtFit = 'crop' | 'blur' | 'color'
 export type RemovalAction = 'none' | 'pause' | 'back' | 'home' | 'off'
 export type MusicRemovalAction = 'none' | 'pause' | 'stop'
 
+/** What a music cartridge does at the end: stop, go round again, or loop one track. */
+export type RepeatMode = 'off' | 'all' | 'one'
+
 /** The nine things the reader's light can be saying. */
 export type LedStateName =
   | 'no_wifi'
@@ -125,6 +128,7 @@ export interface Card {
   cursor_season: number | null
   cursor_episode: number | null
   shuffle: boolean
+  repeat: RepeatMode
   radio_mode: boolean
   created_at: number
   updated_at: number
@@ -142,6 +146,9 @@ export interface Settings {
   removal_action: RemovalAction
   music_player_entity: string | null
   music_removal_action: MusicRemovalAction
+  /** What a new music cartridge starts with. Copied onto it, not followed. */
+  music_shuffle_default: boolean
+  music_repeat_default: RepeatMode
   led_enabled: boolean
   led_playing_mode: LedPlayingMode
   led_playing_artwork: boolean

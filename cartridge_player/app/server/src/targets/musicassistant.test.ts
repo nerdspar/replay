@@ -15,6 +15,7 @@ function mediaItem(overrides: Partial<Extract<LaunchPayload, { kind: 'media_item
     value: 'library://album/42',
     mediaType: 'album',
     shuffle: false,
+    repeat: 'off' as const,
     radioMode: false,
     ...overrides,
   }
@@ -25,7 +26,7 @@ describe('MusicAssistantTarget (§6)', () => {
     const { ha, target } = make()
     await target.launch(mediaItem())
 
-    expect(ha.calls).toEqual([
+    expect(ha.calls[0]).toEqual(
       {
         domain: 'music_assistant',
         service: 'play_media',
@@ -37,7 +38,7 @@ describe('MusicAssistantTarget (§6)', () => {
           radio_mode: false,
         },
       },
-    ])
+    )
   })
 
   it('passes radio mode through, so a tag can keep going after the album ends', async () => {
@@ -47,28 +48,35 @@ describe('MusicAssistantTarget (§6)', () => {
     expect(ha.calls[0]!.data.radio_mode).toBe(true)
   })
 
-  it('shuffles only after the queue exists', async () => {
+  it('sets shuffle and repeat only after the queue exists', async () => {
     const { ha, target } = make()
-    await target.launch(mediaItem({ mediaType: 'artist', shuffle: true }))
+    await target.launch(mediaItem({ mediaType: 'artist', shuffle: true, repeat: 'all' }))
 
-    // Order is the whole point: shuffle applies to a queue, and play_media is
-    // what builds one. Reversed, the shuffle would land on the previous queue.
+    // Order is the whole point: both apply to a queue, and play_media is what
+    // builds one. Reversed, they would land on the previous queue.
     expect(ha.calls.map((c) => `${c.domain}.${c.service}`)).toEqual([
       'music_assistant.play_media',
       'media_player.shuffle_set',
+      'media_player.repeat_set',
     ])
-    expect(ha.calls[1]!.data).toEqual({
-      entity_id: 'media_player.kitchen',
-      shuffle: true,
-    })
+    expect(ha.calls[1]!.data).toEqual({ entity_id: 'media_player.kitchen', shuffle: true })
+    expect(ha.calls[2]!.data).toEqual({ entity_id: 'media_player.kitchen', repeat: 'all' })
   })
 
-  it('does not touch shuffle when the cartridge does not ask for it', async () => {
+  it('turns shuffle and repeat off when the cartridge wants neither', async () => {
     const { ha, target } = make()
     await target.launch(mediaItem())
 
-    // Not `shuffle: false` — leaving the speaker's own state alone.
-    expect(ha.calls).toHaveLength(1)
+    // Explicitly, because the queue keeps both from whatever played last: an
+    // album after a shuffled playlist would otherwise come out shuffled.
+    expect(ha.calls[1]!.data.shuffle).toBe(false)
+    expect(ha.calls[2]!.data.repeat).toBe('off')
+  })
+
+  it('repeats a single track for a cartridge set to repeat one', async () => {
+    const { ha, target } = make()
+    await target.launch(mediaItem({ mediaType: 'track', repeat: 'one' }))
+    expect(ha.calls[2]!.data.repeat).toBe('one')
   })
 
   it('refuses a payload meant for a screen', async () => {

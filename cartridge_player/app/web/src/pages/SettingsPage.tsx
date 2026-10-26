@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../api'
 import { EntityPicker } from '../components/EntityPicker'
 import { LightSettings } from '../components/LightSettings'
+import { REPEAT_OPTIONS } from '../lib/repeat'
 import type {
   EntityOption,
   LedPalette,
   LedPlayingMode,
   MusicRemovalAction,
   RemovalAction,
+  RepeatMode,
   Settings,
 } from '../types'
 
@@ -74,6 +76,8 @@ const TAB_SETTINGS: Record<SettingsTab, (keyof Settings)[]> = {
     'autoplay_delay_ms',
     'removal_action',
     'music_removal_action',
+    'music_shuffle_default',
+    'music_repeat_default',
   ],
   light: [
     'led_enabled',
@@ -152,6 +156,8 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
         removal_action: draft.removal_action,
         music_player_entity: draft.music_player_entity,
         music_removal_action: draft.music_removal_action,
+        music_shuffle_default: draft.music_shuffle_default,
+        music_repeat_default: draft.music_repeat_default,
         led_enabled: draft.led_enabled,
         led_playing_mode: draft.led_playing_mode,
         led_playing_artwork: draft.led_playing_artwork,
@@ -361,6 +367,39 @@ export function SettingsPage({ settings, onSaved }: SettingsPageProps) {
             </label>
           ))}
         </div>
+      </div>
+
+      <div className="card">
+        <h2>New music cartridges</h2>
+        <p className="hint">
+          What a music cartridge starts with when you set it up. Each one can
+          then be changed under Edit, and changing these later leaves cartridges
+          you already have as they are.
+        </p>
+
+        <div className="switch">
+          <span>Shuffle</span>
+          <input
+            type="checkbox"
+            checked={draft.music_shuffle_default}
+            onChange={(e) => set('music_shuffle_default', e.target.checked)}
+          />
+        </div>
+        <p className="hint">Artists always start shuffled, whatever this says.</p>
+
+        <label className="field">
+          <span>Repeat</span>
+          <select
+            value={draft.music_repeat_default}
+            onChange={(e) => set('music_repeat_default', e.target.value as RepeatMode)}
+          >
+            {REPEAT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       </>

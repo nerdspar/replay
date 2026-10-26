@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import { SQL_NORMALIZED_UID } from '../core/uid.js'
 
-export const SCHEMA_VERSION = 12
+export const SCHEMA_VERSION = 13
 
 /**
  * §4. Note the reserved columns on `settings`: they exist so that enabling §12
@@ -324,6 +324,24 @@ UPDATE cards SET episode_mode = 'pinned'
   WHERE season IS NOT NULL AND episode IS NOT NULL;
 `
 
+/**
+ * Repeat, beside the shuffle each music cartridge already has, and a household
+ * default for both.
+ *
+ * The defaults are only what a NEW cartridge starts with. They are copied onto
+ * the card when it is made rather than read at tap time, so changing them never
+ * reshuffles a shelf of cartridges that were each set up to sound a certain way.
+ *
+ * Existing cartridges get `off`, which is what they have always done — or what
+ * they meant to do: before this, a cartridge never touched repeat at all and
+ * inherited whatever the speaker was last left on.
+ */
+const V13 = `
+ALTER TABLE cards ADD COLUMN repeat TEXT NOT NULL DEFAULT 'off';
+ALTER TABLE settings ADD COLUMN music_shuffle_default INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE settings ADD COLUMN music_repeat_default TEXT NOT NULL DEFAULT 'off';
+`
+
 export function migrate(db: Database): void {
   const current = db.pragma('user_version', { simple: true }) as number
   if (current < 1) {
@@ -362,6 +380,9 @@ export function migrate(db: Database): void {
   }
   if (current < 12) {
     db.exec(V12)
+  }
+  if (current < 13) {
+    db.exec(V13)
   }
   // Future migrations append here, guarded on `current`.
   db.pragma(`user_version = ${SCHEMA_VERSION}`)

@@ -17,6 +17,7 @@ import type {
   ContentType,
   MusicRemovalAction,
   RemovalAction,
+  RepeatMode,
   EpisodeMode,
   ScanEvent,
   Settings,
@@ -57,6 +58,8 @@ interface SettingsRow {
   removal_action: string
   music_player_entity: string | null
   music_removal_action: string
+  music_shuffle_default: number
+  music_repeat_default: string
   led_enabled: number
   led_playing_mode: string
   led_playing_artwork: number
@@ -82,8 +85,10 @@ interface CardRow
     | 'shuffle'
     | 'radio_mode'
     | 'episode_mode'
+    | 'repeat'
   > {
   episode_mode: string
+  repeat: string
   content_type: string
   status: string
   kind: string
@@ -105,6 +110,8 @@ function toSettings(row: SettingsRow): Settings {
     removal_action: row.removal_action as RemovalAction,
     music_player_entity: row.music_player_entity,
     music_removal_action: row.music_removal_action as MusicRemovalAction,
+    music_shuffle_default: row.music_shuffle_default !== 0,
+    music_repeat_default: row.music_repeat_default as RepeatMode,
     led_enabled: row.led_enabled !== 0,
     led_playing_mode: row.led_playing_mode as LedPlayingMode,
     led_playing_artwork: row.led_playing_artwork !== 0,
@@ -132,6 +139,7 @@ function toCard(row: CardRow): Card {
     art_fit: row.art_fit as ArtFit | null,
     shuffle: row.shuffle !== 0,
     radio_mode: row.radio_mode !== 0,
+    repeat: row.repeat as RepeatMode,
     episode_mode: row.episode_mode as EpisodeMode,
   }
 }
@@ -148,6 +156,8 @@ const WRITABLE_SETTINGS = [
   'removal_action',
   'music_player_entity',
   'music_removal_action',
+  'music_shuffle_default',
+  'music_repeat_default',
   'led_enabled',
   'led_playing_mode',
   'led_playing_artwork',
@@ -244,11 +254,11 @@ export class Store {
         `INSERT INTO cards
            (tag_uid, kind, provider, content_type, external_id, title, year,
             poster_url, original_poster_url, season, episode, label,
-            player_entity, art_fit, shuffle, radio_mode, accent_color,
+            player_entity, art_fit, shuffle, repeat, radio_mode, accent_color,
             resume_hint, spine_text, spine_color, spine_text_color,
             episode_mode, cursor_season, cursor_episode,
             created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.tag_uid,
@@ -270,6 +280,7 @@ export class Store {
         input.player_entity,
         input.art_fit,
         input.shuffle ? 1 : 0,
+        input.repeat ?? 'off',
         input.radio_mode ? 1 : 0,
         input.accent_color,
         input.resume_hint,
@@ -303,6 +314,7 @@ export class Store {
       'player_entity',
       'art_fit',
       'shuffle',
+      'repeat',
       'radio_mode',
       'accent_color',
       'resume_hint',

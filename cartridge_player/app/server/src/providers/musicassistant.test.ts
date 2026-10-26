@@ -140,6 +140,7 @@ describe('MusicAssistantProvider (§5)', () => {
         value: 'library://album/12',
         mediaType: 'album',
         shuffle: false,
+        repeat: 'off',
         radioMode: false,
       })
     })
@@ -147,11 +148,16 @@ describe('MusicAssistantProvider (§5)', () => {
     it('carries the cartridge’s own shuffle and radio mode', async () => {
       const { provider } = make()
       const payload = provider.buildLaunch(
-        musicCard({ content_type: 'artist', shuffle: true, radio_mode: true }),
+        musicCard({ content_type: 'artist', shuffle: true, repeat: 'all', radio_mode: true }),
         settings(),
       )
 
-      expect(payload).toMatchObject({ mediaType: 'artist', shuffle: true, radioMode: true })
+      expect(payload).toMatchObject({
+        mediaType: 'artist',
+        shuffle: true,
+        repeat: 'all',
+        radioMode: true,
+      })
     })
   })
 

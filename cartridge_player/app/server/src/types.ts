@@ -86,6 +86,7 @@ export type LaunchPayload =
       value: string
       mediaType: string
       shuffle: boolean
+      repeat: RepeatMode
       radioMode: boolean
     }
 
@@ -93,6 +94,12 @@ export type LaunchPayload =
 export type TargetKey = 'home' | 'select' | 'back'
 
 export type RemovalAction = 'none' | 'pause' | 'back' | 'home' | 'off'
+
+/**
+ * What happens when a music cartridge reaches the end. `one` repeats the track
+ * it is on, which is what a lullaby cartridge wants; `all` goes round again.
+ */
+export type RepeatMode = 'off' | 'all' | 'one'
 
 /** A speaker has no Back, Home, or power. Lifting can only ever do these three. */
 export type MusicRemovalAction = 'none' | 'pause' | 'stop'
@@ -197,6 +204,8 @@ export interface Card {
   cursor_episode: number | null
   /** Music only. Shuffles the queue this cartridge builds. */
   shuffle: boolean
+  /** Music only. What happens at the end of the selection. */
+  repeat: RepeatMode
   /** Music only. Keeps playing similar music once the selection runs out. */
   radio_mode: boolean
   created_at: number
@@ -220,6 +229,9 @@ export interface Settings {
   removal_action: RemovalAction
   music_player_entity: string | null
   music_removal_action: MusicRemovalAction
+  /** What a new music cartridge starts with. Each cartridge can then differ. */
+  music_shuffle_default: boolean
+  music_repeat_default: RepeatMode
   led_enabled: boolean
   led_playing_mode: LedPlayingMode
   /** Wear the cartridge's own artwork colour while it plays. */

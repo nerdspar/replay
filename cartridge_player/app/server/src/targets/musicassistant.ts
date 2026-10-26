@@ -34,16 +34,23 @@ export class MusicAssistantTarget implements Target {
       radio_mode: payload.radioMode,
     })
 
-    if (payload.shuffle) {
-      // After the queue exists, not before: shuffle applies to a queue, and
-      // there is none until play_media builds one. The track already starting
-      // stays first, and everything behind it is shuffled — which is what
-      // Music Assistant's own app does.
-      await this.options.ha.callService('media_player', 'shuffle_set', {
-        entity_id: entity,
-        shuffle: true,
-      })
-    }
+    // After the queue exists, not before: both apply to a queue, and there is
+    // none until play_media builds one. The track already starting stays first,
+    // and everything behind it is shuffled — which is what Music Assistant's
+    // own app does.
+    //
+    // Set every time, off as well as on. A queue keeps both from whatever
+    // played last, so an album cartridge tapped after a shuffled playlist would
+    // otherwise come out shuffled — and one tapped after a lullaby on repeat
+    // would never end.
+    await this.options.ha.callService('media_player', 'shuffle_set', {
+      entity_id: entity,
+      shuffle: payload.shuffle,
+    })
+    await this.options.ha.callService('media_player', 'repeat_set', {
+      entity_id: entity,
+      repeat: payload.repeat,
+    })
   }
 
   /**

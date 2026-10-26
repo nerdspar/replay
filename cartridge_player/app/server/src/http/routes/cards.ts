@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { AppContext } from '../../context.js'
 import { AppError } from '../../errors.js'
 import { collectArtworkGarbage } from './artwork.js'
+import { kindOfContentType } from '../../types.js'
 
 const contentType = z.enum([
   'movie',
@@ -30,6 +31,7 @@ const createBody = z.object({
   player_entity: z.string().nullable().optional(),
   art_fit: z.enum(['crop', 'blur', 'color']).nullable().optional(),
   shuffle: z.boolean().optional(),
+  repeat: z.enum(['off', 'all', 'one']).optional(),
   radio_mode: z.boolean().optional(),
   accent_color: z
     .string()
@@ -69,6 +71,11 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
     ctx.providers.get(provider)
 
     const now = Date.now()
+    // A new music cartridge starts from the household's defaults; anything the
+    // client says outright wins. Copied, not referenced, so changing a default
+    // later leaves cartridges already on the shelf as they were set up.
+    const defaults = ctx.store.getSettings()
+    const music = kindOfContentType(body.content_type) === 'music'
     const content = {
       provider,
       content_type: body.content_type,
@@ -81,7 +88,8 @@ export function registerCardRoutes(app: FastifyInstance, ctx: AppContext): void 
       label: body.label ?? null,
       player_entity: body.player_entity ?? null,
       art_fit: body.art_fit ?? null,
-      shuffle: body.shuffle ?? false,
+      shuffle: body.shuffle ?? (music && defaults.music_shuffle_default),
+      repeat: body.repeat ?? (music ? defaults.music_repeat_default : 'off'),
       radio_mode: body.radio_mode ?? false,
       accent_color: body.accent_color ?? null,
       episode_mode:

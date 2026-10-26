@@ -9,11 +9,13 @@ import { Sheet } from './Sheet'
 import { StickerPreview } from './StickerPreview'
 import { SpinePreview } from './SpinePreview'
 import { readableTextColor, spineColors } from '../lib/spine'
+import { REPEAT_OPTIONS } from '../lib/repeat'
 import type {
   ArtFit,
   Card,
   EntityOption,
   EpisodeMode,
+  RepeatMode,
   SpineAlign,
 } from '../types'
 
@@ -98,6 +100,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
   const [busy, setBusy] = useState(false)
   const [player, setPlayer] = useState<string | null>(card.player_entity)
   const [shuffle, setShuffle] = useState(card.shuffle)
+  const [repeat, setRepeat] = useState<RepeatMode>(card.repeat ?? 'off')
   const [radioMode, setRadioMode] = useState(card.radio_mode)
   const [artFit, setArtFit] = useState<ArtFit>(card.art_fit ?? 'crop')
   const [episodeMode, setEpisodeMode] = useState<EpisodeMode>(card.episode_mode ?? 'list')
@@ -205,6 +208,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
     label !== (card.label ?? '') ||
     player !== card.player_entity ||
     shuffle !== card.shuffle ||
+    repeat !== (card.repeat ?? 'off') ||
     radioMode !== card.radio_mode ||
     artFit !== (card.art_fit ?? 'crop') ||
     episodeMode !== (card.episode_mode ?? 'list') ||
@@ -230,6 +234,7 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
             ? {
                 player_entity: player,
                 shuffle,
+                repeat,
                 radio_mode: radioMode,
                 art_fit: artFit,
               }
@@ -397,6 +402,20 @@ export function CardSheet({ card, onClose, onChanged }: CardSheetProps) {
             />
           </div>
           <p className="hint">Plays in a random order instead of the running order.</p>
+
+          <label className="field">
+            <span>Repeat</span>
+            <select value={repeat} onChange={(e) => setRepeat(e.target.value as RepeatMode)}>
+              {REPEAT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="hint">
+              {REPEAT_OPTIONS.find((option) => option.value === repeat)?.hint}
+            </p>
+          </label>
 
           <div className="switch">
             <span>Keep going afterwards</span>

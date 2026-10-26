@@ -194,6 +194,7 @@ export class MusicAssistantProvider implements Provider {
       value: card.external_id,
       mediaType: card.content_type,
       shuffle: card.shuffle,
+      repeat: card.repeat,
       radioMode: card.radio_mode,
     }
   }
